@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ELKI App – Trimmis</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 100%; max-width: 420px; }
+    h1 { color: #2c3e50; margin-bottom: 0.5rem; font-size: 1.8rem; }
+    .subtitle { color: #7f8c8d; margin-bottom: 2rem; font-size: 0.9rem; }
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; color: #555; margin-bottom: 0.3rem; font-size: 0.9rem; }
+    input { width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; transition: border-color 0.2s; }
+    input:focus { outline: none; border-color: #3498db; }
+    button { width: 100%; padding: 0.9rem; background: #2c3e50; color: white; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; transition: background 0.2s; margin-top: 0.5rem; }
+    button:hover { background: #34495e; }
+    .error { color: #e74c3c; font-size: 0.85rem; margin-top: 0.5rem; display: none; }
+    .dashboard { display: none; }
+    .dashboard h2 { color: #2c3e50; margin-bottom: 1rem; }
+    .user-info { background: #ecf0f1; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+    .btn-logout { background: #e74c3c; }
+    .btn-logout:hover { background: #c0392b; }
+    #loginForm { }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Login -->
+    <div id="loginSection">
+      <h1>ELKI</h1>
+      <p class="subtitle">Verein Trimmis – Mitgliederverwaltung</p>
+      <div class="form-group">
+        <label>E-Mail</label>
+        <input type="email" id="email" placeholder="admin@elki.local">
+      </div>
+      <div class="form-group">
+        <label>Passwort</label>
+        <input type="password" id="password" placeholder="••••••••">
+      </div>
+      <button onclick="login()">Anmelden</button>
+      <p class="error" id="errorMsg"></p>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard" class="dashboard">
+      <h2>Dashboard</h2>
+      <div class="user-info">
+        <strong>Angemeldet als:</strong><br>
+        <span id="userEmail"></span>
+      </div>
+      <p style="color:#555; margin-bottom:1rem;">Willkommen bei der ELKI Vereinsverwaltung Trimmis.</p>
+      <button class="btn-logout" onclick="logout()">Abmelden</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
+    import { getFirestore } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey:            "AIzaSyCei_kFacFHS45wMbgnvdZ506LtnMURVtA",
+      authDomain:        "elki-trimmis.firebaseapp.com",
+      projectId:         "elki-trimmis",
+      storageBucket:     "elki-trimmis.firebasestorage.app",
+      messagingSenderId: "600024605398",
+      appId:             "1:600024605398:web:a2c3467fce0659305cdf77"
+    };
+
+    const app  = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
+
+    window.login = async function() {
+      const email    = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const errEl    = document.getElementById('errorMsg');
+      errEl.style.display = 'none';
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch(e) {
+        errEl.textContent = 'Fehler: ' + (e.code === 'auth/invalid-credential' ? 'E-Mail oder Passwort falsch.' : e.message);
+        errEl.style.display = 'block';
+      }
+    };
+
+    window.logout = function() { signOut(auth); };
+
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        document.getElementById('loginSection').style.display  = 'none';
+        document.getElementById('dashboard').style.display     = 'block';
+        document.getElementById('userEmail').textContent        = user.email;
+      } else {
+        document.getElementById('loginSection').style.display  = 'block';
+        document.getElementById('dashboard').style.display     = 'none';
+      }
+    });
+  </script>
+</body>
+</html>
