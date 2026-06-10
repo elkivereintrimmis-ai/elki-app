@@ -312,6 +312,58 @@
     .user-role-badge { font-size:11px; font-weight:700; padding:4px 10px; border-radius:6px; white-space:nowrap; }
     .user-role-badge.admin { color:#4338CA; background:#E0E7FF; }
 
+    /* BIRTHDAY CALENDAR */
+    .bday-launch-row { display:flex; justify-content:flex-end; margin-bottom:16px; }
+    .btn-birthday { padding:10px 18px; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; background:#EC4899; color:white; transition:all .2s; display:inline-flex; align-items:center; gap:6px; }
+    .btn-birthday:hover { background:#DB2777; transform:translateY(-1px); box-shadow:0 4px 12px rgba(236,72,153,.3); }
+    .bday-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:3000; display:none; justify-content:center; align-items:flex-start; padding:30px 16px; overflow-y:auto; }
+    .bday-modal-overlay.open { display:flex; }
+    .bday-dialog { background:white; border-radius:16px; max-width:920px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,.25); animation:slideIn .3s ease; overflow:hidden; }
+    .bday-header { background:linear-gradient(135deg,#EC4899,#DB2777); color:white; padding:18px 24px; display:flex; justify-content:space-between; align-items:center; }
+    .bday-header h3 { font-size:18px; font-weight:700; margin:0; }
+    .bday-close { background:rgba(255,255,255,.2); border:none; color:white; width:32px; height:32px; border-radius:50%; font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+    .bday-close:hover { background:rgba(255,255,255,.35); }
+    .bday-controls { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:16px 24px; border-bottom:1px solid #E2E8F0; flex-wrap:wrap; }
+    .bday-view-toggle { display:inline-flex; background:#F3F4F6; border-radius:10px; padding:3px; gap:2px; }
+    .bday-view-btn { padding:7px 16px; border:none; background:none; border-radius:8px; font-size:13px; font-weight:600; color:#6B7280; cursor:pointer; font-family:inherit; }
+    .bday-view-btn.active { background:white; color:#DB2777; box-shadow:0 1px 3px rgba(0,0,0,.1); }
+    .bday-nav { display:flex; align-items:center; gap:8px; }
+    .bday-nav button { padding:6px 12px; border:1px solid #E2E8F0; background:white; border-radius:8px; font-size:14px; cursor:pointer; font-family:inherit; color:#374151; }
+    .bday-nav button:hover { background:#F9FAFB; }
+    .bday-period-label { font-size:15px; font-weight:700; color:#1F2937; min-width:160px; text-align:center; }
+    .bday-body { padding:20px 24px; max-height:62vh; overflow-y:auto; }
+    .bday-cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; }
+    .bday-cal-head { text-align:center; font-size:11px; font-weight:700; color:#9CA3AF; text-transform:uppercase; padding:4px 0; }
+    .bday-cal-cell { min-height:78px; border:1px solid #F3F4F6; border-radius:8px; padding:5px 6px; background:#FAFAFA; }
+    .bday-cal-cell.empty { background:transparent; border:none; }
+    .bday-cal-cell.has-bday { background:#FCE7F3; border-color:#FBCFE8; }
+    .bday-cal-cell.today { border:2px solid #4F8EF7; }
+    .bday-cal-day { font-size:12px; font-weight:700; color:#6B7280; margin-bottom:3px; }
+    .bday-cal-name { font-size:11px; color:#9D174D; background:white; border-radius:5px; padding:2px 5px; margin-bottom:3px; line-height:1.3; }
+    .bday-age { color:#DB2777; font-weight:700; }
+    .bday-week-list { display:flex; flex-direction:column; gap:8px; }
+    .bday-week-row { display:flex; gap:14px; padding:12px 14px; border:1px solid #F3F4F6; border-radius:10px; align-items:center; }
+    .bday-week-row.has-bday { background:#FCE7F3; border-color:#FBCFE8; }
+    .bday-week-row.today { border:2px solid #4F8EF7; }
+    .bday-week-day { text-align:center; min-width:54px; }
+    .bday-week-wd { font-size:14px; font-weight:700; color:#374151; }
+    .bday-week-date { font-size:11px; color:#9CA3AF; }
+    .bday-week-names { flex:1; display:flex; flex-direction:column; gap:4px; }
+    .bday-year-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:14px; }
+    .bday-year-card { border:1px solid #E2E8F0; border-radius:10px; padding:14px; }
+    .bday-year-card.empty { opacity:.55; }
+    .bday-year-month { font-size:14px; font-weight:700; color:#DB2777; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid #F3F4F6; }
+    .bday-year-item { font-size:13px; color:#374151; padding:3px 0; }
+    .bday-year-day { font-weight:700; color:#6B7280; display:inline-block; min-width:26px; }
+    .bday-none { color:#D1D5DB; font-size:13px; }
+    @media(max-width:600px){
+      .bday-controls { flex-direction:column; align-items:stretch; }
+      .bday-nav { justify-content:center; }
+      .bday-cal-cell { min-height:56px; padding:3px; }
+      .bday-cal-name { font-size:9px; padding:1px 3px; }
+      .bday-body { padding:14px; }
+    }
+
     /* RESPONSIVE */
     @media(max-width:1024px) {
       .dashboard-grid { grid-template-columns:1fr; }
@@ -566,6 +618,9 @@
 
   <!-- TAB: Dashboard -->
   <section class="tab-content" id="tab-dashboard">
+    <div class="bday-launch-row">
+      <button class="btn-birthday" id="btn-birthday-overview">🎂 Geburtstags-Kalender</button>
+    </div>
     <!-- Sub-Tabs -->
     <div class="dash-subtabs">
       <button class="dash-subtab active" data-panel="uebersicht">📊 Übersicht</button>
@@ -836,6 +891,30 @@
       <button class="btn btn-secondary" id="btn-ticket-cancel">Abbrechen</button>
       <button class="btn btn-primary" id="btn-ticket-submit">✉️ Ticket senden</button>
     </div>
+  </div>
+</div>
+
+<!-- Birthday Calendar Modal -->
+<div class="bday-modal-overlay" id="bday-modal">
+  <div class="bday-dialog">
+    <div class="bday-header">
+      <h3>🎂 Geburtstage</h3>
+      <button class="bday-close" id="bday-close">&times;</button>
+    </div>
+    <div class="bday-controls">
+      <div class="bday-view-toggle">
+        <button class="bday-view-btn active" data-view="monat">Monat</button>
+        <button class="bday-view-btn" data-view="woche">Woche</button>
+        <button class="bday-view-btn" data-view="jahr">Jahr</button>
+      </div>
+      <div class="bday-nav">
+        <button id="bday-prev" title="Zurück">‹</button>
+        <span class="bday-period-label" id="bday-period-label"></span>
+        <button id="bday-next" title="Weiter">›</button>
+        <button id="bday-today">Heute</button>
+      </div>
+    </div>
+    <div class="bday-body" id="bday-body"></div>
   </div>
 </div>
 
@@ -1301,6 +1380,7 @@ window._fbReady = function() {
   buildCapacityInputs();
   registerEventListeners();
   registerTicketEvents();
+  registerBirthdayEvents();
   // Datenladen geschieht in onAuthStateChanged (nach erfolgreichem Login)
 };
 
@@ -2383,6 +2463,138 @@ function registerTicketEvents() {
   document.getElementById('ticket-modal-overlay').addEventListener('click', e => {
     if (e.target === document.getElementById('ticket-modal-overlay')) closeTicketModal();
   });
+}
+
+
+// ===== GEBURTSTAGS-KALENDER =====
+const BDAY_MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const BDAY_WD = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+let bdayView = 'monat';      // 'monat' | 'woche' | 'jahr'
+let bdayRef = new Date();    // Referenzdatum des angezeigten Zeitraums
+
+function bdayParse(k) {
+  if (!k.geburtsdatum) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(k.geburtsdatum);
+  if (!m) return null;
+  return { year: +m[1], month: +m[2], day: +m[3] }; // month 1-basiert
+}
+function bdaySameDate(a, b) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+// Kinder mit Geburtstag an month1 (1-basiert)/day, inkl. Alter das im Jahr year erreicht wird
+function bdayOnDate(year, month1, day) {
+  const res = [];
+  kinder.forEach(k => {
+    const b = bdayParse(k);
+    if (b && b.month === month1 && b.day === day) res.push({ k, age: year - b.year });
+  });
+  return res.sort((a, c) => (a.k.vorname || '').localeCompare(c.k.vorname || ''));
+}
+
+function openBirthdayModal() {
+  bdayView = 'monat';
+  bdayRef = new Date();
+  syncBdayToggle();
+  document.getElementById('bday-modal').classList.add('open');
+  renderBirthday();
+}
+function closeBirthdayModal() {
+  document.getElementById('bday-modal').classList.remove('open');
+}
+function syncBdayToggle() {
+  document.querySelectorAll('.bday-view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === bdayView));
+}
+function bdayNav(dir) {
+  const d = new Date(bdayRef);
+  if (bdayView === 'monat') d.setMonth(d.getMonth() + dir);
+  else if (bdayView === 'woche') d.setDate(d.getDate() + 7 * dir);
+  else d.setFullYear(d.getFullYear() + dir);
+  bdayRef = d;
+  renderBirthday();
+}
+function renderBirthday() {
+  if (bdayView === 'monat') renderBdayMonth();
+  else if (bdayView === 'woche') renderBdayWeek();
+  else renderBdayYear();
+}
+
+function renderBdayMonth() {
+  const y = bdayRef.getFullYear(), m = bdayRef.getMonth(); // m 0-basiert
+  document.getElementById('bday-period-label').textContent = `${BDAY_MONTHS[m]} ${y}`;
+  const firstWd = (new Date(y, m, 1).getDay() + 6) % 7; // Mo=0 … So=6
+  const daysIn = new Date(y, m + 1, 0).getDate();
+  const today = new Date();
+  let cells = BDAY_WD.map(d => `<div class="bday-cal-head">${d}</div>`).join('');
+  for (let i = 0; i < firstWd; i++) cells += '<div class="bday-cal-cell empty"></div>';
+  for (let day = 1; day <= daysIn; day++) {
+    const list = bdayOnDate(y, m + 1, day);
+    const isToday = bdaySameDate(new Date(y, m, day), today);
+    cells += `
+      <div class="bday-cal-cell${list.length ? ' has-bday' : ''}${isToday ? ' today' : ''}">
+        <div class="bday-cal-day">${day}</div>
+        ${list.map(it => `<div class="bday-cal-name" title="${escHtml(it.k.vorname)} ${escHtml(it.k.nachname)} – wird ${it.age}">🎂 ${escHtml(it.k.vorname)} ${escHtml(it.k.nachname)} <span class="bday-age">(${it.age})</span></div>`).join('')}
+      </div>`;
+  }
+  const trail = (7 - ((firstWd + daysIn) % 7)) % 7;
+  for (let i = 0; i < trail; i++) cells += '<div class="bday-cal-cell empty"></div>';
+  document.getElementById('bday-body').innerHTML = `<div class="bday-cal-grid">${cells}</div>`;
+}
+
+function renderBdayWeek() {
+  const ref = new Date(bdayRef);
+  const wd = (ref.getDay() + 6) % 7;
+  const monday = new Date(ref); monday.setDate(ref.getDate() - wd);
+  const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
+  document.getElementById('bday-period-label').textContent =
+    `${monday.getDate()}. ${BDAY_MONTHS[monday.getMonth()]} – ${sunday.getDate()}. ${BDAY_MONTHS[sunday.getMonth()]} ${sunday.getFullYear()}`;
+  const today = new Date();
+  let rows = '';
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday); d.setDate(monday.getDate() + i);
+    const list = bdayOnDate(d.getFullYear(), d.getMonth() + 1, d.getDate());
+    rows += `
+      <div class="bday-week-row${list.length ? ' has-bday' : ''}${bdaySameDate(d, today) ? ' today' : ''}">
+        <div class="bday-week-day">
+          <div class="bday-week-wd">${BDAY_WD[i]}</div>
+          <div class="bday-week-date">${d.getDate()}.${d.getMonth() + 1}.</div>
+        </div>
+        <div class="bday-week-names">
+          ${list.length ? list.map(it => `<div class="bday-cal-name">🎂 ${escHtml(it.k.vorname)} ${escHtml(it.k.nachname)} <span class="bday-age">wird ${it.age}</span></div>`).join('') : '<span class="bday-none">Keine Geburtstage</span>'}
+        </div>
+      </div>`;
+  }
+  document.getElementById('bday-body').innerHTML = `<div class="bday-week-list">${rows}</div>`;
+}
+
+function renderBdayYear() {
+  const y = bdayRef.getFullYear();
+  document.getElementById('bday-period-label').textContent = `${y}`;
+  let cards = '';
+  for (let m = 0; m < 12; m++) {
+    const items = [];
+    kinder.forEach(k => { const b = bdayParse(k); if (b && b.month === m + 1) items.push({ k, day: b.day, age: y - b.year }); });
+    items.sort((a, c) => a.day - c.day || (a.k.vorname || '').localeCompare(c.k.vorname || ''));
+    cards += `
+      <div class="bday-year-card${items.length ? '' : ' empty'}">
+        <div class="bday-year-month">${BDAY_MONTHS[m]}</div>
+        ${items.length ? items.map(it => `<div class="bday-year-item"><span class="bday-year-day">${it.day}.</span> ${escHtml(it.k.vorname)} ${escHtml(it.k.nachname)} <span class="bday-age">(${it.age})</span></div>`).join('') : '<div class="bday-none">—</div>'}
+      </div>`;
+  }
+  document.getElementById('bday-body').innerHTML = `<div class="bday-year-grid">${cards}</div>`;
+}
+
+function registerBirthdayEvents() {
+  document.getElementById('btn-birthday-overview').addEventListener('click', openBirthdayModal);
+  document.getElementById('bday-close').addEventListener('click', closeBirthdayModal);
+  document.getElementById('bday-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('bday-modal')) closeBirthdayModal();
+  });
+  document.querySelectorAll('.bday-view-btn').forEach(b =>
+    b.addEventListener('click', () => { bdayView = b.dataset.view; syncBdayToggle(); renderBirthday(); })
+  );
+  document.getElementById('bday-prev').addEventListener('click', () => bdayNav(-1));
+  document.getElementById('bday-next').addEventListener('click', () => bdayNav(1));
+  document.getElementById('bday-today').addEventListener('click', () => { bdayRef = new Date(); renderBirthday(); });
 }
 
 
