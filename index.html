@@ -303,8 +303,6 @@
     .user-role-select:focus { outline:none; border-color:#4F8EF7; }
     .user-role-badge { font-size:11px; font-weight:700; padding:4px 10px; border-radius:6px; white-space:nowrap; }
     .user-role-badge.admin { color:#4338CA; background:#E0E7FF; }
-    .btn-user-reset { padding:4px 9px; background:#FEF3C7; color:#B45309; border:none; border-radius:6px; font-size:13px; cursor:pointer; }
-    .btn-user-reset:hover { background:#FDE68A; }
 
     /* RESPONSIVE */
     @media(max-width:1024px) {
@@ -348,8 +346,6 @@
       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc }
       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-    import { getFunctions, httpsCallable }
-      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 
     // *** DEINE FIREBASE-KONFIGURATION HIER EINTRAGEN ***
     const firebaseConfig = {
@@ -365,7 +361,6 @@
     const app  = initializeApp(firebaseConfig, 'main');
     const auth = getAuth(app);
     const db   = getFirestore(app);
-    const functions = getFunctions(app); // für Admin-Passwort-Reset (Cloud Function)
 
     // Zweite App-Instanz nur zum Anlegen neuer User
     // → eigene Auth-Session, unterbricht Admin-Login nicht
@@ -430,15 +425,6 @@
       await updatePassword(auth.currentUser, newPassword);
     }
 
-    // ── Passwort eines ANDEREN Benutzers zurücksetzen (nur Admin) ──
-    // Läuft über eine Firebase Cloud Function (Admin SDK), da der Client
-    // fremde Passwörter nicht direkt ändern kann.
-    async function fbAdminResetPassword(email, newPassword) {
-      const fn = httpsCallable(functions, 'adminResetPassword');
-      const res = await fn({ email, newPassword });
-      return res.data;
-    }
-
     // Expose über window so der Legacy-Code sie nutzen kann
     window._fb = {
       auth, db,
@@ -446,7 +432,6 @@
       fbGetUsers, fbSaveUsers,
       fbCreateUser,
       fbChangeOwnPassword,
-      fbAdminResetPassword,
       signInWithEmailAndPassword, signOut, onAuthStateChanged
     };
 
@@ -1064,7 +1049,6 @@ async function renderUserList() {
           <option value="user"   ${u.role !== 'viewer' ? 'selected' : ''}>Bearbeiten</option>
           <option value="viewer" ${u.role === 'viewer' ? 'selected' : ''}>Nur Lesen</option>
         </select>
-        <button class="btn-user-reset" data-email="${escHtml(u.email)}" data-username="${escHtml(u.username)}" title="Passwort zurücksetzen">🔑</button>
         <button class="btn-user-delete" data-uid="${u.id}" data-username="${escHtml(u.username)}">Löschen</button>
       </div>`;
   }).join('');
@@ -1074,9 +1058,6 @@ async function renderUserList() {
   );
   list.querySelectorAll('.user-role-select').forEach(sel =>
     sel.addEventListener('change', () => changeUserRole(parseInt(sel.dataset.uid), sel.value))
-  );
-  list.querySelectorAll('.btn-user-reset').forEach(btn =>
-    btn.addEventListener('click', () => adminResetPassword(btn.dataset.email, btn.dataset.username))
   );
 }
 
@@ -1092,22 +1073,6 @@ async function changeUserRole(uid, newRole) {
   await window._fb.fbSaveUsers(users);
   showToast(`Rolle von @${u.username}: ${ROLE_LABELS[newRole]}`, 'success');
   renderUserList();
-}
-
-// Passwort eines anderen Benutzers zurücksetzen (nur Admin, via Cloud Function)
-async function adminResetPassword(email, username) {
-  if (!isAdminRole()) { showToast('Keine Berechtigung', 'error'); return; }
-  const np = prompt(`Neues Passwort für @${username} festlegen (mind. 6 Zeichen):`);
-  if (np === null) return;
-  if (np.length < 6) { showToast('Passwort muss mindestens 6 Zeichen haben', 'error'); return; }
-  try {
-    showToast('Passwort wird zurückgesetzt…', 'info');
-    await window._fb.fbAdminResetPassword(email, np);
-    showToast(`✅ Passwort für @${username} zurückgesetzt`, 'success');
-  } catch(e) {
-    const msg = (e && e.message) ? e.message : 'Unbekannter Fehler';
-    showToast('Fehler: ' + msg + ' — Cloud Function „adminResetPassword" deployt?', 'error');
-  }
 }
 
 // Benutzer löschen (nur aus Firestore-Liste; Firebase-Auth-Account bleibt)
