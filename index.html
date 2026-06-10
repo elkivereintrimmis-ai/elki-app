@@ -343,7 +343,10 @@
     }
     async function fbSave(docPath, value) {
       try { await setDoc(doc(db, docPath), { value }); }
-      catch(e) { console.error('fbSave', docPath, e); showToast('Speicherfehler: ' + e.message, 'error'); }
+      catch(e) {
+        console.error('fbSave', docPath, e);
+        if (typeof showToast === 'function') showToast('Speicherfehler: ' + e.message, 'error');
+      }
     }
 
     // ── Benutzerliste in Firestore ───────────────────────────
@@ -383,9 +386,17 @@
       signInWithEmailAndPassword, signOut, onAuthStateChanged
     };
 
-    // Warten bis DOM fertig ist, dann App starten
-    document.addEventListener('DOMContentLoaded', () => window._fbReady && window._fbReady());
-    window._fbReady && window._fbReady();
+    // Warten bis DOM fertig ist, dann App starten.
+    // Das ES-Modul lädt asynchron – beide Reihenfolgen abdecken:
+    function tryStart() {
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => window._fbReady && window._fbReady());
+      } else {
+        window._fbReady && window._fbReady();
+      }
+    }
+    tryStart();
+    window._fbReady = () => {}; // Placeholder, wird im Legacy-Script überschrieben
   </script>
 </head>
 <body>
@@ -941,12 +952,14 @@ function registerAuthEvents() {
   document.getElementById('btn-logout').addEventListener('click', doLogout);
 
   // ── Neuen Benutzer anlegen ───────────────────────────────
-  document.getElementById('btn-add-user').addEventListener('click', async () => {
+  const btnAddUser = document.getElementById('btn-add-user');
+  btnAddUser.addEventListener('click', async () => {
     const name     = document.getElementById('new-user-name').value.trim();
     const username = document.getElementById('new-user-username').value.trim().toLowerCase();
     const pw       = document.getElementById('new-user-password').value;
 
     if (!name || !username || !pw) { showToast('Bitte alle Felder ausfüllen', 'error'); return; }
+    if (!/^[a-z0-9_]+$/.test(username)) { showToast('Benutzername: nur Kleinbuchstaben, Zahlen, Unterstrich', 'error'); return; }
     if (pw.length < 6) { showToast('Passwort muss mindestens 6 Zeichen haben', 'error'); return; }
 
     const users = await window._fb.fbGetUsers();
@@ -954,16 +967,22 @@ function registerAuthEvents() {
       showToast('Benutzername bereits vergeben', 'error'); return;
     }
 
+    btnAddUser.disabled = true;
+    btnAddUser.textContent = '⏳ Wird angelegt…';
+
     const email = username + '@elki.local';
     try {
-      // Zweite App-Instanz anlegen → Admin-Session bleibt unberührt
       await window._fb.fbCreateUser(email, pw);
     } catch(e) {
-      if (e.code === 'auth/email-already-in-use') {
-        showToast('Dieser Benutzername existiert bereits in Firebase', 'error');
-      } else {
-        showToast('Fehler beim Anlegen: ' + e.message, 'error');
-      }
+      btnAddUser.disabled = false;
+      btnAddUser.textContent = '+ Benutzer hinzufügen';
+      const msg = {
+        'auth/email-already-in-use': 'Dieser Benutzername existiert bereits in Firebase.',
+        'auth/weak-password':        'Passwort zu schwach (min. 6 Zeichen).',
+        'auth/admin-restricted-operation': 'Firebase erlaubt keine öffentliche Registrierung.\nFirebase Console → Authentication → Settings → "Allow users to sign up" aktivieren.',
+        'auth/operation-not-allowed': 'E-Mail/Passwort Login ist in Firebase nicht aktiviert.\nFirebase Console → Authentication → Sign-in method → E-Mail/Passwort aktivieren.'
+      }[e.code] || ('Fehler: ' + e.message);
+      showToast(msg, 'error');
       return;
     }
 
@@ -974,24 +993,23 @@ function registerAuthEvents() {
     document.getElementById('new-user-name').value     = '';
     document.getElementById('new-user-username').value = '';
     document.getElementById('new-user-password').value = '';
+    btnAddUser.disabled = false;
+    btnAddUser.textContent = '+ Benutzer hinzufügen';
     renderUserList();
     showToast(`✅ Benutzer "${name}" (@${username}) angelegt`, 'success');
   });
 
   // ── Firebase Auth State Observer ─────────────────────────
-  // Läuft bei jedem Seitenaufruf – stellt Session automatisch wieder her
+  // Läuft automatisch bei Seitenaufruf und nach Login/Logout.
   window._fb.onAuthStateChanged(window._fb.auth, async (fbUser) => {
     if (fbUser) {
       await doLoginUI(fbUser.email);
-      // Daten laden (beim ersten Login oder nach Seitenreload)
-      if (kinder.length === 0) {
-        await loadData();
-        renderKinderTable();
-        updateStats();
-        updateDashboard();
-        await loadWidgets();
-        renderWidgets();
-      }
+      await loadData();
+      renderKinderTable();
+      updateStats();
+      updateDashboard();
+      await loadWidgets();
+      renderWidgets();
     } else {
       document.getElementById('login-overlay').style.display = 'flex';
       setTimeout(() => document.getElementById('login-username')?.focus(), 100);
@@ -1000,18 +1018,15 @@ function registerAuthEvents() {
 }
 
 // ===== INIT =====
-// Wird vom Firebase-Modul aufgerufen sobald das DOM bereit ist.
-// Datenladen geschieht in onAuthStateChanged (nach erfolgreichem Login).
+// Wird vom Firebase ES-Modul aufgerufen sobald DOM + Firebase bereit sind.
+// Muss VOR dem Modul-Callback definiert sein → steht im klassischen <script>.
 window._fbReady = function() {
   registerAuthEvents();
   buildSlotSelector();
   buildCapacityInputs();
   registerEventListeners();
+  // Datenladen geschieht in onAuthStateChanged (nach erfolgreichem Login)
 };
-
-if (document.readyState !== 'loading') {
-  window._fbReady && window._fbReady();
-}
 
 // ===== DATA (Firebase) =====
 async function loadData() {
