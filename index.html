@@ -385,7 +385,7 @@
 
     // Warten bis DOM fertig ist, dann App starten
     document.addEventListener('DOMContentLoaded', () => window._fbReady && window._fbReady());
-    window._fbReady = () => {};
+    window._fbReady && window._fbReady();
   </script>
 </head>
 <body>
