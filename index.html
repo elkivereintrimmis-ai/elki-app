@@ -257,6 +257,7 @@
     .login-footer { font-size:12px; color:#D1D5DB; text-align:center; margin-top:20px; }
     .header-user { display:flex; align-items:center; gap:10px; }
     .header-user-name { font-size:13px; font-weight:600; color:#4F8EF7; }
+    .header-user-role { font-size:11px; font-weight:700; color:#6B7280; background:#F3F4F6; padding:3px 8px; border-radius:6px; text-transform:uppercase; letter-spacing:.4px; }
     .btn-logout { padding:6px 12px; background:#FEE2E2; color:#DC2626; border:1px solid #FECACA; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; transition:all .2s; }
     .btn-logout:hover { background:#FECACA; }
 
@@ -296,6 +297,14 @@
     .add-user-form { display:flex; flex-direction:column; gap:10px; padding:14px; background:#EFF6FF; border-radius:10px; border:1px solid #BFDBFE; }
     .add-user-form input { padding:9px 12px; border:1px solid #BFDBFE; border-radius:8px; font-size:13px; font-family:inherit; }
     .add-user-form input:focus { outline:none; border-color:#4F8EF7; }
+    .add-user-form select { padding:9px 12px; border:1px solid #BFDBFE; border-radius:8px; font-size:13px; font-family:inherit; background:white; color:#1F2937; }
+    .add-user-form select:focus { outline:none; border-color:#4F8EF7; }
+    .user-role-select { padding:5px 8px; border:1px solid #E2E8F0; border-radius:6px; font-size:12px; font-family:inherit; background:white; color:#1F2937; cursor:pointer; }
+    .user-role-select:focus { outline:none; border-color:#4F8EF7; }
+    .user-role-badge { font-size:11px; font-weight:700; padding:4px 10px; border-radius:6px; white-space:nowrap; }
+    .user-role-badge.admin { color:#4338CA; background:#E0E7FF; }
+    .btn-user-reset { padding:4px 9px; background:#FEF3C7; color:#B45309; border:none; border-radius:6px; font-size:13px; cursor:pointer; }
+    .btn-user-reset:hover { background:#FDE68A; }
 
     /* RESPONSIVE */
     @media(max-width:1024px) {
@@ -339,6 +348,8 @@
       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc }
       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFunctions, httpsCallable }
+      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 
     // *** DEINE FIREBASE-KONFIGURATION HIER EINTRAGEN ***
     const firebaseConfig = {
@@ -354,6 +365,7 @@
     const app  = initializeApp(firebaseConfig, 'main');
     const auth = getAuth(app);
     const db   = getFirestore(app);
+    const functions = getFunctions(app); // für Admin-Passwort-Reset (Cloud Function)
 
     // Zweite App-Instanz nur zum Anlegen neuer User
     // → eigene Auth-Session, unterbricht Admin-Login nicht
@@ -380,9 +392,25 @@
     // E-Mail-Format: username@elki.local
     async function fbGetUsers() {
       const raw = await fbLoad('config/users', null);
-      if (raw) return raw;
+      if (raw) {
+        // Migration: jedem Benutzer eine Rolle zuweisen (alte Datensätze ohne 'role')
+        let changed = false;
+        raw.forEach(u => {
+          if (!u.role) {
+            u.role = (u.id === 1 || u.username === 'admin') ? 'admin' : 'user';
+            changed = true;
+          }
+          // Es darf nur EINEN Admin geben (den ursprünglichen Account)
+          if (u.role === 'admin' && !(u.id === 1 || u.username === 'admin')) {
+            u.role = 'user';
+            changed = true;
+          }
+        });
+        if (changed) await fbSave('config/users', raw);
+        return raw;
+      }
       // Erster Start: Admin-Eintrag anlegen
-      const defaults = [{ id:1, name:'Administrator', username:'admin', email:'admin@elki.local' }];
+      const defaults = [{ id:1, name:'Administrator', username:'admin', email:'admin@elki.local', role:'admin' }];
       await fbSave('config/users', defaults);
       return defaults;
     }
@@ -402,6 +430,15 @@
       await updatePassword(auth.currentUser, newPassword);
     }
 
+    // ── Passwort eines ANDEREN Benutzers zurücksetzen (nur Admin) ──
+    // Läuft über eine Firebase Cloud Function (Admin SDK), da der Client
+    // fremde Passwörter nicht direkt ändern kann.
+    async function fbAdminResetPassword(email, newPassword) {
+      const fn = httpsCallable(functions, 'adminResetPassword');
+      const res = await fn({ email, newPassword });
+      return res.data;
+    }
+
     // Expose über window so der Legacy-Code sie nutzen kann
     window._fb = {
       auth, db,
@@ -409,6 +446,7 @@
       fbGetUsers, fbSaveUsers,
       fbCreateUser,
       fbChangeOwnPassword,
+      fbAdminResetPassword,
       signInWithEmailAndPassword, signOut, onAuthStateChanged
     };
 
@@ -457,13 +495,14 @@
       </div>
       <div class="header-user">
         <span class="header-user-name" id="header-user-name"></span>
+        <span class="header-user-role" id="header-user-role"></span>
         <button class="btn-logout" id="btn-logout">Abmelden</button>
       </div>
     </div>
     <div class="tabs">
       <button class="tab-button active" data-tab="kinder">Kinder</button>
       <button class="tab-button" data-tab="dashboard">Dashboard</button>
-      <button class="tab-button" data-tab="einstellungen">Einstellungen</button>
+      <button class="tab-button" data-tab="einstellungen" id="tabbtn-einstellungen">Einstellungen</button>
     </div>
   </div>
 </header>
@@ -670,14 +709,18 @@
 
 
       <!-- Benutzerverwaltung -->
-      <div class="settings-card">
+      <div class="settings-card" id="card-benutzerverwaltung">
         <h3>👥 Benutzerverwaltung</h3>
         <div class="user-list" id="user-list"></div>
         <div class="add-user-form">
           <p style="font-size:13px;font-weight:700;color:#1D4ED8;margin-bottom:2px">Neuen Benutzer hinzufügen</p>
           <input type="text" id="new-user-name" placeholder="Name (z.B. Maria Muster)">
           <input type="text" id="new-user-username" placeholder="Benutzername (z.B. maria)">
-          <input type="password" id="new-user-password" placeholder="Passwort">
+          <input type="password" id="new-user-password" placeholder="Passwort (min. 6 Zeichen)">
+          <select id="new-user-role">
+            <option value="user">Benutzer – darf bearbeiten (kein Löschen)</option>
+            <option value="viewer">Nur Lesen – darf nur anschauen</option>
+          </select>
           <button class="btn btn-primary" id="btn-add-user">+ Benutzer hinzufügen</button>
         </div>
       </div>
@@ -696,7 +739,7 @@
       </div>
 
       <!-- Danger Zone -->
-      <div class="settings-card danger">
+      <div class="settings-card danger" id="card-danger">
         <h3>Gefährliche Zone</h3>
         <p class="warning-text">Diese Aktion kann nicht rückgängig gemacht werden.</p>
         <button class="btn btn-danger" id="btn-delete-all">🗑️ Alle Daten löschen</button>
@@ -867,6 +910,7 @@ const GRUPPE_LABELS = {
   mittagstisch: 'Mittagstisch'
 };
 const STATUS_LABELS = { aktiv:'Aktiv', warteliste:'Warteliste', inaktiv:'Inaktiv' };
+const ROLE_LABELS = { admin:'Administrator', user:'Bearbeiten', viewer:'Nur Lesen' };
 const TAG_LABELS = { Mo:'Montag', Di:'Dienstag', Mi:'Mittwoch', Do:'Donnerstag', Fr:'Freitag' };
 const WIDGET_COLORS = ['#4F8EF7','#10B981','#F59E0B','#EC4899','#8B5CF6','#EF4444','#06B6D4','#F97316'];
 
@@ -944,6 +988,51 @@ function migrateKind(k) {
 // ===== AUTH (Firebase) =====
 let currentUser = null;
 
+// ===== ROLLEN / BERECHTIGUNGEN =====
+// admin  → darf alles (nur 1 Account)
+// user   → darf bearbeiten, aber KEINE Benutzerverwaltung & KEINE Lösch-Buttons
+// viewer → darf nur anschauen (keine Bearbeitung)
+function getRole()     { return (currentUser && currentUser.role) || 'viewer'; }
+function isAdminRole() { return getRole() === 'admin'; }
+function canEdit()     { const r = getRole(); return r === 'admin' || r === 'user'; }
+function canDelete()   { return getRole() === 'admin'; }
+
+// UI je nach Rolle ein-/ausblenden
+function applyRolePermissions() {
+  const admin  = isAdminRole();
+  const editor = canEdit();
+
+  // Rollen-Badge im Header
+  const roleEl = document.getElementById('header-user-role');
+  if (roleEl) roleEl.textContent = ROLE_LABELS[getRole()] || getRole();
+
+  // Nur Admin: Benutzerverwaltung + Gefahrenzone (Alle Daten löschen)
+  const benutzerCard = document.getElementById('card-benutzerverwaltung');
+  if (benutzerCard) benutzerCard.style.display = admin ? '' : 'none';
+  const dangerCard = document.getElementById('card-danger');
+  if (dangerCard) dangerCard.style.display = admin ? '' : 'none';
+
+  // Bearbeiten (Admin + Benutzer): Kind hinzufügen, Widget hinzufügen
+  const addKind = document.getElementById('btn-add-kind');
+  if (addKind) addKind.style.display = editor ? '' : 'none';
+  const addWidget = document.getElementById('btn-add-widget');
+  if (addWidget) addWidget.style.display = editor ? '' : 'none';
+
+  // Einstellungen-Tab: nur für Bearbeiter/Admin (Viewer = nur Lesen)
+  const settingsTabBtn = document.getElementById('tabbtn-einstellungen');
+  if (settingsTabBtn) settingsTabBtn.style.display = editor ? '' : 'none';
+  if (!editor) {
+    const settingsTab = document.getElementById('tab-einstellungen');
+    if (settingsTab && settingsTab.classList.contains('active')) {
+      switchTab('kinder', document.querySelector('.tab-button[data-tab="kinder"]'));
+    }
+  }
+
+  // Kinder-Tabelle neu zeichnen (Bearbeiten/Löschen-Buttons hängen an der Rolle)
+  renderKinderTable();
+  renderWidgets();
+}
+
 // Benutzerliste rendern
 async function renderUserList() {
   const list = document.getElementById('user-list');
@@ -953,24 +1042,77 @@ async function renderUserList() {
     list.innerHTML = '<p style="font-size:13px;color:#9CA3AF;font-style:italic">Keine Benutzer vorhanden.</p>';
     return;
   }
-  list.innerHTML = users.map(u => `
-    <div class="user-row">
-      <div style="flex:1">
-        <div class="user-row-name">${escHtml(u.name)}</div>
-        <div class="user-row-username">@${escHtml(u.username)}</div>
-      </div>
-      ${u.id === 1
-        ? '<span style="font-size:11px;color:#9CA3AF;padding:4px 8px;background:#F3F4F6;border-radius:4px">Admin</span>'
-        : `<button class="btn-user-delete" data-uid="${u.id}" data-username="${escHtml(u.username)}">Löschen</button>`}
-    </div>
-  `).join('');
-  list.querySelectorAll('[data-uid]').forEach(btn =>
+  list.innerHTML = users.map(u => {
+    const isTheAdmin = u.role === 'admin' || u.id === 1;
+    if (isTheAdmin) {
+      return `
+        <div class="user-row">
+          <div style="flex:1">
+            <div class="user-row-name">${escHtml(u.name)}</div>
+            <div class="user-row-username">@${escHtml(u.username)}</div>
+          </div>
+          <span class="user-role-badge admin">Administrator</span>
+        </div>`;
+    }
+    return `
+      <div class="user-row">
+        <div style="flex:1">
+          <div class="user-row-name">${escHtml(u.name)}</div>
+          <div class="user-row-username">@${escHtml(u.username)}</div>
+        </div>
+        <select class="user-role-select" data-uid="${u.id}" title="Rolle ändern">
+          <option value="user"   ${u.role !== 'viewer' ? 'selected' : ''}>Bearbeiten</option>
+          <option value="viewer" ${u.role === 'viewer' ? 'selected' : ''}>Nur Lesen</option>
+        </select>
+        <button class="btn-user-reset" data-email="${escHtml(u.email)}" data-username="${escHtml(u.username)}" title="Passwort zurücksetzen">🔑</button>
+        <button class="btn-user-delete" data-uid="${u.id}" data-username="${escHtml(u.username)}">Löschen</button>
+      </div>`;
+  }).join('');
+
+  list.querySelectorAll('.btn-user-delete').forEach(btn =>
     btn.addEventListener('click', () => deleteUser(parseInt(btn.dataset.uid), btn.dataset.username))
   );
+  list.querySelectorAll('.user-role-select').forEach(sel =>
+    sel.addEventListener('change', () => changeUserRole(parseInt(sel.dataset.uid), sel.value))
+  );
+  list.querySelectorAll('.btn-user-reset').forEach(btn =>
+    btn.addEventListener('click', () => adminResetPassword(btn.dataset.email, btn.dataset.username))
+  );
+}
+
+// Rolle eines Benutzers ändern (nur Admin)
+async function changeUserRole(uid, newRole) {
+  if (!isAdminRole()) { showToast('Keine Berechtigung', 'error'); return; }
+  if (newRole !== 'user' && newRole !== 'viewer') { showToast('Ungültige Rolle', 'error'); return; }
+  const users = await window._fb.fbGetUsers();
+  const u = users.find(x => x.id === uid);
+  if (!u) return;
+  if (u.role === 'admin' || u.id === 1) { showToast('Der Administrator kann nicht geändert werden', 'error'); return; }
+  u.role = newRole;
+  await window._fb.fbSaveUsers(users);
+  showToast(`Rolle von @${u.username}: ${ROLE_LABELS[newRole]}`, 'success');
+  renderUserList();
+}
+
+// Passwort eines anderen Benutzers zurücksetzen (nur Admin, via Cloud Function)
+async function adminResetPassword(email, username) {
+  if (!isAdminRole()) { showToast('Keine Berechtigung', 'error'); return; }
+  const np = prompt(`Neues Passwort für @${username} festlegen (mind. 6 Zeichen):`);
+  if (np === null) return;
+  if (np.length < 6) { showToast('Passwort muss mindestens 6 Zeichen haben', 'error'); return; }
+  try {
+    showToast('Passwort wird zurückgesetzt…', 'info');
+    await window._fb.fbAdminResetPassword(email, np);
+    showToast(`✅ Passwort für @${username} zurückgesetzt`, 'success');
+  } catch(e) {
+    const msg = (e && e.message) ? e.message : 'Unbekannter Fehler';
+    showToast('Fehler: ' + msg + ' — Cloud Function „adminResetPassword" deployt?', 'error');
+  }
 }
 
 // Benutzer löschen (nur aus Firestore-Liste; Firebase-Auth-Account bleibt)
 async function deleteUser(uid, username) {
+  if (!isAdminRole()) { showToast('Keine Berechtigung', 'error'); return; }
   if (currentUser && currentUser.id === uid) {
     showToast('Sie können sich nicht selbst löschen', 'error'); return;
   }
@@ -985,11 +1127,17 @@ async function deleteUser(uid, username) {
 async function doLoginUI(fbEmail) {
   const username = fbEmail.replace('@elki.local', '');
   const users = await window._fb.fbGetUsers();
-  const user = users.find(u => u.username === username)
-             || { id: 0, name: username, username, email: fbEmail };
+  let user = users.find(u => u.username === username);
+  if (!user) {
+    // Account existiert in Firebase, aber nicht in der Liste → least privilege
+    user = { id: 0, name: username, username, email: fbEmail,
+             role: (username === 'admin' ? 'admin' : 'viewer') };
+  }
+  if (!user.role) user.role = (user.id === 1 || username === 'admin') ? 'admin' : 'user';
   currentUser = user;
   document.getElementById('login-overlay').style.display = 'none';
   document.getElementById('header-user-name').textContent = '👤 ' + user.name;
+  applyRolePermissions();
   renderUserList();
 }
 
@@ -1002,6 +1150,7 @@ async function doLogout() {
   document.getElementById('login-password').value = '';
   document.getElementById('login-error').style.display = 'none';
   document.getElementById('header-user-name').textContent = '';
+  document.getElementById('header-user-role').textContent = '';
 }
 
 function registerAuthEvents() {
@@ -1031,11 +1180,14 @@ function registerAuthEvents() {
   // ── Neuen Benutzer anlegen ───────────────────────────────
   const btnAddUser = document.getElementById('btn-add-user');
   btnAddUser.addEventListener('click', async () => {
+    if (!isAdminRole()) { showToast('Nur der Administrator darf Benutzer anlegen', 'error'); return; }
     const name     = document.getElementById('new-user-name').value.trim();
     const username = document.getElementById('new-user-username').value.trim().toLowerCase();
     const pw       = document.getElementById('new-user-password').value;
+    const role     = document.getElementById('new-user-role').value || 'user';
 
     if (!name || !username || !pw) { showToast('Bitte alle Felder ausfüllen', 'error'); return; }
+    if (role !== 'user' && role !== 'viewer') { showToast('Ungültige Rolle (es gibt nur einen Admin)', 'error'); return; }
     if (!/^[a-z0-9_]+$/.test(username)) { showToast('Benutzername: nur Kleinbuchstaben, Zahlen, Unterstrich', 'error'); return; }
     if (pw.length < 6) { showToast('Passwort muss mindestens 6 Zeichen haben', 'error'); return; }
 
@@ -1064,16 +1216,17 @@ function registerAuthEvents() {
     }
 
     const newId = Math.max(...users.map(u => u.id), 0) + 1;
-    users.push({ id: newId, name, username, email });
+    users.push({ id: newId, name, username, email, role });
     await window._fb.fbSaveUsers(users);
 
     document.getElementById('new-user-name').value     = '';
     document.getElementById('new-user-username').value = '';
     document.getElementById('new-user-password').value = '';
+    document.getElementById('new-user-role').value     = 'user';
     btnAddUser.disabled = false;
     btnAddUser.textContent = '+ Benutzer hinzufügen';
     renderUserList();
-    showToast(`✅ Benutzer "${name}" (@${username}) angelegt`, 'success');
+    showToast(`✅ Benutzer "${name}" (@${username}) als ${ROLE_LABELS[role]} angelegt`, 'success');
   });
 
   // ── Firebase Auth State Observer ─────────────────────────
@@ -1250,6 +1403,14 @@ function switchDashPanel(panelName, clickedBtn) {
 }
 
 // ===== KINDER TABLE =====
+// Aktions-Buttons je nach Rolle: Bearbeiten (Admin+Benutzer), Löschen (nur Admin)
+function rowActionsHtml(k) {
+  const acts = [];
+  if (canEdit())   acts.push(`<button class="btn btn-small btn-edit" data-id="${k.id}" data-action="edit">Bearbeiten</button>`);
+  if (canDelete()) acts.push(`<button class="btn btn-small btn-delete" data-id="${k.id}" data-action="delete">Löschen</button>`);
+  return acts.length ? `<div class="action-buttons">${acts.join('')}</div>` : '<span style="color:#9CA3AF;font-size:13px">—</span>';
+}
+
 function renderKinderTable() {
   const search = document.getElementById('search-input').value.toLowerCase();
   const filterGruppe = document.getElementById('filter-gruppe').value;
@@ -1282,12 +1443,7 @@ function renderKinderTable() {
         <td>${formatDate(k.geburtsdatum)}</td>
         <td><div class="slot-tags">${slotTags || '<span style="color:#9CA3AF;font-size:13px">—</span>'}</div></td>
         <td><span class="status-badge status-${k.status}">${STATUS_LABELS[k.status]||k.status}</span></td>
-        <td>
-          <div class="action-buttons">
-            <button class="btn btn-small btn-edit" data-id="${k.id}" data-action="edit">Bearbeiten</button>
-            <button class="btn btn-small btn-delete" data-id="${k.id}" data-action="delete">Löschen</button>
-          </div>
-        </td>
+        <td>${rowActionsHtml(k)}</td>
       </tr>
     `;
   }).join('');
@@ -1302,6 +1458,7 @@ function renderKinderTable() {
 
 // ===== MODAL =====
 function openModal(kindId = null) {
+  if (!canEdit()) { showToast('Keine Berechtigung zum Bearbeiten', 'error'); return; }
   const form = document.getElementById('form-kind');
   form.reset();
   // Reset slot pills
@@ -1349,6 +1506,7 @@ function closeModal() {
 
 function handleFormSubmit(e) {
   e.preventDefault();
+  if (!canEdit()) { showToast('Keine Berechtigung', 'error'); return; }
   const vorname = document.getElementById('input-vorname').value.trim();
   const nachname = document.getElementById('input-nachname').value.trim();
   if (!vorname || !nachname) { showToast('Vorname und Nachname sind erforderlich','error'); return; }
@@ -1385,6 +1543,7 @@ function handleFormSubmit(e) {
 
 // ===== DELETE =====
 function deleteKind(kindId) {
+  if (!canDelete()) { showToast('Keine Berechtigung zum Löschen', 'error'); return; }
   if (confirm('Möchten Sie dieses Kind wirklich löschen?')) {
     kinder = kinder.filter(k => k.id !== kindId);
     saveData().then(() => {
@@ -1397,6 +1556,7 @@ function deleteKind(kindId) {
 }
 
 function deleteAllData() {
+  if (!isAdminRole()) { showToast('Keine Berechtigung', 'error'); return; }
   if (confirm('WARNUNG: Alle Daten löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) {
     if (confirm('Wirklich sicher?')) {
       kinder = [];
@@ -1561,6 +1721,7 @@ function loadCapacitiesIntoUI() {
 }
 
 function saveCapacitiesFromUI(gruppeId) {
+  if (!canEdit()) { showToast('Keine Berechtigung', 'error'); return; }
   const g = ANGEBOTE[gruppeId];
   if (!g) return;
   g.slots.forEach(slot => {
@@ -1615,6 +1776,7 @@ function exportCSV() {
 
 // ===== CSV IMPORT =====
 function importCSV(e) {
+  if (!canEdit()) { showToast('Keine Berechtigung', 'error'); return; }
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
@@ -1657,6 +1819,7 @@ function importCSV(e) {
 
 // ===== BEXIO IMPORT =====
 function importBexioCSV(e) {
+  if (!canEdit()) { showToast('Keine Berechtigung', 'error'); return; }
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
@@ -1920,8 +2083,11 @@ function buildWidgetCard(w) {
     inner = `<div class="widget-icon">${w.icon||'📉'}</div><div class="widget-label">${escHtml(w.title)}</div><div class="widget-sublabel">${buildSubLabel(w)}</div><div class="wc-line-wrap"><svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet"><polygon points="${area}" fill="${color}" opacity="0.12"/><polyline points="${poly}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>${dots}</svg></div>`;
   }
 
-  card.innerHTML = `<button class="widget-remove" title="Entfernen">✕</button>${inner}`;
-  card.querySelector('.widget-remove').addEventListener('click', () => {
+  const removeBtn = canEdit() ? '<button class="widget-remove" title="Entfernen">✕</button>' : '';
+  card.innerHTML = `${removeBtn}${inner}`;
+  const rb = card.querySelector('.widget-remove');
+  if (rb) rb.addEventListener('click', () => {
+    if (!canEdit()) return;
     customWidgets = customWidgets.filter(x => x.id !== w.id);
     saveWidgets().then(() => renderWidgets());
   });
@@ -1938,6 +2104,7 @@ function buildSubLabel(w) {
 
 // ===== WIDGET BUILDER =====
 function openWidgetBuilder() {
+  if (!canEdit()) { showToast('Keine Berechtigung', 'error'); return; }
   const existing = document.getElementById('widget-builder');
   if (existing) existing.remove();
 
