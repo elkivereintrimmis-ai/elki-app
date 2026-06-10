@@ -260,6 +260,32 @@
     .btn-logout { padding:6px 12px; background:#FEE2E2; color:#DC2626; border:1px solid #FECACA; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; transition:all .2s; }
     .btn-logout:hover { background:#FECACA; }
 
+    /* TICKET SYSTEM */
+    .ticket-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:3000; display:none; justify-content:center; align-items:flex-start; padding-top:60px; }
+    .ticket-modal-overlay.open { display:flex; }
+    .ticket-dialog { background:white; border-radius:16px; max-width:480px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,.2); animation:slideIn .3s ease; overflow:hidden; }
+    .ticket-dialog-header { background:linear-gradient(135deg,#4F8EF7,#3B78E8); color:white; padding:20px 24px; display:flex; justify-content:space-between; align-items:center; }
+    .ticket-dialog-header h3 { font-size:18px; font-weight:700; margin:0; }
+    .ticket-dialog-close { background:rgba(255,255,255,.2); border:none; color:white; width:30px; height:30px; border-radius:50%; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .2s; }
+    .ticket-dialog-close:hover { background:rgba(255,255,255,.35); }
+    .ticket-dialog-body { padding:24px; display:flex; flex-direction:column; gap:16px; }
+    .ticket-field { display:flex; flex-direction:column; gap:6px; }
+    .ticket-field label { font-size:13px; font-weight:600; color:#374151; }
+    .ticket-field input, .ticket-field select, .ticket-field textarea { padding:10px 12px; border:1px solid #E2E8F0; border-radius:8px; font-size:14px; font-family:inherit; color:#1F2937; transition:border-color .2s; }
+    .ticket-field input:focus, .ticket-field select:focus, .ticket-field textarea:focus { outline:none; border-color:#4F8EF7; box-shadow:0 0 0 3px rgba(79,142,247,.1); }
+    .ticket-field textarea { resize:vertical; min-height:100px; }
+    .ticket-actions { display:flex; gap:10px; padding:0 24px 24px; }
+    .ticket-actions .btn { flex:1; }
+    .ticket-list { display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto; }
+    .ticket-item { padding:10px 14px; background:#F9FAFB; border-radius:8px; border:1px solid #E2E8F0; border-left:4px solid #4F8EF7; }
+    .ticket-item-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+    .ticket-item-nr { font-size:12px; font-weight:700; color:#4F8EF7; }
+    .ticket-item-date { font-size:11px; color:#9CA3AF; }
+    .ticket-item-title { font-size:13px; font-weight:600; color:#1F2937; margin-bottom:2px; }
+    .ticket-item-desc { font-size:12px; color:#6B7280; line-height:1.4; }
+    .ticket-item-by { font-size:11px; color:#9CA3AF; margin-top:4px; }
+    .ticket-empty { font-size:13px; color:#9CA3AF; font-style:italic; text-align:center; padding:16px; }
+
     /* USER MANAGEMENT */
     .user-list { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
     .user-row { display:flex; align-items:center; gap:10px; padding:10px 12px; background:#F9FAFB; border-radius:8px; border:1px solid #E2E8F0; }
@@ -656,6 +682,19 @@
         </div>
       </div>
 
+      <!-- Ticket System -->
+      <div class="settings-card">
+        <h3>🎫 Ticket System</h3>
+        <p style="font-size:13px;color:#6B7280;margin-bottom:14px">Melden Sie Probleme oder Wünsche direkt an das ELKI-Team.</p>
+        <div style="margin-bottom:14px">
+          <button class="btn btn-primary full-width" id="btn-open-ticket-modal">+ Neues Ticket erfassen</button>
+        </div>
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#9CA3AF;margin-bottom:8px">Zuletzt erfasste Tickets</div>
+        <div class="ticket-list" id="ticket-list-preview">
+          <div class="ticket-empty">Noch keine Tickets vorhanden.</div>
+        </div>
+      </div>
+
       <!-- Danger Zone -->
       <div class="settings-card danger">
         <h3>Gefährliche Zone</h3>
@@ -729,6 +768,44 @@
 </div>
 
 <div id="toast-container" class="toast-container"></div>
+
+<!-- Ticket Modal -->
+<div class="ticket-modal-overlay" id="ticket-modal-overlay">
+  <div class="ticket-dialog">
+    <div class="ticket-dialog-header">
+      <h3>🎫 Neues Ticket</h3>
+      <button class="ticket-dialog-close" id="btn-ticket-close">&times;</button>
+    </div>
+    <div class="ticket-dialog-body">
+      <div class="ticket-field">
+        <label for="ticket-name">Ihr Name *</label>
+        <input type="text" id="ticket-name" placeholder="z.B. Maria Muster">
+      </div>
+      <div class="ticket-field">
+        <label for="ticket-kategorie">Kategorie *</label>
+        <select id="ticket-kategorie">
+          <option value="">Bitte wählen…</option>
+          <option value="Fehler">🐛 Fehler / Problem</option>
+          <option value="Wunsch">💡 Verbesserungswunsch</option>
+          <option value="Frage">❓ Frage / Unklarheit</option>
+          <option value="Sonstiges">📋 Sonstiges</option>
+        </select>
+      </div>
+      <div class="ticket-field">
+        <label for="ticket-titel">Titel *</label>
+        <input type="text" id="ticket-titel" placeholder="Kurze Beschreibung des Anliegens">
+      </div>
+      <div class="ticket-field">
+        <label for="ticket-beschreibung">Beschreibung *</label>
+        <textarea id="ticket-beschreibung" placeholder="Beschreiben Sie das Problem oder den Wunsch so genau wie möglich…"></textarea>
+      </div>
+    </div>
+    <div class="ticket-actions">
+      <button class="btn btn-secondary" id="btn-ticket-cancel">Abbrechen</button>
+      <button class="btn btn-primary" id="btn-ticket-submit">✉️ Ticket senden</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // ===== FIREBASE BRIDGE (gesetzt durch das ES-Module oben) =====
@@ -1010,6 +1087,7 @@ function registerAuthEvents() {
       updateDashboard();
       await loadWidgets();
       renderWidgets();
+      renderTicketList();
     } else {
       document.getElementById('login-overlay').style.display = 'flex';
       setTimeout(() => document.getElementById('login-username')?.focus(), 100);
@@ -1025,6 +1103,7 @@ window._fbReady = function() {
   buildSlotSelector();
   buildCapacityInputs();
   registerEventListeners();
+  registerTicketEvents();
   // Datenladen geschieht in onAuthStateChanged (nach erfolgreichem Login)
 };
 
@@ -1926,7 +2005,133 @@ function openWidgetBuilder() {
   render();
   document.body.appendChild(overlay);
 }
-// ===== EXCEL EXPORT =====
+// ===== TICKET SYSTEM =====
+
+async function loadTicketCounter() {
+  try {
+    const raw = await window._fb.fbLoad('config/ticketCounter', null);
+    return (raw && typeof raw === 'number') ? raw : 0;
+  } catch(e) { return 0; }
+}
+
+async function saveTicketCounter(n) {
+  await window._fb.fbSave('config/ticketCounter', n);
+}
+
+async function loadTickets() {
+  try {
+    const raw = await window._fb.fbLoad('data/tickets', null);
+    return Array.isArray(raw) ? raw : [];
+  } catch(e) { return []; }
+}
+
+async function saveTickets(tickets) {
+  await window._fb.fbSave('data/tickets', tickets);
+}
+
+function renderTicketList() {
+  loadTickets().then(tickets => {
+    const container = document.getElementById('ticket-list-preview');
+    if (!container) return;
+    if (tickets.length === 0) {
+      container.innerHTML = '<div class="ticket-empty">Noch keine Tickets vorhanden.</div>';
+      return;
+    }
+    // Show last 5 tickets, newest first
+    const recent = [...tickets].reverse().slice(0, 5);
+    container.innerHTML = recent.map(t => `
+      <div class="ticket-item">
+        <div class="ticket-item-header">
+          <span class="ticket-item-nr">#${String(t.nr).padStart(4,'0')} &nbsp;${escHtml(t.kategorie||'')}</span>
+          <span class="ticket-item-date">${t.datum||''}</span>
+        </div>
+        <div class="ticket-item-title">${escHtml(t.titel||'')}</div>
+        <div class="ticket-item-desc">${escHtml((t.beschreibung||'').substring(0,80))}${(t.beschreibung||'').length > 80 ? '…' : ''}</div>
+        <div class="ticket-item-by">von ${escHtml(t.name||'Unbekannt')}</div>
+      </div>
+    `).join('');
+  });
+}
+
+function openTicketModal() {
+  document.getElementById('ticket-modal-overlay').classList.add('open');
+  document.getElementById('ticket-name').focus();
+}
+
+function closeTicketModal() {
+  document.getElementById('ticket-modal-overlay').classList.remove('open');
+  document.getElementById('ticket-name').value = '';
+  document.getElementById('ticket-kategorie').value = '';
+  document.getElementById('ticket-titel').value = '';
+  document.getElementById('ticket-beschreibung').value = '';
+}
+
+async function submitTicket() {
+  const name         = document.getElementById('ticket-name').value.trim();
+  const kategorie    = document.getElementById('ticket-kategorie').value;
+  const titel        = document.getElementById('ticket-titel').value.trim();
+  const beschreibung = document.getElementById('ticket-beschreibung').value.trim();
+
+  if (!name || !kategorie || !titel || !beschreibung) {
+    showToast('Bitte alle Felder ausfüllen', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btn-ticket-submit');
+  btn.disabled = true;
+  btn.textContent = '⏳ Wird gesendet…';
+
+  try {
+    // Increment counter
+    const counter = await loadTicketCounter();
+    const newNr = counter + 1;
+    await saveTicketCounter(newNr);
+
+    // Save ticket
+    const tickets = await loadTickets();
+    const datum = new Date().toLocaleDateString('de-CH');
+    const ticket = { nr: newNr, name, kategorie, titel, beschreibung, datum };
+    tickets.push(ticket);
+    await saveTickets(tickets);
+
+    // Build mailto link (no recipient visible to user)
+    const subject = encodeURIComponent(`Ticket: #${String(newNr).padStart(4,'0')} – ${titel}`);
+    const body = encodeURIComponent(
+      `Ticket #${String(newNr).padStart(4,'0')}\n` +
+      `Datum: ${datum}\n` +
+      `Von: ${name}\n` +
+      `Kategorie: ${kategorie}\n` +
+      `\nTitel: ${titel}\n` +
+      `\nBeschreibung:\n${beschreibung}\n` +
+      `\n---\nAutomatisch erstellt durch ELKI Verwaltungssystem`
+    );
+    const mailtoLink = `mailto:elkivereintrimmis@gmail.com?subject=${subject}&body=${body}`;
+
+    // Open mail client
+    window.location.href = mailtoLink;
+
+    closeTicketModal();
+    renderTicketList();
+    showToast(`✅ Ticket #${String(newNr).padStart(4,'0')} erfasst und E-Mail-Programm geöffnet`, 'success');
+  } catch(e) {
+    showToast('Fehler beim Speichern: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✉️ Ticket senden';
+  }
+}
+
+function registerTicketEvents() {
+  document.getElementById('btn-open-ticket-modal').addEventListener('click', openTicketModal);
+  document.getElementById('btn-ticket-close').addEventListener('click', closeTicketModal);
+  document.getElementById('btn-ticket-cancel').addEventListener('click', closeTicketModal);
+  document.getElementById('btn-ticket-submit').addEventListener('click', submitTicket);
+  document.getElementById('ticket-modal-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('ticket-modal-overlay')) closeTicketModal();
+  });
+}
+
+
 function exportExcel(panelId) {
   if (!window.XLSX) { showToast('Excel-Bibliothek nicht geladen', 'error'); return; }
 
