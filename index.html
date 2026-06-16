@@ -153,6 +153,7 @@
     .group-status-row { display:flex; align-items:center; gap:10px; padding-left:10px; }
     .group-status-label { flex:1; font-size:13px; font-weight:600; color:var(--ink); display:flex; align-items:center; gap:8px; }
     .group-status-label .gs-zeit { font-size:11px; font-weight:400; color:var(--ink-3); }
+    .group-status-label .gs-voll { font-size:10px; font-weight:700; color:var(--warn); background:var(--warn-bg); padding:1px 6px; border-radius:999px; }
     .group-status-select { padding:8px 10px; border:1px solid var(--line); border-radius:var(--r-sm); font-size:13px; font-family:inherit; background:var(--surface); color:var(--ink); min-width:130px; }
     .group-status-select:focus { outline:none; border-color:var(--brand); box-shadow:0 0 0 3px var(--focus); }
     /* Anmeldungen (Selbst-Anmeldungen von der Website) */
@@ -1610,6 +1611,8 @@ async function loadData() {
     kinder = DEMO_KINDER;
     await saveData();
   }
+  // IDs reparieren (eindeutig + numerisch), damit Löschen/Bearbeiten zuverlässig funktioniert
+  if (repairKinderIds()) await saveData();
   // Kapazitäten
   const rawCaps = await window._fb.fbLoad('config/kapazitaeten', null);
   if (rawCaps) kapazitaeten = { ...DEFAULT_CAPS, ...rawCaps };
@@ -1618,6 +1621,32 @@ async function loadData() {
 
 async function saveData() { await window._fb.fbSave('data/kinder', kinder); }
 async function saveCapacities() { await window._fb.fbSave('config/kapazitaeten', kapazitaeten); }
+
+// ===== ID-HELFER =====
+function maxKindId() {
+  return kinder.reduce((m, k) => { const n = Number(k.id); return (Number.isFinite(n) && n > m) ? n : m; }, 0);
+}
+function nextKindId() { return maxKindId() + 1; }
+// Repariert fehlende / doppelte / nicht-numerische IDs – diese machten Einträge unlöschbar/unbearbeitbar.
+function repairKinderIds() {
+  let changed = false;
+  const used = new Set();
+  let maxId = maxKindId();
+  kinder.forEach(k => {
+    let n = Number(k.id);
+    if (!Number.isFinite(n) || used.has(n)) { n = ++maxId; k.id = n; changed = true; }
+    else if (k.id !== n) { k.id = n; changed = true; }  // "5" → 5
+    used.add(n);
+  });
+  return changed;
+}
+
+// ===== KAPAZITÄTS-HELFER (für Auto-Warteliste) =====
+function slotCapacity(slotId) { return kapazitaeten[slotId] ?? DEFAULT_CAPS[slotId] ?? 10; }
+function slotActiveCount(slotId) { return kinder.filter(k => isActiveInSlot(k, slotId)).length; }
+function slotIsFull(slotId) { return slotActiveCount(slotId) >= slotCapacity(slotId); }
+// Vorschlag fürs Formular: voller Slot → Warteliste, sonst Aktiv
+function suggestedSlotStatus(slotId) { return slotIsFull(slotId) ? 'warteliste' : 'aktiv'; }
 
 // ===== ANMELDUNGEN (Selbst-Anmeldungen von der Website) =====
 let anmeldungen = [];
@@ -1717,8 +1746,9 @@ function approveAnmeldung(id) {
       pill.style.color = 'white';
     }
   });
-  // Gewünschte Angebote zunächst auf "aktiv" – vor dem Speichern anpassbar
-  window._editingKindSlotStatus = Object.fromEntries((a.slots || []).map(sid => [sid, 'aktiv']));
+  // Status je Slot automatisch vorbelegen: volle Slots → Warteliste, sonst Aktiv
+  // (erledigt renderGroupStatusInputs via suggestedSlotStatus). Vor dem Speichern anpassbar.
+  window._editingKindSlotStatus = {};
   renderGroupStatusInputs();
   window._approvingAnmeldungId = id;
   document.getElementById('modal-title').textContent = `Anmeldung freigeben: ${(a.vorname || '') + ' ' + (a.nachname || '')}`.trim();
@@ -1799,10 +1829,13 @@ function renderGroupStatusInputs() {
     html += `<div class="group-status-group">
       <div class="group-status-grouphdr" style="border-left:4px solid ${g.color}">${g.shortLabel}</div>`;
     slotsInG.forEach(s => {
-      const val = prev[s.id] || seed[s.id] || 'aktiv';
+      // Vorbelegung: zuvor gewählter Wert → gespeicherter Wert → automatischer Vorschlag
+      // (voller Slot → Warteliste, sonst Aktiv). Lässt sich danach manuell ändern.
+      const full = slotIsFull(s.id);
+      const val = prev[s.id] || seed[s.id] || suggestedSlotStatus(s.id);
       html += `
         <div class="group-status-row">
-          <span class="group-status-label">${s.label}<span class="gs-zeit">${s.zeit}</span></span>
+          <span class="group-status-label">${s.label}<span class="gs-zeit">${s.zeit}</span>${full ? '<span class="gs-voll">voll</span>' : ''}</span>
           <select data-slot="${s.id}" class="group-status-select">
             <option value="aktiv"      ${val==='aktiv'?'selected':''}>Aktiv</option>
             <option value="warteliste" ${val==='warteliste'?'selected':''}>Warteliste</option>
@@ -2050,7 +2083,7 @@ function handleFormSubmit(e) {
     if (idx !== -1) kinder[idx] = { ...kinder[idx], ...kind };
     showToast('Kind aktualisiert','success');
   } else {
-    const newId = kinder.length > 0 ? Math.max(...kinder.map(k => k.id)) + 1 : 1;
+    const newId = nextKindId();
     kinder.push({ id: newId, ...kind });
     showToast('Kind hinzugefügt','success');
   }
@@ -2316,7 +2349,7 @@ function importCSV(e) {
       const lines = ev.target.result.split('\n').filter(l => l.trim());
       if (lines.length < 2) { showToast('CSV leer oder ungültig','error'); return; }
       const imported = [];
-      let maxId = kinder.length > 0 ? Math.max(...kinder.map(k => k.id)) : 0;
+      let maxId = maxKindId();
       for (let i = 1; i < lines.length; i++) {
         const cells = parseCSVLine(lines[i]);
         const nr = (cells[0]||'').trim();
@@ -2454,7 +2487,7 @@ function showBexioMappingDialog(rows) {
   document.getElementById('bexio-confirm').addEventListener('click', () => {
     const slots = [...overlay.querySelectorAll('.bexio-slot:checked')].map(cb => cb.value);
     const mode = overlay.querySelector('input[name="bexio-mode"]:checked').value;
-    let maxId = kinder.length > 0 ? Math.max(...kinder.map(k => k.id)) : 0;
+    let maxId = maxKindId();
     const status = overlay.querySelector('#bexio-status').value;
     const imported = rows.map(r => { maxId++; return { id:maxId, ...r, slots, status }; });
     kinder = mode === 'replace' ? imported : [...kinder, ...imported];
