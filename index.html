@@ -169,6 +169,26 @@
     .anmeldung-contact { font-size:13px; color:var(--ink); display:flex; gap:18px; flex-wrap:wrap; }
     .anmeldung-notiz { font-size:13px; color:var(--ink-3); margin-top:6px; font-style:italic; }
     .anmeldung-actions { display:flex; gap:8px; margin-top:12px; }
+    /* Tickets – Admin-Verwaltung */
+    .ticket-filter-row { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+    .ticket-filter-btn { padding:6px 12px; border:1px solid var(--line); background:var(--surface); color:var(--ink-2); border-radius:999px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
+    .ticket-filter-btn.active { background:var(--brand); border-color:var(--brand); color:#fff; }
+    .ticket-card { border:1px solid var(--line); border-radius:var(--r-sm); padding:14px 16px; margin-bottom:12px; background:var(--surface); }
+    .ticket-card-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:6px; flex-wrap:wrap; }
+    .ticket-card-nr { font-size:12px; font-weight:700; color:var(--brand); }
+    .ticket-card-cat { font-size:12px; font-weight:600; color:var(--ink-2); margin-left:8px; }
+    .ticket-card-date { font-size:11px; color:var(--ink-3); margin-left:8px; }
+    .ticket-card-title { font-size:15px; font-weight:700; color:var(--ink); margin-bottom:4px; }
+    .ticket-card-desc { font-size:13px; color:var(--ink-2); line-height:1.5; white-space:pre-wrap; }
+    .ticket-card-by { font-size:11px; color:var(--ink-3); margin-top:6px; }
+    .ticket-antwort { margin-top:8px; padding:8px 10px; background:var(--brand-tint-2); border-radius:var(--r-xs); font-size:13px; color:var(--ink); }
+    .ticket-card-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .ticket-status { font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px; white-space:nowrap; }
+    .ticket-status-offen { background:#FEF3C7; color:#92400E; }
+    .ticket-status-in_bearbeitung { background:#DBEAFE; color:#1E40AF; }
+    .ticket-status-erledigt { background:#DCFCE7; color:#166534; }
+    .ticket-status-zurückgewiesen { background:#FEE2E2; color:#991B1B; }
+    .ticket-admin-meta { font-size:12px; color:var(--ink-3); }
 
     /* BUTTONS */
     .btn { padding:10px 16px; border:none; border-radius:var(--r-sm); font-size:14px; font-weight:700; cursor:pointer; transition:all .18s; font-family:inherit; line-height:1.3; white-space:nowrap; }
@@ -705,6 +725,11 @@
         <span>Anmeldungen</span>
         <span class="nav-badge" id="anmeldungen-badge" style="display:none">0</span>
       </button>
+      <button class="tab-button" data-tab="tickets" id="tabbtn-tickets" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a2 2 0 0 1 2 2v3a1 1 0 0 1-1 1 2 2 0 0 0 0 4 1 1 0 0 1 1 1v3a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-3a1 1 0 0 1 1-1 2 2 0 0 0 0-4 1 1 0 0 1-1-1V6a2 2 0 0 1 2-2z"/><path d="M13 5v2M13 17v2M13 11v2"/></svg>
+        <span>Tickets</span>
+        <span class="nav-badge" id="tickets-badge" style="display:none">0</span>
+      </button>
       <button class="tab-button" data-tab="einstellungen" id="tabbtn-einstellungen">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         <span>Einstellungen</span>
@@ -801,6 +826,23 @@
     </div>
     <p class="anmeldung-hint">Selbst-Anmeldungen von der Vereins-Website. Bitte prüfen und dann <b>freigeben</b> (wird zu einem Kind) oder <b>ablehnen</b>.</p>
     <div id="anmeldungen-list"></div>
+  </section>
+
+  <!-- TAB: Tickets (nur Admin) -->
+  <section class="tab-content" id="tab-tickets">
+    <div class="section-header">
+      <h2>Tickets</h2>
+      <button class="btn btn-outline" id="btn-refresh-tickets">Aktualisieren</button>
+    </div>
+    <p class="anmeldung-hint">Gemeldete Probleme, Wünsche und Fragen aus dem Tool. Bearbeiten, rückmelden, zurückweisen oder löschen.</p>
+    <div class="ticket-filter-row" id="ticket-filter-row">
+      <button class="ticket-filter-btn active" data-tfilter="alle">Alle</button>
+      <button class="ticket-filter-btn" data-tfilter="offen">Offen</button>
+      <button class="ticket-filter-btn" data-tfilter="in_bearbeitung">In Bearbeitung</button>
+      <button class="ticket-filter-btn" data-tfilter="erledigt">Erledigt</button>
+      <button class="ticket-filter-btn" data-tfilter="zurückgewiesen">Zurückgewiesen</button>
+    </div>
+    <div id="tickets-list"></div>
   </section>
 
   <!-- TAB: Dashboard -->
@@ -1080,6 +1122,53 @@
     <div class="ticket-actions">
       <button class="btn btn-secondary" id="btn-ticket-cancel">Abbrechen</button>
       <button class="btn btn-primary" id="btn-ticket-submit">Ticket senden</button>
+    </div>
+  </div>
+</div>
+
+<!-- Ticket bearbeiten / rückmelden (nur Admin) -->
+<div class="ticket-modal-overlay" id="ticket-admin-overlay">
+  <div class="ticket-dialog">
+    <div class="ticket-dialog-header">
+      <h3 id="ticket-admin-title">Ticket bearbeiten</h3>
+      <button class="ticket-dialog-close" id="btn-ticket-admin-close">&times;</button>
+    </div>
+    <div class="ticket-dialog-body">
+      <div class="ticket-admin-meta" id="ticket-admin-meta"></div>
+      <div class="ticket-field">
+        <label for="ta-kategorie">Kategorie</label>
+        <select id="ta-kategorie">
+          <option value="Fehler">Fehler / Problem</option>
+          <option value="Wunsch">Verbesserungswunsch</option>
+          <option value="Frage">Frage / Unklarheit</option>
+          <option value="Sonstiges">Sonstiges</option>
+        </select>
+      </div>
+      <div class="ticket-field">
+        <label for="ta-titel">Titel</label>
+        <input type="text" id="ta-titel">
+      </div>
+      <div class="ticket-field">
+        <label for="ta-beschreibung">Beschreibung</label>
+        <textarea id="ta-beschreibung"></textarea>
+      </div>
+      <div class="ticket-field">
+        <label for="ta-status">Status</label>
+        <select id="ta-status">
+          <option value="offen">Offen</option>
+          <option value="in_bearbeitung">In Bearbeitung</option>
+          <option value="erledigt">Erledigt</option>
+          <option value="zurückgewiesen">Zurückgewiesen</option>
+        </select>
+      </div>
+      <div class="ticket-field">
+        <label for="ta-antwort">Rückmeldung (Antwort an den Melder)</label>
+        <textarea id="ta-antwort" placeholder="Antwort / Kommentar zum Ticket…"></textarea>
+      </div>
+    </div>
+    <div class="ticket-actions">
+      <button class="btn btn-secondary" id="btn-ticket-admin-cancel">Abbrechen</button>
+      <button class="btn btn-primary" id="btn-ticket-admin-save">Speichern</button>
     </div>
   </div>
 </div>
@@ -1384,6 +1473,16 @@ function applyRolePermissions() {
     }
   }
 
+  // Tickets-Tab: nur für Admin
+  const ticketsTabBtn = document.getElementById('tabbtn-tickets');
+  if (ticketsTabBtn) ticketsTabBtn.style.display = admin ? '' : 'none';
+  if (!admin) {
+    const ticketsTab = document.getElementById('tab-tickets');
+    if (ticketsTab && ticketsTab.classList.contains('active')) {
+      switchTab('kinder', document.querySelector('.tab-button[data-tab="kinder"]'));
+    }
+  }
+
   // Kinder-Tabelle neu zeichnen (Bearbeiten/Löschen-Buttons hängen an der Rolle)
   renderKinderTable();
   renderWidgets();
@@ -1584,6 +1683,7 @@ function registerAuthEvents() {
       await loadWidgets();
       renderWidgets();
       renderTicketList();
+      renderTickets();
     } else {
       document.getElementById('login-overlay').style.display = 'flex';
       setTimeout(() => document.getElementById('login-username')?.focus(), 100);
@@ -1600,6 +1700,7 @@ window._fbReady = function() {
   buildCapacityInputs();
   registerEventListeners();
   registerTicketEvents();
+  registerTicketAdminEvents();
   registerBirthdayEvents();
   // Datenladen geschieht in onAuthStateChanged (nach erfolgreichem Login)
 };
@@ -1925,6 +2026,7 @@ function switchTab(tabName, clickedBtn) {
   if (clickedBtn) clickedBtn.classList.add('active');
   if (tabName === 'dashboard') { updateDashboard(); renderWidgets(); }
   if (tabName === 'anmeldungen') { loadAnmeldungen(); }
+  if (tabName === 'tickets') { renderTickets(); }
 }
 
 function switchDashPanel(panelName, clickedBtn) {
@@ -2822,29 +2924,15 @@ async function submitTicket() {
     // Save ticket
     const tickets = await loadTickets();
     const datum = new Date().toLocaleDateString('de-CH');
-    const ticket = { nr: newNr, name, kategorie, titel, beschreibung, datum };
+    // Kein E-Mail-Versand mehr: Ticket landet direkt im Tool und ist für den Admin sichtbar.
+    const ticket = { nr: newNr, name, kategorie, titel, beschreibung, datum, status: 'offen', antwort: '', antwortDatum: '' };
     tickets.push(ticket);
     await saveTickets(tickets);
 
-    // Build mailto link (no recipient visible to user)
-    const subject = encodeURIComponent(`Ticket: #${String(newNr).padStart(4,'0')} – ${titel}`);
-    const body = encodeURIComponent(
-      `Ticket #${String(newNr).padStart(4,'0')}\n` +
-      `Datum: ${datum}\n` +
-      `Von: ${name}\n` +
-      `Kategorie: ${kategorie}\n` +
-      `\nTitel: ${titel}\n` +
-      `\nBeschreibung:\n${beschreibung}\n` +
-      `\n---\nAutomatisch erstellt durch ELKI Verwaltungssystem`
-    );
-    const mailtoLink = `mailto:elkivereintrimmis@gmail.com?subject=${subject}&body=${body}`;
-
-    // Open mail client
-    window.location.href = mailtoLink;
-
     closeTicketModal();
     renderTicketList();
-    showToast(`Ticket #${String(newNr).padStart(4,'0')} erfasst und E-Mail-Programm geöffnet`, 'success');
+    renderTickets();
+    showToast(`Ticket #${String(newNr).padStart(4,'0')} erfasst – ist jetzt für den Admin im Tool sichtbar`, 'success');
   } catch(e) {
     showToast('Fehler beim Speichern: ' + e.message, 'error');
   } finally {
@@ -2861,6 +2949,154 @@ function registerTicketEvents() {
   document.getElementById('ticket-modal-overlay').addEventListener('click', e => {
     if (e.target === document.getElementById('ticket-modal-overlay')) closeTicketModal();
   });
+}
+
+// ===== TICKETS – ADMIN-VERWALTUNG =====
+const TICKET_STATUS_LABELS = { offen:'Offen', in_bearbeitung:'In Bearbeitung', erledigt:'Erledigt', 'zurückgewiesen':'Zurückgewiesen' };
+let ticketsCache = [];
+let ticketFilter = 'alle';
+let _editingTicketNr = null;
+
+function ticketStatusOf(t) { return t.status || 'offen'; }
+function ticketIsOpen(t) { return !['erledigt','zurückgewiesen'].includes(ticketStatusOf(t)); }
+
+function updateTicketsBadge() {
+  const badge = document.getElementById('tickets-badge');
+  if (!badge) return;
+  const n = ticketsCache.filter(ticketIsOpen).length;
+  badge.textContent = n;
+  badge.style.display = n > 0 ? '' : 'none';
+}
+
+function renderTickets() {
+  loadTickets().then(tickets => {
+    ticketsCache = tickets;
+    updateTicketsBadge();
+    const container = document.getElementById('tickets-list');
+    if (!container) return;
+    let list = [...tickets].reverse(); // neueste zuerst
+    if (ticketFilter !== 'alle') list = list.filter(t => ticketStatusOf(t) === ticketFilter);
+    if (list.length === 0) {
+      container.innerHTML = '<div class="empty-state">Keine Tickets in dieser Ansicht</div>';
+      return;
+    }
+    container.innerHTML = list.map(t => {
+      const st = ticketStatusOf(t);
+      const antwort = t.antwort
+        ? `<div class="ticket-antwort"><b>Rückmeldung:</b> ${escHtml(t.antwort)}${t.antwortDatum ? ` <span class="ticket-card-date">(${escHtml(t.antwortDatum)})</span>` : ''}</div>`
+        : '';
+      return `
+        <div class="ticket-card">
+          <div class="ticket-card-head">
+            <div>
+              <span class="ticket-card-nr">#${String(t.nr).padStart(4,'0')}</span>
+              <span class="ticket-card-cat">${escHtml(t.kategorie||'')}</span>
+              <span class="ticket-card-date">${escHtml(t.datum||'')}</span>
+            </div>
+            <span class="ticket-status ticket-status-${st}">${TICKET_STATUS_LABELS[st]||st}</span>
+          </div>
+          <div class="ticket-card-title">${escHtml(t.titel||'')}</div>
+          <div class="ticket-card-desc">${escHtml(t.beschreibung||'')}</div>
+          <div class="ticket-card-by">von ${escHtml(t.name||'Unbekannt')}</div>
+          ${antwort}
+          <div class="ticket-card-actions">
+            <button class="btn btn-small btn-primary" data-taction="edit"   data-nr="${t.nr}">Bearbeiten</button>
+            <button class="btn btn-small btn-outline" data-taction="reply"  data-nr="${t.nr}">Rückmelden</button>
+            <button class="btn btn-small btn-outline" data-taction="reject" data-nr="${t.nr}">Zurückweisen</button>
+            <button class="btn btn-small btn-delete"  data-taction="delete" data-nr="${t.nr}">Löschen</button>
+          </div>
+        </div>`;
+    }).join('');
+    container.querySelectorAll('[data-taction]').forEach(b =>
+      b.addEventListener('click', () => handleTicketAction(b.dataset.taction, parseInt(b.dataset.nr))));
+  });
+}
+
+function handleTicketAction(action, nr) {
+  if (!isAdminRole()) { showToast('Nur der Admin darf Tickets verwalten', 'error'); return; }
+  if (action === 'edit')   return openTicketAdmin(nr, false);
+  if (action === 'reply')  return openTicketAdmin(nr, true);
+  if (action === 'reject') return rejectTicket(nr);
+  if (action === 'delete') return deleteTicket(nr);
+}
+
+function openTicketAdmin(nr, focusAntwort) {
+  const t = ticketsCache.find(x => x.nr === nr);
+  if (!t) return;
+  _editingTicketNr = nr;
+  document.getElementById('ticket-admin-title').textContent = `Ticket #${String(t.nr).padStart(4,'0')} bearbeiten`;
+  document.getElementById('ticket-admin-meta').textContent = `Von ${t.name||'Unbekannt'} · ${t.datum||''}`;
+  document.getElementById('ta-kategorie').value = t.kategorie || 'Sonstiges';
+  document.getElementById('ta-titel').value = t.titel || '';
+  document.getElementById('ta-beschreibung').value = t.beschreibung || '';
+  document.getElementById('ta-status').value = ticketStatusOf(t);
+  document.getElementById('ta-antwort').value = t.antwort || '';
+  document.getElementById('ticket-admin-overlay').classList.add('open');
+  setTimeout(() => document.getElementById(focusAntwort ? 'ta-antwort' : 'ta-titel')?.focus(), 50);
+}
+
+function closeTicketAdmin() {
+  document.getElementById('ticket-admin-overlay').classList.remove('open');
+  _editingTicketNr = null;
+}
+
+async function saveTicketAdmin() {
+  if (!isAdminRole()) { showToast('Keine Berechtigung', 'error'); return; }
+  const t = ticketsCache.find(x => x.nr === _editingTicketNr);
+  if (!t) { closeTicketAdmin(); return; }
+  const neuAntwort = document.getElementById('ta-antwort').value.trim();
+  t.kategorie    = document.getElementById('ta-kategorie').value;
+  t.titel        = document.getElementById('ta-titel').value.trim();
+  t.beschreibung = document.getElementById('ta-beschreibung').value.trim();
+  t.status       = document.getElementById('ta-status').value;
+  if (neuAntwort !== (t.antwort || '')) {        // Rückmeldung geändert → Datum aktualisieren
+    t.antwort = neuAntwort;
+    t.antwortDatum = neuAntwort ? new Date().toLocaleDateString('de-CH') : '';
+  }
+  await saveTickets(ticketsCache);
+  closeTicketAdmin();
+  renderTickets();
+  renderTicketList();
+  showToast(`Ticket #${String(t.nr).padStart(4,'0')} gespeichert`, 'success');
+}
+
+async function rejectTicket(nr) {
+  if (!isAdminRole()) { showToast('Keine Berechtigung', 'error'); return; }
+  const t = ticketsCache.find(x => x.nr === nr);
+  if (!t) return;
+  if (!confirm(`Ticket #${String(nr).padStart(4,'0')} „${t.titel||''}" zurückweisen?`)) return;
+  t.status = 'zurückgewiesen';
+  await saveTickets(ticketsCache);
+  renderTickets();
+  renderTicketList();
+  showToast('Ticket zurückgewiesen', 'success');
+}
+
+async function deleteTicket(nr) {
+  if (!isAdminRole()) { showToast('Keine Berechtigung', 'error'); return; }
+  const t = ticketsCache.find(x => x.nr === nr);
+  if (!confirm(`Ticket #${String(nr).padStart(4,'0')}${t ? ` „${t.titel||''}"` : ''} endgültig löschen?`)) return;
+  ticketsCache = ticketsCache.filter(x => x.nr !== nr);
+  await saveTickets(ticketsCache);
+  renderTickets();
+  renderTicketList();
+  showToast('Ticket gelöscht', 'success');
+}
+
+function registerTicketAdminEvents() {
+  document.getElementById('btn-ticket-admin-close')?.addEventListener('click', closeTicketAdmin);
+  document.getElementById('btn-ticket-admin-cancel')?.addEventListener('click', closeTicketAdmin);
+  document.getElementById('btn-ticket-admin-save')?.addEventListener('click', saveTicketAdmin);
+  document.getElementById('ticket-admin-overlay')?.addEventListener('click', e => {
+    if (e.target === document.getElementById('ticket-admin-overlay')) closeTicketAdmin();
+  });
+  document.getElementById('btn-refresh-tickets')?.addEventListener('click', renderTickets);
+  document.querySelectorAll('.ticket-filter-btn').forEach(b =>
+    b.addEventListener('click', () => {
+      ticketFilter = b.dataset.tfilter;
+      document.querySelectorAll('.ticket-filter-btn').forEach(x => x.classList.toggle('active', x === b));
+      renderTickets();
+    }));
 }
 
 
