@@ -189,6 +189,17 @@
     .ticket-status-erledigt { background:#DCFCE7; color:#166534; }
     .ticket-status-zurückgewiesen { background:#FEE2E2; color:#991B1B; }
     .ticket-admin-meta { font-size:12px; color:var(--ink-3); }
+    .ticket-thread { display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto; }
+    .ticket-thread-empty { font-size:12px; color:var(--ink-3); font-style:italic; }
+    .ticket-comment { background:var(--brand-tint-2); border-radius:var(--r-xs); padding:8px 10px; }
+    .ticket-comment-meta { font-size:11px; font-weight:700; color:var(--ink-3); margin-bottom:2px; }
+    .ticket-comment-text { font-size:13px; color:var(--ink); white-space:pre-wrap; }
+    .ticket-new-dot { color:#EF4444; font-size:12px; margin-left:8px; vertical-align:middle; }
+    .ticket-new-badge { background:#EF4444; color:#fff; font-size:10px; font-weight:700; padding:1px 7px; border-radius:999px; margin-left:8px; }
+    .ticket-card-unread { border-left:4px solid #EF4444; }
+    .inbox-readfield { display:flex; flex-direction:column; gap:3px; }
+    .inbox-readlabel { font-size:12px; font-weight:700; color:var(--ink-3); }
+    .inbox-readvalue { font-size:14px; color:var(--ink); }
 
     /* BUTTONS */
     .btn { padding:10px 16px; border:none; border-radius:var(--r-sm); font-size:14px; font-weight:700; cursor:pointer; transition:all .18s; font-family:inherit; line-height:1.3; white-space:nowrap; }
@@ -730,6 +741,11 @@
         <span>Tickets</span>
         <span class="nav-badge" id="tickets-badge" style="display:none">0</span>
       </button>
+      <button class="tab-button" data-tab="inbox" id="tabbtn-inbox" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+        <span>Inbox</span>
+        <span class="nav-badge" id="inbox-badge" style="display:none">0</span>
+      </button>
       <button class="tab-button" data-tab="einstellungen" id="tabbtn-einstellungen">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         <span>Einstellungen</span>
@@ -843,6 +859,16 @@
       <button class="ticket-filter-btn" data-tfilter="zurückgewiesen">Zurückgewiesen</button>
     </div>
     <div id="tickets-list"></div>
+  </section>
+
+  <!-- TAB: Inbox (eigene Tickets – Supervisor/Bearbeiter) -->
+  <section class="tab-content" id="tab-inbox">
+    <div class="section-header">
+      <h2>Inbox – Meine Tickets</h2>
+      <button class="btn btn-outline" id="btn-refresh-inbox">Aktualisieren</button>
+    </div>
+    <p class="anmeldung-hint">Deine erfassten Tickets. Du wirst hier benachrichtigt, wenn das Team etwas bearbeitet – du kannst antworten/kommentieren.</p>
+    <div id="inbox-list"></div>
   </section>
 
   <!-- TAB: Dashboard -->
@@ -1165,10 +1191,46 @@
         <label for="ta-antwort">Rückmeldung (Antwort an den Melder)</label>
         <textarea id="ta-antwort" placeholder="Antwort / Kommentar zum Ticket…"></textarea>
       </div>
+      <div class="ticket-field">
+        <label>Verlauf / Kommentare</label>
+        <div class="ticket-thread" id="ta-thread"></div>
+      </div>
+      <div class="ticket-field">
+        <label for="ta-kommentar">Kommentar hinzufügen (optional)</label>
+        <textarea id="ta-kommentar" placeholder="Kommentar zum Ticket…"></textarea>
+      </div>
     </div>
     <div class="ticket-actions">
       <button class="btn btn-secondary" id="btn-ticket-admin-cancel">Abbrechen</button>
       <button class="btn btn-primary" id="btn-ticket-admin-save">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- Inbox: eigenes Ticket ansehen / kommentieren -->
+<div class="ticket-modal-overlay" id="inbox-overlay">
+  <div class="ticket-dialog">
+    <div class="ticket-dialog-header">
+      <h3 id="inbox-title">Ticket</h3>
+      <button class="ticket-dialog-close" id="btn-inbox-close">&times;</button>
+    </div>
+    <div class="ticket-dialog-body">
+      <div class="ticket-admin-meta" id="inbox-meta"></div>
+      <div class="inbox-readfield"><div class="inbox-readlabel">Titel</div><div id="inbox-ticket-title" class="inbox-readvalue"></div></div>
+      <div class="inbox-readfield"><div class="inbox-readlabel">Beschreibung</div><div id="inbox-beschreibung" class="inbox-readvalue" style="white-space:pre-wrap"></div></div>
+      <div id="inbox-antwort-wrap"></div>
+      <div class="ticket-field">
+        <label>Verlauf / Kommentare</label>
+        <div class="ticket-thread" id="inbox-thread"></div>
+      </div>
+      <div class="ticket-field">
+        <label for="inbox-kommentar">Kommentar hinzufügen</label>
+        <textarea id="inbox-kommentar" placeholder="Deine Antwort / Frage zum Ticket…"></textarea>
+      </div>
+    </div>
+    <div class="ticket-actions">
+      <button class="btn btn-secondary" id="btn-inbox-cancel">Schliessen</button>
+      <button class="btn btn-primary" id="btn-inbox-send">Kommentar senden</button>
     </div>
   </div>
 </div>
@@ -1483,6 +1545,17 @@ function applyRolePermissions() {
     }
   }
 
+  // Inbox-Tab: für Supervisor/Bearbeiter (nicht Admin, nicht Leser)
+  const inboxAllowed = editor && !admin;
+  const inboxTabBtn = document.getElementById('tabbtn-inbox');
+  if (inboxTabBtn) inboxTabBtn.style.display = inboxAllowed ? '' : 'none';
+  if (!inboxAllowed) {
+    const inboxTab = document.getElementById('tab-inbox');
+    if (inboxTab && inboxTab.classList.contains('active')) {
+      switchTab('kinder', document.querySelector('.tab-button[data-tab="kinder"]'));
+    }
+  }
+
   // Kinder-Tabelle neu zeichnen (Bearbeiten/Löschen-Buttons hängen an der Rolle)
   renderKinderTable();
   renderWidgets();
@@ -1682,8 +1755,7 @@ function registerAuthEvents() {
       await loadAnmeldungen();
       await loadWidgets();
       renderWidgets();
-      renderTicketList();
-      renderTickets();
+      await refreshTickets();
     } else {
       document.getElementById('login-overlay').style.display = 'flex';
       setTimeout(() => document.getElementById('login-username')?.focus(), 100);
@@ -2026,7 +2098,8 @@ function switchTab(tabName, clickedBtn) {
   if (clickedBtn) clickedBtn.classList.add('active');
   if (tabName === 'dashboard') { updateDashboard(); renderWidgets(); }
   if (tabName === 'anmeldungen') { loadAnmeldungen(); }
-  if (tabName === 'tickets') { renderTickets(); }
+  if (tabName === 'tickets') { refreshTickets(); }
+  if (tabName === 'inbox') { refreshTickets(); }
 }
 
 function switchDashPanel(panelName, clickedBtn) {
@@ -2863,31 +2936,32 @@ async function saveTickets(tickets) {
   await window._fb.fbSave('data/tickets', tickets);
 }
 
+// Vorschau in den Einstellungen: zeigt NUR die eigenen Tickets (aus ticketsCache).
 function renderTicketList() {
-  loadTickets().then(tickets => {
-    const container = document.getElementById('ticket-list-preview');
-    if (!container) return;
-    if (tickets.length === 0) {
-      container.innerHTML = '<div class="ticket-empty">Noch keine Tickets vorhanden.</div>';
-      return;
-    }
-    // Show last 5 tickets, newest first
-    const recent = [...tickets].reverse().slice(0, 5);
-    container.innerHTML = recent.map(t => `
-      <div class="ticket-item">
-        <div class="ticket-item-header">
-          <span class="ticket-item-nr">#${String(t.nr).padStart(4,'0')} &nbsp;${escHtml(t.kategorie||'')}</span>
-          <span class="ticket-item-date">${t.datum||''}</span>
-        </div>
-        <div class="ticket-item-title">${escHtml(t.titel||'')}</div>
-        <div class="ticket-item-desc">${escHtml((t.beschreibung||'').substring(0,80))}${(t.beschreibung||'').length > 80 ? '…' : ''}</div>
-        <div class="ticket-item-by">von ${escHtml(t.name||'Unbekannt')}</div>
+  const container = document.getElementById('ticket-list-preview');
+  if (!container) return;
+  const mine = ticketsCache.filter(isOwnTicket);
+  if (mine.length === 0) {
+    container.innerHTML = '<div class="ticket-empty">Noch keine eigenen Tickets.</div>';
+    return;
+  }
+  const recent = [...mine].reverse().slice(0, 5);
+  container.innerHTML = recent.map(t => `
+    <div class="ticket-item">
+      <div class="ticket-item-header">
+        <span class="ticket-item-nr">#${String(t.nr).padStart(4,'0')} &nbsp;${escHtml(t.kategorie||'')}</span>
+        <span class="ticket-item-date">${escHtml(t.datum||'')}</span>
       </div>
-    `).join('');
-  });
+      <div class="ticket-item-title">${escHtml(t.titel||'')}</div>
+      <div class="ticket-item-desc">${escHtml((t.beschreibung||'').substring(0,80))}${(t.beschreibung||'').length > 80 ? '…' : ''}</div>
+      <div class="ticket-item-by">Status: ${TICKET_STATUS_LABELS[ticketStatusOf(t)]||ticketStatusOf(t)}</div>
+    </div>
+  `).join('');
 }
 
 function openTicketModal() {
+  // Name mit dem eingeloggten Benutzer vorausfüllen (Ticket wird ihm zugeordnet)
+  if (currentUser && currentUser.name) document.getElementById('ticket-name').value = currentUser.name;
   document.getElementById('ticket-modal-overlay').classList.add('open');
   document.getElementById('ticket-name').focus();
 }
@@ -2925,13 +2999,18 @@ async function submitTicket() {
     const tickets = await loadTickets();
     const datum = new Date().toLocaleDateString('de-CH');
     // Kein E-Mail-Versand mehr: Ticket landet direkt im Tool und ist für den Admin sichtbar.
-    const ticket = { nr: newNr, name, kategorie, titel, beschreibung, datum, status: 'offen', antwort: '', antwortDatum: '' };
+    // ersteller = eingeloggter Benutzer → er sieht später nur seine eigenen Tickets in der Inbox.
+    const ticket = {
+      nr: newNr, name, kategorie, titel, beschreibung, datum,
+      status: 'offen', antwort: '', antwortDatum: '',
+      ersteller: (currentUser && currentUser.username) || '',
+      kommentare: [], unreadForCreator: false, unreadForAdmin: false
+    };
     tickets.push(ticket);
     await saveTickets(tickets);
 
     closeTicketModal();
-    renderTicketList();
-    renderTickets();
+    await refreshTickets();
     showToast(`Ticket #${String(newNr).padStart(4,'0')} erfasst – ist jetzt für den Admin im Tool sichtbar`, 'success');
   } catch(e) {
     showToast('Fehler beim Speichern: ' + e.message, 'error');
@@ -2951,65 +3030,89 @@ function registerTicketEvents() {
   });
 }
 
-// ===== TICKETS – ADMIN-VERWALTUNG =====
+// ===== TICKETS – gemeinsame Basis =====
 const TICKET_STATUS_LABELS = { offen:'Offen', in_bearbeitung:'In Bearbeitung', erledigt:'Erledigt', 'zurückgewiesen':'Zurückgewiesen' };
 let ticketsCache = [];
 let ticketFilter = 'alle';
-let _editingTicketNr = null;
+let _editingTicketNr = null;   // Admin-Modal
+let _inboxTicketNr = null;     // Inbox-Modal
 
 function ticketStatusOf(t) { return t.status || 'offen'; }
 function ticketIsOpen(t) { return !['erledigt','zurückgewiesen'].includes(ticketStatusOf(t)); }
+function isOwnTicket(t) { return !!(currentUser && t.ersteller && t.ersteller === currentUser.username); }
+function ticketByNr(nr) { return ticketsCache.find(x => x.nr === nr); }
 
+async function reloadTicketsCache() { ticketsCache = await loadTickets(); }
+async function refreshTickets() { await reloadTicketsCache(); renderAllTickets(); }
+function renderAllTickets() {
+  renderTicketList();
+  renderTickets();
+  renderInbox();
+  updateTicketsBadge();
+  updateInboxBadge();
+}
+
+// Kommentar-Verlauf (Admin- und Inbox-Ansicht gemeinsam)
+function renderKommentareHtml(t) {
+  const ks = t.kommentare || [];
+  if (!ks.length) return '<div class="ticket-thread-empty">Noch keine Kommentare.</div>';
+  return ks.map(k => `
+    <div class="ticket-comment">
+      <div class="ticket-comment-meta">${escHtml(k.von||'')}${k.rolle ? ' · ' + (ROLE_LABELS[k.rolle]||k.rolle) : ''} · ${escHtml(k.datum||'')}</div>
+      <div class="ticket-comment-text">${escHtml(k.text||'')}</div>
+    </div>`).join('');
+}
+
+// ===== TICKETS – ADMIN-VERWALTUNG (sieht alle) =====
 function updateTicketsBadge() {
   const badge = document.getElementById('tickets-badge');
   if (!badge) return;
-  const n = ticketsCache.filter(ticketIsOpen).length;
+  const n = ticketsCache.filter(t => ticketIsOpen(t) || t.unreadForAdmin).length;
   badge.textContent = n;
   badge.style.display = n > 0 ? '' : 'none';
 }
 
 function renderTickets() {
-  loadTickets().then(tickets => {
-    ticketsCache = tickets;
-    updateTicketsBadge();
-    const container = document.getElementById('tickets-list');
-    if (!container) return;
-    let list = [...tickets].reverse(); // neueste zuerst
-    if (ticketFilter !== 'alle') list = list.filter(t => ticketStatusOf(t) === ticketFilter);
-    if (list.length === 0) {
-      container.innerHTML = '<div class="empty-state">Keine Tickets in dieser Ansicht</div>';
-      return;
-    }
-    container.innerHTML = list.map(t => {
-      const st = ticketStatusOf(t);
-      const antwort = t.antwort
-        ? `<div class="ticket-antwort"><b>Rückmeldung:</b> ${escHtml(t.antwort)}${t.antwortDatum ? ` <span class="ticket-card-date">(${escHtml(t.antwortDatum)})</span>` : ''}</div>`
-        : '';
-      return `
-        <div class="ticket-card">
-          <div class="ticket-card-head">
-            <div>
-              <span class="ticket-card-nr">#${String(t.nr).padStart(4,'0')}</span>
-              <span class="ticket-card-cat">${escHtml(t.kategorie||'')}</span>
-              <span class="ticket-card-date">${escHtml(t.datum||'')}</span>
-            </div>
-            <span class="ticket-status ticket-status-${st}">${TICKET_STATUS_LABELS[st]||st}</span>
+  const container = document.getElementById('tickets-list');
+  if (!container) return;
+  let list = [...ticketsCache].reverse(); // neueste zuerst
+  if (ticketFilter !== 'alle') list = list.filter(t => ticketStatusOf(t) === ticketFilter);
+  if (list.length === 0) {
+    container.innerHTML = '<div class="empty-state">Keine Tickets in dieser Ansicht</div>';
+    return;
+  }
+  container.innerHTML = list.map(t => {
+    const st = ticketStatusOf(t);
+    const neu = t.unreadForAdmin ? '<span class="ticket-new-dot" title="Neuer Kommentar vom Melder">●</span>' : '';
+    const antwort = t.antwort
+      ? `<div class="ticket-antwort"><b>Rückmeldung:</b> ${escHtml(t.antwort)}${t.antwortDatum ? ` <span class="ticket-card-date">(${escHtml(t.antwortDatum)})</span>` : ''}</div>`
+      : '';
+    const thread = (t.kommentare && t.kommentare.length) ? `<div class="ticket-thread">${renderKommentareHtml(t)}</div>` : '';
+    return `
+      <div class="ticket-card">
+        <div class="ticket-card-head">
+          <div>
+            <span class="ticket-card-nr">#${String(t.nr).padStart(4,'0')}</span>
+            <span class="ticket-card-cat">${escHtml(t.kategorie||'')}</span>
+            <span class="ticket-card-date">${escHtml(t.datum||'')}</span>${neu}
           </div>
-          <div class="ticket-card-title">${escHtml(t.titel||'')}</div>
-          <div class="ticket-card-desc">${escHtml(t.beschreibung||'')}</div>
-          <div class="ticket-card-by">von ${escHtml(t.name||'Unbekannt')}</div>
-          ${antwort}
-          <div class="ticket-card-actions">
-            <button class="btn btn-small btn-primary" data-taction="edit"   data-nr="${t.nr}">Bearbeiten</button>
-            <button class="btn btn-small btn-outline" data-taction="reply"  data-nr="${t.nr}">Rückmelden</button>
-            <button class="btn btn-small btn-outline" data-taction="reject" data-nr="${t.nr}">Zurückweisen</button>
-            <button class="btn btn-small btn-delete"  data-taction="delete" data-nr="${t.nr}">Löschen</button>
-          </div>
-        </div>`;
-    }).join('');
-    container.querySelectorAll('[data-taction]').forEach(b =>
-      b.addEventListener('click', () => handleTicketAction(b.dataset.taction, parseInt(b.dataset.nr))));
-  });
+          <span class="ticket-status ticket-status-${st}">${TICKET_STATUS_LABELS[st]||st}</span>
+        </div>
+        <div class="ticket-card-title">${escHtml(t.titel||'')}</div>
+        <div class="ticket-card-desc">${escHtml(t.beschreibung||'')}</div>
+        <div class="ticket-card-by">von ${escHtml(t.name||'Unbekannt')}${t.ersteller ? ` (@${escHtml(t.ersteller)})` : ''}</div>
+        ${antwort}
+        ${thread}
+        <div class="ticket-card-actions">
+          <button class="btn btn-small btn-primary" data-taction="edit"   data-nr="${t.nr}">Bearbeiten</button>
+          <button class="btn btn-small btn-outline" data-taction="reply"  data-nr="${t.nr}">Rückmelden</button>
+          <button class="btn btn-small btn-outline" data-taction="reject" data-nr="${t.nr}">Zurückweisen</button>
+          <button class="btn btn-small btn-delete"  data-taction="delete" data-nr="${t.nr}">Löschen</button>
+        </div>
+      </div>`;
+  }).join('');
+  container.querySelectorAll('[data-taction]').forEach(b =>
+    b.addEventListener('click', () => handleTicketAction(b.dataset.taction, parseInt(b.dataset.nr))));
 }
 
 function handleTicketAction(action, nr) {
@@ -3021,16 +3124,18 @@ function handleTicketAction(action, nr) {
 }
 
 function openTicketAdmin(nr, focusAntwort) {
-  const t = ticketsCache.find(x => x.nr === nr);
+  const t = ticketByNr(nr);
   if (!t) return;
   _editingTicketNr = nr;
   document.getElementById('ticket-admin-title').textContent = `Ticket #${String(t.nr).padStart(4,'0')} bearbeiten`;
-  document.getElementById('ticket-admin-meta').textContent = `Von ${t.name||'Unbekannt'} · ${t.datum||''}`;
+  document.getElementById('ticket-admin-meta').textContent = `Von ${t.name||'Unbekannt'}${t.ersteller ? ` (@${t.ersteller})` : ''} · ${t.datum||''}`;
   document.getElementById('ta-kategorie').value = t.kategorie || 'Sonstiges';
   document.getElementById('ta-titel').value = t.titel || '';
   document.getElementById('ta-beschreibung').value = t.beschreibung || '';
   document.getElementById('ta-status').value = ticketStatusOf(t);
   document.getElementById('ta-antwort').value = t.antwort || '';
+  document.getElementById('ta-thread').innerHTML = renderKommentareHtml(t);
+  document.getElementById('ta-kommentar').value = '';
   document.getElementById('ticket-admin-overlay').classList.add('open');
   setTimeout(() => document.getElementById(focusAntwort ? 'ta-antwort' : 'ta-titel')?.focus(), 50);
 }
@@ -3042,61 +3147,163 @@ function closeTicketAdmin() {
 
 async function saveTicketAdmin() {
   if (!isAdminRole()) { showToast('Keine Berechtigung', 'error'); return; }
-  const t = ticketsCache.find(x => x.nr === _editingTicketNr);
-  if (!t) { closeTicketAdmin(); return; }
-  const neuAntwort = document.getElementById('ta-antwort').value.trim();
-  t.kategorie    = document.getElementById('ta-kategorie').value;
-  t.titel        = document.getElementById('ta-titel').value.trim();
-  t.beschreibung = document.getElementById('ta-beschreibung').value.trim();
-  t.status       = document.getElementById('ta-status').value;
-  if (neuAntwort !== (t.antwort || '')) {        // Rückmeldung geändert → Datum aktualisieren
-    t.antwort = neuAntwort;
-    t.antwortDatum = neuAntwort ? new Date().toLocaleDateString('de-CH') : '';
+  const kat  = document.getElementById('ta-kategorie').value;
+  const tit  = document.getElementById('ta-titel').value.trim();
+  const bes  = document.getElementById('ta-beschreibung').value.trim();
+  const sta  = document.getElementById('ta-status').value;
+  const ant  = document.getElementById('ta-antwort').value.trim();
+  const komm = document.getElementById('ta-kommentar').value.trim();
+  await reloadTicketsCache();                       // frische Daten (Melder hat evtl. kommentiert)
+  const t = ticketByNr(_editingTicketNr);
+  if (!t) { closeTicketAdmin(); renderAllTickets(); return; }
+  t.kategorie = kat; t.titel = tit; t.beschreibung = bes; t.status = sta;
+  if (ant !== (t.antwort || '')) { t.antwort = ant; t.antwortDatum = ant ? new Date().toLocaleDateString('de-CH') : ''; }
+  if (komm) {
+    if (!t.kommentare) t.kommentare = [];
+    t.kommentare.push({ von: (currentUser && currentUser.name) || 'Admin', rolle: 'admin', text: komm, datum: new Date().toLocaleDateString('de-CH') });
   }
+  t.unreadForCreator = true;   // Admin hat etwas geändert → Melder in seiner Inbox benachrichtigen
+  t.unreadForAdmin = false;
   await saveTickets(ticketsCache);
   closeTicketAdmin();
-  renderTickets();
-  renderTicketList();
+  renderAllTickets();
   showToast(`Ticket #${String(t.nr).padStart(4,'0')} gespeichert`, 'success');
 }
 
 async function rejectTicket(nr) {
   if (!isAdminRole()) { showToast('Keine Berechtigung', 'error'); return; }
-  const t = ticketsCache.find(x => x.nr === nr);
-  if (!t) return;
-  if (!confirm(`Ticket #${String(nr).padStart(4,'0')} „${t.titel||''}" zurückweisen?`)) return;
+  const t0 = ticketByNr(nr);
+  if (!t0) return;
+  if (!confirm(`Ticket #${String(nr).padStart(4,'0')} „${t0.titel||''}" zurückweisen?`)) return;
+  await reloadTicketsCache();
+  const t = ticketByNr(nr);
+  if (!t) { renderAllTickets(); return; }
   t.status = 'zurückgewiesen';
+  t.unreadForCreator = true;
+  t.unreadForAdmin = false;
   await saveTickets(ticketsCache);
-  renderTickets();
-  renderTicketList();
+  renderAllTickets();
   showToast('Ticket zurückgewiesen', 'success');
 }
 
 async function deleteTicket(nr) {
   if (!isAdminRole()) { showToast('Keine Berechtigung', 'error'); return; }
-  const t = ticketsCache.find(x => x.nr === nr);
-  if (!confirm(`Ticket #${String(nr).padStart(4,'0')}${t ? ` „${t.titel||''}"` : ''} endgültig löschen?`)) return;
+  const t0 = ticketByNr(nr);
+  if (!confirm(`Ticket #${String(nr).padStart(4,'0')}${t0 ? ` „${t0.titel||''}"` : ''} endgültig löschen?`)) return;
+  await reloadTicketsCache();
   ticketsCache = ticketsCache.filter(x => x.nr !== nr);
   await saveTickets(ticketsCache);
-  renderTickets();
-  renderTicketList();
+  renderAllTickets();
   showToast('Ticket gelöscht', 'success');
 }
 
+// ===== TICKETS – INBOX (Supervisor/Bearbeiter: nur eigene Tickets) =====
+function updateInboxBadge() {
+  const badge = document.getElementById('inbox-badge');
+  if (!badge) return;
+  const n = ticketsCache.filter(t => isOwnTicket(t) && t.unreadForCreator).length;
+  badge.textContent = n;
+  badge.style.display = n > 0 ? '' : 'none';
+}
+
+function renderInbox() {
+  const container = document.getElementById('inbox-list');
+  if (!container) return;
+  const mine = [...ticketsCache.filter(isOwnTicket)].reverse();
+  if (mine.length === 0) {
+    container.innerHTML = '<div class="empty-state">Du hast noch keine Tickets erfasst.</div>';
+    return;
+  }
+  container.innerHTML = mine.map(t => {
+    const st = ticketStatusOf(t);
+    const neu = t.unreadForCreator ? '<span class="ticket-new-badge">Neu</span>' : '';
+    return `
+      <div class="ticket-card${t.unreadForCreator ? ' ticket-card-unread' : ''}">
+        <div class="ticket-card-head">
+          <div>
+            <span class="ticket-card-nr">#${String(t.nr).padStart(4,'0')}</span>
+            <span class="ticket-card-cat">${escHtml(t.kategorie||'')}</span>
+            <span class="ticket-card-date">${escHtml(t.datum||'')}</span>${neu}
+          </div>
+          <span class="ticket-status ticket-status-${st}">${TICKET_STATUS_LABELS[st]||st}</span>
+        </div>
+        <div class="ticket-card-title">${escHtml(t.titel||'')}</div>
+        ${t.antwort ? `<div class="ticket-antwort"><b>Rückmeldung:</b> ${escHtml(t.antwort)}</div>` : ''}
+        <div class="ticket-card-actions">
+          <button class="btn btn-small btn-primary" data-inbox-open="${t.nr}">Öffnen / Kommentieren</button>
+        </div>
+      </div>`;
+  }).join('');
+  container.querySelectorAll('[data-inbox-open]').forEach(b =>
+    b.addEventListener('click', () => openInbox(parseInt(b.dataset.inboxOpen))));
+}
+
+async function openInbox(nr) {
+  const t = ticketByNr(nr);
+  if (!t) return;
+  _inboxTicketNr = nr;
+  document.getElementById('inbox-title').textContent = `Ticket #${String(t.nr).padStart(4,'0')}`;
+  document.getElementById('inbox-meta').innerHTML = `<span class="ticket-status ticket-status-${ticketStatusOf(t)}">${TICKET_STATUS_LABELS[ticketStatusOf(t)]||ticketStatusOf(t)}</span> &nbsp; ${escHtml(t.kategorie||'')} · ${escHtml(t.datum||'')}`;
+  document.getElementById('inbox-ticket-title').textContent = t.titel || '';
+  document.getElementById('inbox-beschreibung').textContent = t.beschreibung || '';
+  document.getElementById('inbox-antwort-wrap').innerHTML = t.antwort
+    ? `<div class="ticket-antwort"><b>Rückmeldung vom Team:</b> ${escHtml(t.antwort)}${t.antwortDatum ? ` (${escHtml(t.antwortDatum)})` : ''}</div>` : '';
+  document.getElementById('inbox-thread').innerHTML = renderKommentareHtml(t);
+  document.getElementById('inbox-kommentar').value = '';
+  document.getElementById('inbox-overlay').classList.add('open');
+  // Beim Öffnen als gelesen markieren
+  if (t.unreadForCreator) {
+    await reloadTicketsCache();
+    const fresh = ticketByNr(nr);
+    if (fresh) { fresh.unreadForCreator = false; await saveTickets(ticketsCache); }
+    renderAllTickets();
+  }
+}
+
+function closeInbox() {
+  document.getElementById('inbox-overlay').classList.remove('open');
+  _inboxTicketNr = null;
+}
+
+async function sendInboxComment() {
+  const text = document.getElementById('inbox-kommentar').value.trim();
+  if (!text) { showToast('Bitte einen Kommentar eingeben', 'error'); return; }
+  await reloadTicketsCache();
+  const t = ticketByNr(_inboxTicketNr);
+  if (!t) { closeInbox(); renderAllTickets(); return; }
+  if (!t.kommentare) t.kommentare = [];
+  t.kommentare.push({ von: (currentUser && currentUser.name) || 'Unbekannt', rolle: getRole(), text, datum: new Date().toLocaleDateString('de-CH') });
+  t.unreadForAdmin = true;   // Melder hat kommentiert → Admin sehen lassen
+  await saveTickets(ticketsCache);
+  document.getElementById('inbox-thread').innerHTML = renderKommentareHtml(t);
+  document.getElementById('inbox-kommentar').value = '';
+  renderAllTickets();
+  showToast('Kommentar gesendet', 'success');
+}
+
 function registerTicketAdminEvents() {
+  // Admin-Modal
   document.getElementById('btn-ticket-admin-close')?.addEventListener('click', closeTicketAdmin);
   document.getElementById('btn-ticket-admin-cancel')?.addEventListener('click', closeTicketAdmin);
   document.getElementById('btn-ticket-admin-save')?.addEventListener('click', saveTicketAdmin);
   document.getElementById('ticket-admin-overlay')?.addEventListener('click', e => {
-    if (e.target === document.getElementById('ticket-admin-overlay')) closeTicketAdmin();
+    if (e.target.id === 'ticket-admin-overlay') closeTicketAdmin();
   });
-  document.getElementById('btn-refresh-tickets')?.addEventListener('click', renderTickets);
+  document.getElementById('btn-refresh-tickets')?.addEventListener('click', refreshTickets);
   document.querySelectorAll('.ticket-filter-btn').forEach(b =>
     b.addEventListener('click', () => {
       ticketFilter = b.dataset.tfilter;
       document.querySelectorAll('.ticket-filter-btn').forEach(x => x.classList.toggle('active', x === b));
       renderTickets();
     }));
+  // Inbox-Modal
+  document.getElementById('btn-inbox-close')?.addEventListener('click', closeInbox);
+  document.getElementById('btn-inbox-cancel')?.addEventListener('click', closeInbox);
+  document.getElementById('btn-inbox-send')?.addEventListener('click', sendInboxComment);
+  document.getElementById('inbox-overlay')?.addEventListener('click', e => {
+    if (e.target.id === 'inbox-overlay') closeInbox();
+  });
+  document.getElementById('btn-refresh-inbox')?.addEventListener('click', refreshTickets);
 }
 
 
