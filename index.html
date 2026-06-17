@@ -953,8 +953,9 @@
           <input type="text" id="new-user-username" placeholder="Benutzername (z.B. maria)">
           <input type="password" id="new-user-password" placeholder="Passwort (min. 6 Zeichen)">
           <select id="new-user-role">
-            <option value="user">Benutzer – darf bearbeiten (kein Löschen)</option>
-            <option value="viewer">Nur Lesen – darf nur anschauen</option>
+            <option value="supervisor">Supervisor – alles ausser Benutzerverwaltung</option>
+            <option value="user" selected>Bearbeiter – bearbeiten (kein Löschen)</option>
+            <option value="viewer">Leser – nur anschauen</option>
           </select>
           <button class="btn btn-primary" id="btn-add-user">+ Benutzer hinzufügen</button>
         </div>
@@ -1167,7 +1168,7 @@ const GRUPPE_LABELS = {
   mittagstisch: 'Mittagstisch'
 };
 const STATUS_LABELS = { aktiv:'Aktiv', warteliste:'Warteliste', inaktiv:'Inaktiv' };
-const ROLE_LABELS = { admin:'Administrator', user:'Bearbeiten', viewer:'Nur Lesen' };
+const ROLE_LABELS = { admin:'Administrator', supervisor:'Supervisor', user:'Bearbeiter', viewer:'Leser' };
 const TAG_LABELS = { Mo:'Montag', Di:'Dienstag', Mi:'Mittwoch', Do:'Donnerstag', Fr:'Freitag' };
 const WIDGET_COLORS = ['#1F5BB5','#2E8B57','#EE8A1E','#6E59C7','#0E7C86','#CF3F3C','#3E7CC4','#B0710C'];
 
@@ -1343,13 +1344,14 @@ function statusTextForExport(k, gruppeFilter) {
 let currentUser = null;
 
 // ===== ROLLEN / BERECHTIGUNGEN =====
-// admin  → darf alles (nur 1 Account)
-// user   → darf bearbeiten, aber KEINE Benutzerverwaltung & KEINE Lösch-Buttons
-// viewer → darf nur anschauen (keine Bearbeitung)
+// admin      → darf alles (nur 1 Account: Benutzerverwaltung + Alle-Daten-löschen)
+// supervisor → darf alles AUSSER Benutzerverwaltung (kann Kinder bearbeiten UND löschen)
+// user       → "Bearbeiter": darf bearbeiten, aber KEIN Löschen & KEINE Benutzerverwaltung
+// viewer     → "Leser": darf nur anschauen (keine Bearbeitung)
 function getRole()     { return (currentUser && currentUser.role) || 'viewer'; }
-function isAdminRole() { return getRole() === 'admin'; }
-function canEdit()     { const r = getRole(); return r === 'admin' || r === 'user'; }
-function canDelete()   { return getRole() === 'admin'; }
+function isAdminRole() { return getRole() === 'admin'; }                                 // nur Admin: Benutzerverwaltung + Alle-Daten-löschen
+function canEdit()     { return ['admin','supervisor','user'].includes(getRole()); }     // bearbeiten
+function canDelete()   { return ['admin','supervisor'].includes(getRole()); }            // einzelne Kinder löschen
 
 // UI je nach Rolle ein-/ausblenden
 function applyRolePermissions() {
@@ -1415,8 +1417,9 @@ async function renderUserList() {
           <div class="user-row-username">@${escHtml(u.username)}</div>
         </div>
         <select class="user-role-select" data-uid="${u.id}" title="Rolle ändern">
-          <option value="user"   ${u.role !== 'viewer' ? 'selected' : ''}>Bearbeiten</option>
-          <option value="viewer" ${u.role === 'viewer' ? 'selected' : ''}>Nur Lesen</option>
+          <option value="supervisor" ${u.role === 'supervisor' ? 'selected' : ''}>Supervisor</option>
+          <option value="user"       ${(u.role !== 'supervisor' && u.role !== 'viewer') ? 'selected' : ''}>Bearbeiter</option>
+          <option value="viewer"     ${u.role === 'viewer' ? 'selected' : ''}>Leser</option>
         </select>
         <button class="btn-user-delete" data-uid="${u.id}" data-username="${escHtml(u.username)}">Löschen</button>
       </div>`;
@@ -1433,7 +1436,7 @@ async function renderUserList() {
 // Rolle eines Benutzers ändern (nur Admin)
 async function changeUserRole(uid, newRole) {
   if (!isAdminRole()) { showToast('Keine Berechtigung', 'error'); return; }
-  if (newRole !== 'user' && newRole !== 'viewer') { showToast('Ungültige Rolle', 'error'); return; }
+  if (!['supervisor','user','viewer'].includes(newRole)) { showToast('Ungültige Rolle', 'error'); return; }
   const users = await window._fb.fbGetUsers();
   const u = users.find(x => x.id === uid);
   if (!u) return;
@@ -1526,7 +1529,7 @@ function registerAuthEvents() {
     const role     = document.getElementById('new-user-role').value || 'user';
 
     if (!name || !username || !pw) { showToast('Bitte alle Felder ausfüllen', 'error'); return; }
-    if (role !== 'user' && role !== 'viewer') { showToast('Ungültige Rolle (es gibt nur einen Admin)', 'error'); return; }
+    if (!['supervisor','user','viewer'].includes(role)) { showToast('Ungültige Rolle (es gibt nur einen Admin)', 'error'); return; }
     if (!/^[a-z0-9_]+$/.test(username)) { showToast('Benutzername: nur Kleinbuchstaben, Zahlen, Unterstrich', 'error'); return; }
     if (pw.length < 6) { showToast('Passwort muss mindestens 6 Zeichen haben', 'error'); return; }
 
