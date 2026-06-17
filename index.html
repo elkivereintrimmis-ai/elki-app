@@ -1634,7 +1634,9 @@ function repairKinderIds() {
   let maxId = maxKindId();
   kinder.forEach(k => {
     let n = Number(k.id);
-    if (!Number.isFinite(n) || used.has(n)) { n = ++maxId; k.id = n; changed = true; }
+    // Gültig ist nur eine positive ganze Zahl (kein 0/leer/NaN/Duplikat) –
+    // id 0 brach das Bearbeiten, weil 0 in JS als "falsch" gilt.
+    if (!Number.isInteger(n) || n < 1 || used.has(n)) { n = ++maxId; k.id = n; changed = true; }
     else if (k.id !== n) { k.id = n; changed = true; }  // "5" → 5
     used.add(n);
   });
@@ -2007,7 +2009,7 @@ function openModal(kindId = null) {
   window._approvingAnmeldungId = null;
   window._editingKindSlotStatus = {};
 
-  if (kindId) {
+  if (Number.isFinite(kindId)) {
     const kind = kinder.find(k => k.id === kindId);
     if (kind) {
       currentEditId = kindId;
@@ -2078,7 +2080,7 @@ function handleFormSubmit(e) {
     slots,
   };
 
-  if (currentEditId) {
+  if (Number.isFinite(currentEditId)) {
     const idx = kinder.findIndex(k => k.id === currentEditId);
     if (idx !== -1) kinder[idx] = { ...kinder[idx], ...kind };
     showToast('Kind aktualisiert','success');
@@ -2106,7 +2108,9 @@ function handleFormSubmit(e) {
 // ===== DELETE =====
 function deleteKind(kindId) {
   if (!canDelete()) { showToast('Keine Berechtigung zum Löschen', 'error'); return; }
-  if (confirm('Möchten Sie dieses Kind wirklich löschen?')) {
+  const target = kinder.find(x => x.id === kindId);
+  const name = target ? `${target.vorname} ${target.nachname}` : 'diese Person';
+  if (confirm(`Person „${name}" wirklich endgültig löschen?\n\nDas kann NICHT rückgängig gemacht werden.`)) {
     kinder = kinder.filter(k => k.id !== kindId);
     saveData().then(() => {
       renderKinderTable();
