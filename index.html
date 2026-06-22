@@ -1079,6 +1079,18 @@
         </p>
       </div>
 
+      <!-- Schuljahre / Zeitachsen verwalten (nur Administrator) -->
+      <div class="settings-card" id="card-schuljahre">
+        <h3>Schuljahre / Zeitachsen</h3>
+        <p style="font-size:13px;color:var(--ink-2);margin-bottom:8px">
+          Zeitachsen umbenennen, löschen oder neu anlegen. Beim <b>Umbenennen</b> werden alle Zuteilungen
+          mitverschoben. Beim <b>Löschen</b> gehen die Zuteilungen dieses Jahres verloren – die Kinder und
+          ihre Dokumente bleiben erhalten.
+        </p>
+        <div class="user-list" id="schuljahr-list"></div>
+        <button class="btn btn-primary" id="btn-add-year-settings">+ Neues Schuljahr</button>
+      </div>
+
       <!-- Benutzerverwaltung -->
       <div class="settings-card" id="card-benutzerverwaltung">
         <h3>Benutzerverwaltung</h3>
@@ -1648,9 +1660,11 @@ function applyRolePermissions() {
   const roleEl = document.getElementById('header-user-role');
   if (roleEl) roleEl.textContent = ROLE_LABELS[getRole()] || getRole();
 
-  // Nur Admin: Benutzerverwaltung + Gefahrenzone (Alle Daten löschen)
+  // Nur Admin: Benutzerverwaltung + Schuljahre/Zeitachsen + Gefahrenzone (Alle Daten löschen)
   const benutzerCard = document.getElementById('card-benutzerverwaltung');
   if (benutzerCard) benutzerCard.style.display = admin ? '' : 'none';
+  const schuljahrCard = document.getElementById('card-schuljahre');
+  if (schuljahrCard) schuljahrCard.style.display = admin ? '' : 'none';
   const dangerCard = document.getElementById('card-danger');
   if (dangerCard) dangerCard.style.display = admin ? '' : 'none';
 
@@ -1971,6 +1985,35 @@ function renderYearBar() {
   if (addBtn) addBtn.style.display = canEdit() ? '' : 'none';
   const delBtn = document.getElementById('btn-del-year');
   if (delBtn) delBtn.style.display = (canDelete() && schoolYears.length > 1) ? '' : 'none';
+  renderSchuljahrList();
+}
+
+// Verwaltungsliste der Schuljahre in den Einstellungen (Administrator)
+function renderSchuljahrList() {
+  const list = document.getElementById('schuljahr-list');
+  if (!list) return;
+  if (!schoolYears.length) {
+    list.innerHTML = '<p style="font-size:13px;color:var(--ink-3);font-style:italic">Keine Schuljahre vorhanden.</p>';
+    return;
+  }
+  const nurEines = schoolYears.length <= 1;
+  list.innerHTML = schoolYears.map(y => {
+    const count = kinder.filter(k => slotsOf(k, y).length > 0).length;
+    const isCur = y === currentSchoolYear;
+    return `
+      <div class="user-row">
+        <div style="flex:1">
+          <div class="user-row-name">${escHtml(y)} ${isCur ? '<span class="user-role-badge admin">aktuell</span>' : ''}</div>
+          <div class="user-row-username">${count} Kind(er) eingeteilt</div>
+        </div>
+        <button class="btn btn-small btn-edit" data-year="${escAttr(y)}" data-act="rename">Bearbeiten</button>
+        <button class="btn-user-delete" data-year="${escAttr(y)}" data-act="del" ${nurEines ? 'disabled title="Mindestens ein Schuljahr muss bleiben" style="opacity:.5;cursor:not-allowed"' : ''}>Löschen</button>
+      </div>`;
+  }).join('');
+  list.querySelectorAll('[data-act="rename"]').forEach(b =>
+    b.addEventListener('click', () => renameSchoolYearFlow(b.dataset.year)));
+  list.querySelectorAll('[data-act="del"]:not([disabled])').forEach(b =>
+    b.addEventListener('click', () => deleteSchoolYearFlow(b.dataset.year)));
 }
 
 async function switchSchoolYear(year) {
@@ -2001,14 +2044,16 @@ async function addSchoolYearFlow() {
 }
 
 // Schuljahr löschen (entfernt alle Zuteilungen dieses Jahres; Kinder & Dokumente bleiben)
-async function deleteSchoolYearFlow() {
+async function deleteSchoolYearFlow(jahr = currentSchoolYear) {
   if (!canDelete()) { showToast('Keine Berechtigung', 'error'); return; }
+  if (!schoolYears.includes(jahr)) return;
   if (schoolYears.length <= 1) { showToast('Mindestens ein Schuljahr muss bestehen bleiben', 'error'); return; }
-  const jahr = currentSchoolYear;
   if (!confirm(`Schuljahr ${jahr} wirklich löschen?\n\nAlle Zuteilungen/Buchungen dieses Jahres gehen verloren.\nDie Kinder selbst und ihre Dokumente bleiben erhalten.`)) return;
   kinder.forEach(k => { if (k.jahre) delete k.jahre[jahr]; });
   schoolYears = schoolYears.filter(y => y !== jahr);
-  currentSchoolYear = schoolYears.includes(defaultSchoolYear()) ? defaultSchoolYear() : schoolYears[schoolYears.length - 1];
+  if (currentSchoolYear === jahr) {
+    currentSchoolYear = schoolYears.includes(defaultSchoolYear()) ? defaultSchoolYear() : schoolYears[schoolYears.length - 1];
+  }
   await Promise.all([saveData(), saveSchoolYears(), window._fb.fbSave('config/aktSchuljahr', currentSchoolYear)]);
   renderYearBar();
   renderKinderTable();
@@ -2016,6 +2061,34 @@ async function deleteSchoolYearFlow() {
   updateDashboard();
   renderWidgets();
   showToast(`Schuljahr ${jahr} gelöscht`, 'success');
+}
+
+// Schuljahr umbenennen (verschiebt alle Zuteilungen mit; Kinder & Dokumente bleiben)
+async function renameSchoolYearFlow(oldYear) {
+  if (!canEdit()) { showToast('Keine Berechtigung', 'error'); return; }
+  if (!schoolYears.includes(oldYear)) return;
+  const eingabe = prompt(`Schuljahr „${oldYear}" umbenennen in (Format JJJJ/JJ, z.B. 2026/27):`, oldYear);
+  if (eingabe === null) return;
+  const neu = eingabe.trim();
+  if (neu === oldYear) return;
+  if (!/^\d{4}\/\d{2}$/.test(neu)) { showToast('Ungültiges Format. Bitte z.B. 2026/27', 'error'); return; }
+  if (schoolYears.includes(neu)) { showToast('Dieses Schuljahr gibt es schon', 'error'); return; }
+  // Zuteilungen aller Kinder vom alten auf das neue Jahr umhängen
+  kinder.forEach(k => {
+    if (k.jahre && Object.prototype.hasOwnProperty.call(k.jahre, oldYear)) {
+      k.jahre[neu] = k.jahre[oldYear];
+      delete k.jahre[oldYear];
+    }
+  });
+  schoolYears = sortSchoolYears(schoolYears.map(y => (y === oldYear ? neu : y)));
+  if (currentSchoolYear === oldYear) currentSchoolYear = neu;
+  await Promise.all([saveData(), saveSchoolYears(), window._fb.fbSave('config/aktSchuljahr', currentSchoolYear)]);
+  renderYearBar();
+  renderKinderTable();
+  updateStats();
+  updateDashboard();
+  renderWidgets();
+  showToast(`Schuljahr umbenannt: ${oldYear} → ${neu}`, 'success');
 }
 
 // ===== ID-HELFER =====
@@ -2274,7 +2347,8 @@ function registerEventListeners() {
   // Schuljahr-Leiste (Zeitachse)
   document.getElementById('year-select')?.addEventListener('change', e => switchSchoolYear(e.target.value));
   document.getElementById('btn-add-year')?.addEventListener('click', addSchoolYearFlow);
-  document.getElementById('btn-del-year')?.addEventListener('click', deleteSchoolYearFlow);
+  document.getElementById('btn-del-year')?.addEventListener('click', () => deleteSchoolYearFlow());
+  document.getElementById('btn-add-year-settings')?.addEventListener('click', addSchoolYearFlow);
 
   document.getElementById('btn-add-kind').addEventListener('click', () => openModal());
   document.getElementById('btn-refresh-anmeldungen')?.addEventListener('click', loadAnmeldungen);
