@@ -331,6 +331,102 @@
     .group-slot-children-header { font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
     .group-slot-wait { margin-top:6px; font-size:12px; color:var(--warn); }
 
+    /* ===== HEUTE / TAGESÜBERSICHT (Rolle "Leser" / Spielgruppenleitung) ===== */
+    .heute-head { display:flex; justify-content:space-between; align-items:flex-end; gap:20px; flex-wrap:wrap; margin:26px 0 18px; }
+    .heute-eyebrow { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-3); margin-bottom:5px; }
+    .heute-title { font-size:28px; font-weight:800; color:var(--ink); letter-spacing:-.02em; line-height:1.1; }
+    .heute-date { font-size:15px; color:var(--ink-2); font-weight:600; margin-top:5px; text-transform:capitalize; }
+    .heute-actions { display:flex; align-items:center; gap:14px; }
+    .heute-count { text-align:center; background:var(--brand-tint); border:1px solid var(--line); border-radius:var(--r); padding:10px 22px; min-width:104px; }
+    .heute-count-val { font-size:30px; font-weight:800; color:var(--brand); line-height:1; letter-spacing:-.02em; }
+    .heute-count-lbl { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-3); margin-top:4px; }
+    .heute-days { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; }
+    .heute-day-pill { padding:9px 18px; border:1px solid var(--line); background:var(--surface); border-radius:99px; font-size:14px; font-weight:700; color:var(--ink-2); cursor:pointer; font-family:inherit; transition:all .15s; }
+    .heute-day-pill:hover { border-color:var(--brand); color:var(--brand); }
+    .heute-day-pill.active { background:var(--brand); border-color:var(--brand); color:#fff; }
+    .pill-today-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--accent); margin-left:7px; vertical-align:middle; }
+    .heute-day-pill.active .pill-today-dot { background:#fff; }
+    .heute-group { margin-bottom:28px; }
+    .heute-group-title { display:flex; align-items:center; gap:10px; font-size:17px; font-weight:800; color:var(--ink); margin-bottom:13px; letter-spacing:-.01em; }
+    .heute-group-dot { width:13px; height:13px; border-radius:4px; flex-shrink:0; }
+    .heute-slots { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:16px; }
+    .heute-slot-card { background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:18px; border-top:3px solid var(--brand); }
+    .heute-slot-head { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid var(--line-2); }
+    .heute-slot-name { font-size:15px; font-weight:800; color:var(--ink); }
+    .heute-slot-zeit { font-size:12px; color:var(--ink-3); margin-top:3px; font-weight:600; }
+    .heute-slot-count { font-size:15px; font-weight:800; white-space:nowrap; }
+    .heute-slot-count small { font-size:13px; font-weight:600; color:var(--ink-3); }
+    .heute-kid-list { display:flex; flex-direction:column; gap:1px; }
+    .heute-kid { display:flex; align-items:flex-start; gap:11px; padding:7px 8px; border-radius:var(--r-xs); }
+    .heute-kid:hover { background:var(--surface-2); }
+    .heute-kid-num { font-size:12px; font-weight:700; color:var(--ink-3); min-width:18px; text-align:right; padding-top:2px; flex-shrink:0; }
+    .heute-kid-main { min-width:0; flex:1; }
+    .heute-kid-name { font-size:14.5px; font-weight:600; color:var(--ink); }
+    .heute-kid-note { font-size:12px; color:var(--accent-2); margin-top:2px; line-height:1.4; }
+    .heute-kid-empty { font-size:13px; color:var(--ink-3); font-style:italic; padding:8px 2px; }
+    .heute-slot-wait { margin-top:11px; padding-top:11px; border-top:1px dashed var(--line); font-size:12px; color:var(--warn); line-height:1.5; }
+    .heute-slot-wait b { font-weight:700; }
+    .heute-note-bar { background:var(--accent-tint); border:1px solid #f0dcc0; color:var(--accent-2); border-radius:var(--r-sm); padding:11px 15px; font-size:13px; font-weight:600; margin-bottom:20px; }
+    .heute-empty { background:var(--surface); border:1px dashed var(--line); border-radius:var(--r); padding:52px 24px; text-align:center; color:var(--ink-3); }
+    .heute-empty-big { font-size:17px; font-weight:700; color:var(--ink-2); margin-bottom:6px; }
+    @media(max-width:600px){
+      .heute-head { margin:18px 0 14px; }
+      .heute-title { font-size:23px; }
+      .heute-actions { width:100%; justify-content:space-between; }
+      .heute-slots { grid-template-columns:1fr; }
+    }
+
+    /* Rolle "Leser": Oberfläche auf die Tagesübersicht fokussieren */
+    body[data-role="viewer"] .stats-container,
+    body[data-role="viewer"] .custom-dashboard-section,
+    body[data-role="viewer"] .year-bar-actions { display:none !important; }
+
+    /* Druck-Ansicht: nur den Inhalt des aktiven Tabs sauber drucken */
+    @media print {
+      .sidebar, .year-bar, .stats-container, .heute-actions, .heute-days,
+      .bday-launch-row, .dash-subtabs, .custom-dashboard-section, .toast-container { display:none !important; }
+      .app-shell { display:block; }
+      .app-main, .app-main .container, main.container { margin:0 !important; padding:0 !important; max-width:none !important; }
+      .tab-content:not(.active) { display:none !important; }
+      .heute-group, .heute-slot-card, .group-slot-card { break-inside:avoid; }
+      .heute-slot-card { border:1px solid #bbb !important; }
+      html, body { background:#fff !important; }
+    }
+
+    /* ===== MASSENMAIL (Rundmail an Eltern – Supervisor/Admin) ===== */
+    .mm-intro { font-size:14px; color:var(--ink-2); margin-bottom:22px; max-width:780px; line-height:1.6; }
+    .mm-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+    .mm-card { background:var(--surface); padding:24px; border-radius:var(--r); border:1px solid var(--line); }
+    .mm-card h3 { font-size:16px; color:var(--ink); margin-bottom:18px; font-weight:800; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .mm-count-badge { font-size:13px; font-weight:800; color:var(--brand); background:var(--brand-tint); border:1px solid var(--line); border-radius:99px; padding:3px 13px; }
+    .mm-field { margin-bottom:16px; }
+    .mm-field label { display:block; font-size:11px; font-weight:700; color:var(--ink-2); text-transform:uppercase; letter-spacing:.05em; margin-bottom:7px; }
+    .mm-field input, .mm-field select, .mm-field textarea { width:100%; padding:11px 13px; border:1px solid var(--line); border-radius:var(--r-sm); font-size:14px; font-family:inherit; color:var(--ink); background:var(--surface); }
+    .mm-field textarea { resize:vertical; min-height:220px; line-height:1.6; }
+    .mm-field input:focus, .mm-field select:focus, .mm-field textarea:focus { outline:none; border-color:var(--brand); box-shadow:0 0 0 3px var(--focus); }
+    .mm-filters { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px; }
+    .mm-actions { display:flex; gap:10px; flex-wrap:wrap; }
+    .mm-actions .btn { flex:1; min-width:170px; }
+    .mm-hint { font-size:12px; color:var(--ink-3); margin-top:14px; line-height:1.5; }
+    .mm-reci-list { display:flex; flex-direction:column; gap:5px; max-height:320px; overflow-y:auto; }
+    .mm-reci { display:flex; align-items:baseline; gap:9px; padding:7px 11px; background:var(--surface-2); border:1px solid var(--line-2); border-radius:var(--r-xs); font-size:13px; }
+    .mm-reci-name { font-weight:700; color:var(--ink); white-space:nowrap; flex-shrink:0; }
+    .mm-reci-mail { color:var(--ink-2); min-width:0; overflow:hidden; text-overflow:ellipsis; }
+    .mm-reci-empty { font-size:13px; color:var(--ink-3); font-style:italic; padding:14px 2px; text-align:center; }
+    .mm-warn { margin-top:14px; padding:12px 14px; background:var(--warn-bg); border:1px solid #e9d09a; border-radius:var(--r-sm); font-size:12.5px; color:var(--warn); line-height:1.55; }
+    .mm-warn b { font-weight:800; }
+    .mm-send-status { font-size:12px; font-weight:600; margin-top:12px; padding:9px 12px; border-radius:var(--r-xs); line-height:1.45; }
+    .mm-send-status.ok { color:var(--ok); background:var(--ok-bg); }
+    .mm-send-status.off { color:var(--ink-3); background:var(--surface-2); border:1px dashed var(--line); }
+    @media(max-width:860px){ .mm-grid { grid-template-columns:1fr; } }
+    /* Einstellungen: E-Mail-Versand-Hilfe */
+    .mm-set-hint { font-size:12.5px; color:var(--ink-3); margin-bottom:14px; line-height:1.55; }
+    .mail-help { margin-top:14px; font-size:12.5px; color:var(--ink-2); }
+    .mail-help summary { cursor:pointer; font-weight:700; color:var(--brand); }
+    .mail-help ol { margin:10px 0 6px 18px; line-height:1.65; }
+    .mail-help code { background:var(--surface-2); padding:1px 5px; border-radius:4px; font-size:11.5px; }
+    .mail-help pre { background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-sm); padding:12px; overflow-x:auto; font-size:11px; line-height:1.5; white-space:pre; margin-top:8px; color:var(--ink); }
+
     /* SETTINGS */
     .settings-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:24px; }
     .settings-card { background:var(--surface); padding:24px; border-radius:var(--r); border:1px solid var(--line); }
@@ -766,6 +862,10 @@
     </div>
     <div class="sidebar-section-label">Navigation</div>
     <nav class="sidebar-nav">
+      <button class="tab-button" data-tab="heute" id="tabbtn-heute">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><circle cx="12" cy="15.5" r="1.9" fill="currentColor" stroke="none"/></svg>
+        <span>Heute</span>
+      </button>
       <button class="tab-button active" data-tab="kinder">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         <span>Kinder</span>
@@ -778,6 +878,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
         <span>Anmeldungen</span>
         <span class="nav-badge" id="anmeldungen-badge" style="display:none">0</span>
+      </button>
+      <button class="tab-button" data-tab="massenmail" id="tabbtn-massenmail" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
+        <span>Massenmail</span>
       </button>
       <button class="tab-button" data-tab="tickets" id="tabbtn-tickets" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a2 2 0 0 1 2 2v3a1 1 0 0 1-1 1 2 2 0 0 0 0 4 1 1 0 0 1 1 1v3a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-3a1 1 0 0 1 1-1 2 2 0 0 0 0-4 1 1 0 0 1-1-1V6a2 2 0 0 1 2-2z"/><path d="M13 5v2M13 17v2M13 11v2"/></svg>
@@ -849,6 +953,27 @@
 
 <main class="container">
 
+  <!-- TAB: Heute (Tagesübersicht – Startseite für die Rolle "Leser") -->
+  <section class="tab-content" id="tab-heute">
+    <div class="heute-head">
+      <div>
+        <div class="heute-eyebrow">Tagesübersicht</div>
+        <h2 class="heute-title" id="heute-title">Heute</h2>
+        <div class="heute-date" id="heute-date"></div>
+      </div>
+      <div class="heute-actions">
+        <div class="heute-count">
+          <div class="heute-count-val" id="heute-count">0</div>
+          <div class="heute-count-lbl" id="heute-count-lbl">Kinder heute</div>
+        </div>
+        <button class="btn btn-secondary btn-small" id="btn-heute-print" onclick="window.print()" title="Tagesliste drucken">Drucken</button>
+      </div>
+    </div>
+    <div class="heute-days" id="heute-days"></div>
+    <div id="heute-body"></div>
+    <div style="height:48px"></div>
+  </section>
+
   <!-- TAB: Kinder -->
   <section class="tab-content active" id="tab-kinder">
     <div class="section-header">
@@ -897,6 +1022,63 @@
     </div>
     <p class="anmeldung-hint">Selbst-Anmeldungen von der Vereins-Website. Bitte prüfen und dann <b>freigeben</b> (wird zu einem Kind) oder <b>ablehnen</b>.</p>
     <div id="anmeldungen-list"></div>
+  </section>
+
+  <!-- TAB: Massenmail (Rundmail an Eltern – Supervisor/Admin) -->
+  <section class="tab-content" id="tab-massenmail">
+    <div class="section-header">
+      <h2>Massenmail an Eltern</h2>
+    </div>
+    <p class="mm-intro">Schreibe eine Rundmail an die Eltern. Wähle rechts die Empfänger (nach Angebot/Status), dann öffne dein Mailprogramm – alle Adressen werden ins <b>BCC</b> gesetzt (die Eltern sehen sich gegenseitig nicht). Alternativ kannst du die Adressen kopieren und in dein Webmail (Gmail usw.) einfügen.</p>
+    <div class="mm-grid">
+
+      <!-- Nachricht -->
+      <div class="mm-card">
+        <h3>Nachricht</h3>
+        <div class="mm-field">
+          <label for="mm-subject">Betreff</label>
+          <input type="text" id="mm-subject" placeholder="z. B. Infos zum Spielgruppen-Start">
+        </div>
+        <div class="mm-field">
+          <label for="mm-body">Nachricht</label>
+          <textarea id="mm-body" placeholder="Liebe Eltern,&#10;&#10;…&#10;&#10;Herzliche Grüsse&#10;ELKI Verein Trimmis"></textarea>
+        </div>
+        <div class="mm-actions">
+          <button class="btn btn-primary" id="btn-mm-send">Jetzt senden</button>
+          <button class="btn btn-secondary" id="btn-mm-open">Mailprogramm öffnen</button>
+          <button class="btn btn-secondary" id="btn-mm-copy">Adressen kopieren</button>
+        </div>
+        <div class="mm-send-status off" id="mm-send-status"></div>
+        <div class="mm-hint"><b>Jetzt senden</b> verschickt die Mail direkt über euer Vereins-Google-Konto (alle Eltern im BCC). <b>Mailprogramm öffnen</b> / <b>Adressen kopieren</b> funktionieren auch ohne Einrichtung. Den Direktversand richtest du einmalig unter Einstellungen → „E-Mail-Versand" ein.</div>
+      </div>
+
+      <!-- Empfänger -->
+      <div class="mm-card">
+        <h3>Empfänger <span class="mm-count-badge" id="mm-count">0</span></h3>
+        <div class="mm-filters">
+          <div class="mm-field" style="margin:0">
+            <label for="mm-filter-gruppe">Angebot</label>
+            <select id="mm-filter-gruppe">
+              <option value="">Alle Angebote</option>
+              <option value="spielgruppe">Spielgruppe Luftballon</option>
+              <option value="waldspielgruppe">Waldspielgruppe Sonnenstrahl</option>
+              <option value="mittagstisch">Mittagstisch</option>
+            </select>
+          </div>
+          <div class="mm-field" style="margin:0">
+            <label for="mm-filter-status">Status</label>
+            <select id="mm-filter-status">
+              <option value="">Alle</option>
+              <option value="aktiv">Nur Aktive</option>
+              <option value="warteliste">Nur Warteliste</option>
+            </select>
+          </div>
+        </div>
+        <div class="mm-reci-list" id="mm-recipients"></div>
+        <div id="mm-warn"></div>
+      </div>
+
+    </div>
   </section>
 
   <!-- TAB: Tickets (nur Admin) -->
@@ -1047,6 +1229,46 @@
             <button class="btn btn-primary" id="btn-sync-gs">Sync</button>
           </div>
         </div>
+      </div>
+
+      <!-- E-Mail-Versand (Massenmail) -->
+      <div class="settings-card" id="card-mail-settings">
+        <h3>E-Mail-Versand (Massenmail)</h3>
+        <p class="mm-set-hint">Direktversand der Rundmails über Google Apps Script – verschickt aus eurem Vereins-Google-Konto. Einmalig einrichten (Anleitung unten), dann kannst du im Tab „Massenmail" direkt senden.</p>
+        <div class="gs-inputs">
+          <label for="mail-url" style="font-size:13px;font-weight:600">Apps Script Web App URL</label>
+          <input type="text" id="mail-url" placeholder="https://script.google.com/macros/s/…/exec" class="text-input full-width">
+          <label for="mail-from" style="font-size:13px;font-weight:600">Absender-Adresse</label>
+          <input type="email" id="mail-from" placeholder="elkivereintrimmis@gmail.com" class="text-input full-width">
+          <label for="mail-fromname" style="font-size:13px;font-weight:600">Absender-Name</label>
+          <input type="text" id="mail-fromname" placeholder="ELKI Verein Trimmis" class="text-input full-width">
+          <div class="button-group">
+            <button class="btn btn-secondary" id="btn-mail-test">Verbindung testen</button>
+          </div>
+        </div>
+        <details class="mail-help">
+          <summary>So richtest du den Versand ein (einmalig)</summary>
+          <ol>
+            <li>Mit dem <b>Vereins-Google-Konto</b> auf <b>script.google.com</b> → „Neues Projekt".</li>
+            <li>Den Code unten komplett einfügen (vorhandenes ersetzen) und speichern.</li>
+            <li>„Bereitstellen" → „Neue Bereitstellung" → Typ <b>Web-App</b>, Ausführen als <b>Ich</b>, Zugriff <b>Jeder</b> → Bereitstellen, Berechtigungen erlauben.</li>
+            <li>Die <b>Web-App-URL</b> (endet auf <code>/exec</code>) oben einfügen und „Verbindung testen".</li>
+          </ol>
+          <p style="margin:6px 0">Verschickt wird über das Google-Konto, mit dem du das Skript erstellst. Die „Absender-Adresse" wird als Antwort-Adresse gesetzt (und als Absender, falls sie ein verifizierter Alias dieses Kontos ist).</p>
+          <pre>function doPost(e){
+  var d = JSON.parse(e.postData.contents);
+  if (d.action === 'test'){ return out({ ok:true }); }
+  if (d.action === 'mail'){
+    var to = d.from || Session.getEffectiveUser().getEmail();
+    var opts = { bcc:(d.bcc||[]).join(','), name: d.fromName || 'ELKI Verein Trimmis', replyTo: d.from || '' };
+    try { if (d.from) opts.from = d.from; GmailApp.sendEmail(to, d.subject || '(kein Betreff)', d.body || '', opts); }
+    catch (err){ delete opts.from; GmailApp.sendEmail(to, d.subject || '(kein Betreff)', d.body || '', opts); }
+    return out({ ok:true, sent:(d.bcc||[]).length });
+  }
+  return out({ ok:false });
+}
+function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }</pre>
+        </details>
       </div>
 
       <!-- CSV -->
@@ -1650,6 +1872,7 @@ function getRole()     { return (currentUser && currentUser.role) || 'viewer'; }
 function isAdminRole() { return getRole() === 'admin'; }                                 // nur Admin: Benutzerverwaltung + Alle-Daten-löschen
 function canEdit()     { return ['admin','supervisor','user'].includes(getRole()); }     // bearbeiten
 function canDelete()   { return ['admin','supervisor'].includes(getRole()); }            // einzelne Kinder löschen
+function canMassMail()  { return ['admin','supervisor'].includes(getRole()); }            // Rundmail an Eltern (eigene Kategorie)
 
 // UI je nach Rolle ein-/ausblenden
 function applyRolePermissions() {
@@ -1705,10 +1928,43 @@ function applyRolePermissions() {
     }
   }
 
+  // Massenmail-Tab: eigene Kategorie nur für Supervisor + Admin
+  const mailTabBtn = document.getElementById('tabbtn-massenmail');
+  if (mailTabBtn) mailTabBtn.style.display = canMassMail() ? '' : 'none';
+  const mailSettingsCard = document.getElementById('card-mail-settings');
+  if (mailSettingsCard) mailSettingsCard.style.display = canMassMail() ? '' : 'none';
+  if (!canMassMail()) {
+    const mailTab = document.getElementById('tab-massenmail');
+    if (mailTab && mailTab.classList.contains('active')) {
+      switchTab('kinder', document.querySelector('.tab-button[data-tab="kinder"]'));
+    }
+  }
+
+  // ── Rolle "Leser" (Spielgruppenleitung): nur Tagesübersicht + Dashboard ──
+  // Datenattribut steuert zusätzlich per CSS, was ausgeblendet wird.
+  const viewer = getRole() === 'viewer';
+  document.body.setAttribute('data-role', getRole());
+
+  // Bearbeiter-Tabs (Kinderliste, Anmeldungen) für Leser ausblenden
+  const kinderTabBtn = document.querySelector('.tab-button[data-tab="kinder"]');
+  if (kinderTabBtn) kinderTabBtn.style.display = viewer ? 'none' : '';
+  const anmTabBtn = document.getElementById('tabbtn-anmeldungen');
+  if (anmTabBtn) anmTabBtn.style.display = viewer ? 'none' : '';
+
+  // Leser landet auf der Tagesübersicht; falls auf einem gesperrten Tab → umleiten
+  if (viewer) {
+    const activeTabEl = document.querySelector('.tab-content.active');
+    const activeName  = activeTabEl ? activeTabEl.id.replace('tab-', '') : '';
+    if (!['heute', 'dashboard'].includes(activeName)) {
+      switchTab('heute', document.querySelector('.tab-button[data-tab="heute"]'));
+    }
+  }
+
   // Kinder-Tabelle neu zeichnen (Bearbeiten/Löschen-Buttons hängen an der Rolle)
   renderKinderTable();
   renderWidgets();
   renderYearBar();
+  renderHeute();
 }
 
 // Benutzerliste rendern
@@ -1946,6 +2202,8 @@ async function loadData() {
   const rawCaps = await window._fb.fbLoad('config/kapazitaeten', null);
   if (rawCaps) kapazitaeten = { ...DEFAULT_CAPS, ...rawCaps };
   loadCapacitiesIntoUI();
+  // E-Mail-Versand-Konfiguration (Massenmail)
+  await loadMailConfig();
 }
 
 async function saveData() { await window._fb.fbSave('data/kinder', kinder); }
@@ -2353,6 +2611,27 @@ function registerEventListeners() {
   document.getElementById('btn-add-kind').addEventListener('click', () => openModal());
   document.getElementById('btn-refresh-anmeldungen')?.addEventListener('click', loadAnmeldungen);
 
+  // Massenmail (eigene Kategorie – Supervisor/Admin)
+  document.getElementById('mm-filter-gruppe')?.addEventListener('change', renderMassenmail);
+  document.getElementById('mm-filter-status')?.addEventListener('change', renderMassenmail);
+  document.getElementById('btn-mm-send')?.addEventListener('click', massenmailSend);
+  document.getElementById('btn-mm-open')?.addEventListener('click', massenmailOpen);
+  document.getElementById('btn-mm-copy')?.addEventListener('click', massenmailCopy);
+
+  // E-Mail-Versand-Konfiguration (Einstellungen → Apps Script)
+  document.getElementById('mail-url')?.addEventListener('change', async e => {
+    mailConfig.url = e.target.value.trim(); await window._fb.fbSave('config/mailUrl', mailConfig.url);
+    updateMassenmailSendUI(); showToast('Gespeichert', 'success');
+  });
+  document.getElementById('mail-from')?.addEventListener('change', async e => {
+    mailConfig.from = e.target.value.trim(); await window._fb.fbSave('config/mailFrom', mailConfig.from);
+    updateMassenmailSendUI();
+  });
+  document.getElementById('mail-fromname')?.addEventListener('change', async e => {
+    mailConfig.fromName = e.target.value.trim(); await window._fb.fbSave('config/mailFromName', mailConfig.fromName);
+  });
+  document.getElementById('btn-mail-test')?.addEventListener('click', testMailConnection);
+
   // Dateien am Kind (Upload-Button + Datei-Auswahl)
   document.getElementById('btn-kind-file-add')?.addEventListener('click', () => document.getElementById('kind-file-input').click());
   document.getElementById('kind-file-input')?.addEventListener('change', handleKindFileSelected);
@@ -2399,8 +2678,10 @@ function switchTab(tabName, clickedBtn) {
   document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + tabName).classList.add('active');
   if (clickedBtn) clickedBtn.classList.add('active');
+  if (tabName === 'heute') { renderHeute(); }
   if (tabName === 'dashboard') { updateDashboard(); renderWidgets(); }
   if (tabName === 'anmeldungen') { loadAnmeldungen(); }
+  if (tabName === 'massenmail') { renderMassenmail(); }
   if (tabName === 'tickets') { refreshTickets(); }
   if (tabName === 'inbox') { refreshTickets(); }
 }
@@ -2860,6 +3141,9 @@ function updateDashboard() {
       renderGroupDashboard(panelId);
     }
   }
+
+  // Tagesübersicht ("Heute") immer mitziehen, damit sie aktuell bleibt
+  renderHeute();
 }
 
 // ===== GROUP DASHBOARD =====
@@ -2935,6 +3219,273 @@ function renderGroupDashboard(gruppeId) {
     </div>
     <div class="group-slots-grid">${slotCards}</div>
   `;
+}
+
+// ===== HEUTE / TAGESÜBERSICHT =====
+// Fokus-Ansicht für die Rolle "Leser" (Spielgruppenleiterinnen): zeigt auf einen
+// Blick, welche Kinder an einem Wochentag kommen – pro Angebot und Zeitslot.
+const HEUTE = { day: null };
+
+// JS-Wochentag (0=So … 6=Sa) → unser Tages-Key, null am Wochenende
+function heuteTodayKey() {
+  return ({ 1:'Mo', 2:'Di', 3:'Mi', 4:'Do', 5:'Fr' })[new Date().getDay()] || null;
+}
+function aktiveKinderImSlot(slotId) {
+  return kinder
+    .filter(k => slotsOf(k).includes(slotId) && statusForSlot(k, slotId) === 'aktiv')
+    .sort((a, b) => (a.vorname || '').localeCompare(b.vorname || '', 'de'));
+}
+function warteKinderImSlot(slotId) {
+  return kinder
+    .filter(k => slotsOf(k).includes(slotId) && statusForSlot(k, slotId) === 'warteliste')
+    .sort((a, b) => (a.vorname || '').localeCompare(b.vorname || '', 'de'));
+}
+
+function renderHeute() {
+  const body = document.getElementById('heute-body');
+  if (!body) return;
+
+  const todayKey = heuteTodayKey();
+  if (!HEUTE.day) HEUTE.day = todayKey || 'Mo';
+  const day = HEUTE.day;
+  const isToday = day === todayKey;
+
+  // Titel + Datum
+  const titleEl = document.getElementById('heute-title');
+  const dateEl  = document.getElementById('heute-date');
+  if (titleEl) titleEl.textContent = isToday ? 'Heute' : TAG_LABELS[day];
+  if (dateEl) {
+    dateEl.textContent = isToday
+      ? new Date().toLocaleDateString('de-CH', { weekday:'long', day:'numeric', month:'long', year:'numeric' })
+      : TAG_LABELS[day] + ' · Vorschau';
+  }
+
+  // Wochentag-Pills (Mo–Fr), heutiger Tag mit Punkt markiert
+  const daysEl = document.getElementById('heute-days');
+  if (daysEl) {
+    daysEl.innerHTML = DAYS.map(d =>
+      `<button class="heute-day-pill ${d === day ? 'active' : ''}" data-day="${d}">${TAG_LABELS[d]}${d === todayKey ? '<span class="pill-today-dot" title="Heute"></span>' : ''}</button>`
+    ).join('');
+    daysEl.querySelectorAll('.heute-day-pill').forEach(btn =>
+      btn.addEventListener('click', () => { HEUTE.day = btn.dataset.day; renderHeute(); }));
+  }
+
+  // Inhalt: Angebote mit Slots an diesem Wochentag
+  const idsToday = new Set();
+  let sections = '';
+  Object.entries(ANGEBOTE).forEach(([gId, g]) => {
+    const slotsToday = g.slots.filter(s => s.day === day);
+    if (slotsToday.length === 0) return;
+
+    const cards = slotsToday.map(slot => {
+      const aktiv = aktiveKinderImSlot(slot.id);
+      aktiv.forEach(k => idsToday.add(k.id));
+      const warte = warteKinderImSlot(slot.id);
+      const cap = kapazitaeten[slot.id] || DEFAULT_CAPS[slot.id] || 0;
+
+      const kidsHtml = aktiv.length
+        ? aktiv.map((k, i) => {
+            const note = (k.notiz || '').trim();
+            return `
+              <div class="heute-kid">
+                <span class="heute-kid-num">${i + 1}</span>
+                <span class="heute-kid-main">
+                  <div class="heute-kid-name">${escHtml(k.vorname)} ${escHtml(k.nachname)}</div>
+                  ${note ? `<div class="heute-kid-note" title="${escAttr(note)}">ⓘ ${escHtml(note)}</div>` : ''}
+                </span>
+              </div>`;
+          }).join('')
+        : `<div class="heute-kid-empty">Heute keine Kinder eingeteilt</div>`;
+
+      return `
+        <div class="heute-slot-card" style="border-top-color:${g.color}">
+          <div class="heute-slot-head">
+            <div>
+              <div class="heute-slot-name">${escHtml(slot.label)}</div>
+              <div class="heute-slot-zeit">${escHtml(slot.zeit)}</div>
+            </div>
+            <div class="heute-slot-count" style="color:${g.color}">${aktiv.length}${cap ? ` <small>/ ${cap}</small>` : ''}</div>
+          </div>
+          <div class="heute-kid-list">${kidsHtml}</div>
+          ${warte.length ? `<div class="heute-slot-wait"><b>Warteliste:</b> ${warte.map(k => escHtml(k.vorname + ' ' + k.nachname)).join(', ')}</div>` : ''}
+        </div>`;
+    }).join('');
+
+    sections += `
+      <div class="heute-group">
+        <div class="heute-group-title"><span class="heute-group-dot" style="background:${g.color}"></span>${escHtml(g.label)}</div>
+        <div class="heute-slots">${cards}</div>
+      </div>`;
+  });
+
+  let html = '';
+  if (!todayKey) {
+    html += `<div class="heute-note-bar">Heute ist Wochenende – kein Spielgruppen-Betrieb. Unten kannst du die Übersicht für einen Wochentag wählen.</div>`;
+  }
+  html += sections || `<div class="heute-empty"><div class="heute-empty-big">Kein Angebot an diesem Tag</div>An ${TAG_LABELS[day]} findet weder Spielgruppe, Waldspielgruppe noch Mittagstisch statt.</div>`;
+  body.innerHTML = html;
+
+  // Zähler: eindeutige Kinder, die an diesem Tag kommen
+  const countEl = document.getElementById('heute-count');
+  if (countEl) countEl.textContent = idsToday.size;
+  const countLblEl = document.getElementById('heute-count-lbl');
+  if (countLblEl) countLblEl.textContent = isToday ? 'Kinder heute' : 'Kinder';
+}
+
+// ===== MASSENMAIL (Rundmail an Eltern – Supervisor/Admin) =====
+// Kein automatischer Versand (Firebase Spark = kein Server): baut einen
+// mailto:-Link mit allen Eltern-Adressen im BCC, bzw. kopiert die Adressen.
+const VEREIN_MAIL = 'elkivereintrimmis@gmail.com';
+
+// Empfänger nach den aktuellen Filtern (Angebot/Status) ermitteln.
+// Liefert die Kinder mit E-Mail, die eindeutigen Adressen und die ohne E-Mail.
+function massenmailRecipients() {
+  const fGruppe = (document.getElementById('mm-filter-gruppe') || {}).value || '';
+  const fStatus = (document.getElementById('mm-filter-status') || {}).value || '';
+  const matched = kinder.filter(k => {
+    const matchGruppe = !fGruppe || getGruppenIdsFromSlots(slotsOf(k)).includes(fGruppe);
+    const matchStatus = kindMatchesStatus(k, fStatus, fGruppe || null);
+    return matchGruppe && matchStatus;
+  }).sort((a, b) => (a.nachname || '').localeCompare(b.nachname || '', 'de'));
+
+  const recipients = [], ohneMail = [], emails = [], seen = new Set();
+  matched.forEach(k => {
+    const mail = (k.email || '').trim();
+    const name = `${k.vorname || ''} ${k.nachname || ''}`.trim();
+    if (!mail) { ohneMail.push(name); return; }
+    recipients.push({ name, email: mail });
+    const key = mail.toLowerCase();
+    if (!seen.has(key)) { seen.add(key); emails.push(mail); }
+  });
+  return { recipients, emails, ohneMail };
+}
+
+function renderMassenmail() {
+  const list = document.getElementById('mm-recipients');
+  if (!list) return;
+  const { recipients, emails, ohneMail } = massenmailRecipients();
+
+  const countEl = document.getElementById('mm-count');
+  if (countEl) countEl.textContent = emails.length;
+
+  list.innerHTML = recipients.length
+    ? recipients.map(r => `<div class="mm-reci"><span class="mm-reci-name">${escHtml(r.name)}</span><span class="mm-reci-mail">${escHtml(r.email)}</span></div>`).join('')
+    : `<div class="mm-reci-empty">Keine Eltern-Adressen für diese Auswahl.</div>`;
+
+  const warnEl = document.getElementById('mm-warn');
+  if (warnEl) {
+    warnEl.innerHTML = ohneMail.length
+      ? `<div class="mm-warn"><b>${ohneMail.length} Kind(er) ohne E-Mail</b> – nicht enthalten: ${escHtml(ohneMail.join(', '))}</div>`
+      : '';
+  }
+
+  updateMassenmailSendUI();
+}
+
+// Öffnet das Standard-Mailprogramm mit allen Adressen im BCC + Betreff/Text.
+function massenmailOpen() {
+  if (!canMassMail()) { showToast('Keine Berechtigung', 'error'); return; }
+  const { emails } = massenmailRecipients();
+  if (!emails.length) { showToast('Keine Empfänger-Adressen für diese Auswahl', 'error'); return; }
+  const subject = (document.getElementById('mm-subject') || {}).value || '';
+  const body    = (document.getElementById('mm-body') || {}).value || '';
+  const href = `mailto:${encodeURIComponent(VEREIN_MAIL)}`
+    + `?bcc=${encodeURIComponent(emails.join(','))}`
+    + `&subject=${encodeURIComponent(subject)}`
+    + `&body=${encodeURIComponent(body)}`;
+  if (href.length > 1900) {
+    showToast('Sehr viele Empfänger – falls das Mailprogramm nicht alle übernimmt, bitte „Adressen kopieren" nutzen', 'info');
+  }
+  window.location.href = href;
+}
+
+// Kopiert die eindeutigen Adressen (Komma-getrennt) in die Zwischenablage.
+async function massenmailCopy() {
+  if (!canMassMail()) { showToast('Keine Berechtigung', 'error'); return; }
+  const { emails } = massenmailRecipients();
+  if (!emails.length) { showToast('Keine Empfänger-Adressen für diese Auswahl', 'error'); return; }
+  const text = emails.join(', ');
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast(`${emails.length} Adresse(n) kopiert – ins BCC-Feld einfügen`, 'success');
+  } catch (e) {
+    // Fallback für ältere Browser / unsichere Kontexte
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand('copy'); showToast(`${emails.length} Adresse(n) kopiert`, 'success'); }
+    catch (_) { showToast('Kopieren nicht möglich – bitte manuell markieren', 'error'); }
+    document.body.removeChild(ta);
+  }
+}
+
+// ===== MASSENMAIL: Direktversand über Google Apps Script =====
+// Kein eigener Server nötig – ein kleines Apps-Script-Web-App (gleiche Technik
+// wie die Google-Sheets-Sync) verschickt aus dem Vereins-Google-Konto. URL +
+// Absender stehen in den Einstellungen (config/mailUrl, mailFrom, mailFromName).
+let mailConfig = { url: '', from: '', fromName: '' };
+
+async function loadMailConfig() {
+  mailConfig.url      = (await window._fb.fbLoad('config/mailUrl', '')) || '';
+  mailConfig.from     = (await window._fb.fbLoad('config/mailFrom', '')) || '';
+  mailConfig.fromName = (await window._fb.fbLoad('config/mailFromName', '')) || '';
+  const u = document.getElementById('mail-url');      if (u) u.value = mailConfig.url;
+  const f = document.getElementById('mail-from');     if (f) f.value = mailConfig.from;
+  const n = document.getElementById('mail-fromname'); if (n) n.value = mailConfig.fromName;
+  updateMassenmailSendUI();
+}
+
+// Status-Zeile + Senden-Button im Massenmail-Tab je nach Konfiguration
+function updateMassenmailSendUI() {
+  const status = document.getElementById('mm-send-status');
+  const btn = document.getElementById('btn-mm-send');
+  const configured = !!mailConfig.url;
+  if (status) {
+    status.textContent = configured
+      ? `Direktversand aktiv${mailConfig.from ? ' · Absender: ' + mailConfig.from : ''}`
+      : 'Direktversand noch nicht eingerichtet – siehe Einstellungen → „E-Mail-Versand".';
+    status.className = 'mm-send-status ' + (configured ? 'ok' : 'off');
+  }
+  if (btn) btn.disabled = !configured;
+}
+
+// Verbindung zum Apps-Script testen (gleiches Muster wie Google-Sheets-Test)
+async function testMailConnection() {
+  const url = (document.getElementById('mail-url') || {}).value.trim();
+  if (!url) { showToast('Bitte zuerst die Web App URL eintragen', 'error'); return; }
+  try {
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'test' }) });
+    showToast(res.ok ? 'Verbindung erfolgreich!' : 'Verbindung fehlgeschlagen', res.ok ? 'success' : 'error');
+  } catch (e) { showToast('Fehler: ' + e.message, 'error'); }
+}
+
+// Rundmail direkt verschicken (alle eindeutigen Adressen im BCC)
+async function massenmailSend() {
+  if (!canMassMail()) { showToast('Keine Berechtigung', 'error'); return; }
+  if (!mailConfig.url) { showToast('Direktversand noch nicht eingerichtet – bitte in den Einstellungen einrichten', 'error'); return; }
+  const { emails } = massenmailRecipients();
+  if (!emails.length) { showToast('Keine Empfänger-Adressen für diese Auswahl', 'error'); return; }
+  const subject = (document.getElementById('mm-subject') || {}).value.trim();
+  const body    = (document.getElementById('mm-body') || {}).value || '';
+  if (!subject) { showToast('Bitte einen Betreff eingeben', 'error'); return; }
+  if (!confirm(`Rundmail jetzt an ${emails.length} Adresse(n) verschicken?`)) return;
+
+  const btn = document.getElementById('btn-mm-send');
+  const label = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Wird gesendet…'; }
+  try {
+    const res = await fetch(mailConfig.url, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'mail', subject, body, bcc: emails, from: mailConfig.from, fromName: mailConfig.fromName })
+    });
+    let ok = res.ok;
+    try { const d = await res.json(); if (d && d.ok === false) ok = false; } catch (_) {}
+    showToast(ok ? `Rundmail an ${emails.length} Adresse(n) verschickt` : 'Versand fehlgeschlagen – Verbindung in den Einstellungen prüfen', ok ? 'success' : 'error');
+  } catch (e) {
+    showToast('Fehler beim Versand: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = label; }
+  }
 }
 
 // ===== CAPACITIES =====
