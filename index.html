@@ -6,40 +6,40 @@
   <title>ELKI - Kita Verwaltung</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="app-logo.svg">
   <style>
 
     :root{
-      --brand:#1f5bb5; --brand-2:#173f80; --brand-tint:#eaf1fb; --brand-tint-2:#f4f7fb;
-      --accent:#d97913; --accent-2:#b9650b; --accent-tint:#fbf0e0;
-      --ink:#16202f; --ink-2:#55637a; --ink-3:#8a98ac;
-      --line:#e3e8ef; --line-2:#eef1f6; --bg:#f4f6f9; --surface:#ffffff; --surface-2:#f7f9fc;
-      --ok:#157a55; --ok-bg:#e3f4ec; --warn:#9a5e08; --warn-bg:#f9ecd6; --idle:#62718a; --idle-bg:#edf0f5;
-      --danger:#cf3f3c; --danger-bg:#fae9e8;
-      --focus:rgba(31,91,181,.18);
-      --r:8px; --r-sm:6px; --r-xs:5px;
-      --sh-sm:0 1px 1px rgba(22,42,82,.04);
-      --sh:0 1px 2px rgba(22,42,82,.06),0 1px 1px rgba(22,42,82,.04);
-      --sh-lg:0 12px 36px rgba(15,23,38,.16);
+      --brand:#2f6152; --brand-2:#244c40; --brand-tint:#e7efe9; --brand-tint-2:#f1efe7;
+      --accent:#b5641d; --accent-2:#8f4d14; --accent-tint:#f6ecdf;
+      --ink:#211d18; --ink-2:#5a5249; --ink-3:#948a7c;
+      --line:#e3ddd1; --line-2:#ece7db; --bg:#f6f3ec; --surface:#fffdf8; --surface-2:#f3efe5;
+      --ok:#3a6b4c; --ok-bg:#e6efe5; --warn:#8a5a14; --warn-bg:#f4e9d4; --idle:#6b6256; --idle-bg:#ede8dc;
+      --danger:#a8392f; --danger-bg:#f3e1dd;
+      --focus:rgba(47,97,82,.20);
+      --r:4px; --r-sm:3px; --r-xs:3px;
+      --sh-sm:none;
+      --sh:none;
+      --sh-lg:0 24px 60px -16px rgba(33,29,24,.28);
     }
     [data-theme="dark"]{
-      --brand:#5b9bf0; --brand-2:#7db0f4; --brand-tint:#1a2942; --brand-tint-2:#1c2434;
-      --accent:#e69138; --accent-2:#f0a85a; --accent-tint:#33271528;
-      --ink:#e8edf4; --ink-2:#a4b1c4; --ink-3:#7585a0;
-      --line:#2a3344; --line-2:#222b3a; --bg:#0f141d; --surface:#171e2a; --surface-2:#1b2330;
-      --ok:#46c08a; --ok-bg:#15301f; --warn:#e0a64a; --warn-bg:#332608; --idle:#9aa7bd; --idle-bg:#222b3a;
-      --danger:#f0726f; --danger-bg:#3a1d1d;
-      --focus:rgba(91,155,240,.28);
-      --sh-sm:0 1px 1px rgba(0,0,0,.3);
-      --sh:0 1px 3px rgba(0,0,0,.4);
-      --sh-lg:0 16px 44px rgba(0,0,0,.6);
+      --brand:#7eb3a3; --brand-2:#97c4b6; --brand-tint:#1c2a25; --brand-tint-2:#221e19;
+      --accent:#d98a44; --accent-2:#e6a062; --accent-tint:#2e2410;
+      --ink:#efe9df; --ink-2:#b3a99a; --ink-3:#8a7f70;
+      --line:#352f27; --line-2:#2a251f; --bg:#15120e; --surface:#1e1a15; --surface-2:#231e18;
+      --ok:#6cae84; --ok-bg:#1b2a1d; --warn:#d99a4a; --warn-bg:#2e2410; --idle:#9a907f; --idle-bg:#2a251f;
+      --danger:#e0746a; --danger-bg:#33201c;
+      --focus:rgba(126,179,163,.32);
+      --sh-sm:none;
+      --sh:none;
+      --sh-lg:0 24px 64px -16px rgba(0,0,0,.66);
     }
     * { margin:0; padding:0; box-sizing:border-box; }
     html { scroll-behavior:smooth; }
     html, body { background:var(--bg); }
     body, .header, .modal-content, .table-wrapper, .stat-card, .chart-section, .details-section, .settings-card, .widget-card, .login-box, .login-overlay, .group-dash-header, .group-slot-card, .wb-dialog, .ticket-dialog, .bday-dialog, .tab-button, .dash-subtab, .btn, input, select, textarea { transition:background-color .2s ease, border-color .2s ease, color .2s ease; }
-    body { font-family:'Figtree',-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink); line-height:1.55; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
+    body { font-family:'Hanken Grotesk',-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink); line-height:1.55; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
     .container { max-width:1240px; margin:0 auto; padding:0 24px; }
 
     /* HEADER */
@@ -427,6 +427,41 @@
     .mail-help code { background:var(--surface-2); padding:1px 5px; border-radius:4px; font-size:11.5px; }
     .mail-help pre { background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-sm); padding:12px; overflow-x:auto; font-size:11px; line-height:1.5; white-space:pre; margin-top:8px; color:var(--ink); }
 
+    /* ===== EINSTELLUNGEN-POPUP ===== */
+    .settings-modal-overlay { display:none; position:fixed; inset:0; z-index:9500; align-items:center; justify-content:center; padding:24px; }
+    .settings-modal-overlay.open { display:flex; }
+    .settings-backdrop { position:fixed; inset:0; background:rgba(20,33,56,.55); backdrop-filter:blur(2px); }
+    .settings-dialog { position:relative; background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:var(--sh-lg); width:100%; max-width:920px; margin:auto; display:flex; flex-direction:column; max-height:calc(100vh - 48px); animation:slideIn .25s ease; }
+    .settings-dialog-header { display:flex; align-items:center; justify-content:space-between; padding:18px 24px; border-bottom:1px solid var(--line); border-radius:14px 14px 0 0; flex-shrink:0; }
+    .settings-dialog-header h2 { font-size:20px; font-weight:800; color:var(--ink); letter-spacing:-.01em; }
+    .settings-close { width:34px; height:34px; border:none; background:var(--surface-2); border-radius:8px; font-size:22px; line-height:1; color:var(--ink-2); cursor:pointer; font-family:inherit; }
+    .settings-close:hover { background:var(--danger-bg); color:var(--danger); }
+    .settings-dialog-body { padding:22px 24px 28px; overflow-y:auto; }
+    .settings-section { margin-bottom:26px; }
+    .settings-section:last-child { margin-bottom:0; }
+    .settings-section-title { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-3); margin:0 0 14px; padding-bottom:8px; border-bottom:1px solid var(--line-2); }
+    .settings-card-sub { font-size:12.5px; color:var(--ink-2); margin-bottom:12px; line-height:1.55; }
+    .setting-row { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+    .setting-row-label { font-size:14px; font-weight:700; color:var(--ink); }
+    .setting-row-sub { font-size:12.5px; color:var(--ink-3); margin-top:2px; }
+    /* Toggle-Switch */
+    .switch { position:relative; display:inline-block; width:46px; height:26px; flex-shrink:0; }
+    .switch input { opacity:0; width:0; height:0; }
+    .switch-slider { position:absolute; cursor:pointer; inset:0; background:var(--line); border-radius:99px; transition:.2s; }
+    .switch-slider:before { content:""; position:absolute; height:20px; width:20px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; box-shadow:0 1px 2px rgba(0,0,0,.25); }
+    .switch input:checked + .switch-slider { background:var(--brand); }
+    .switch input:checked + .switch-slider:before { transform:translateX(20px); }
+    /* Seitenleisten-Konfiguration */
+    .sidebar-config { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; }
+    .sidebar-config-row { display:flex; align-items:center; gap:9px; padding:9px 11px; border:1px solid var(--line); border-radius:var(--r-sm); background:var(--surface-2); font-size:13.5px; font-weight:600; color:var(--ink); cursor:pointer; }
+    .sidebar-config-row:hover { border-color:var(--ink-3); }
+    .sidebar-config-row input { width:16px; height:16px; accent-color:var(--brand); cursor:pointer; flex-shrink:0; }
+    @media(max-width:600px){
+      .settings-modal-overlay { padding:0; }
+      .settings-dialog { max-width:none; border-radius:0; max-height:100vh; height:100vh; }
+      .settings-dialog-header { border-radius:0; }
+    }
+
     /* SETTINGS */
     .settings-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:24px; }
     .settings-card { background:var(--surface); padding:24px; border-radius:var(--r); border:1px solid var(--line); }
@@ -677,6 +712,41 @@
     @keyframes spPop { to { transform:scale(1); } }
     @keyframes spWord { to { opacity:1; transform:none; } }
     @media (prefers-reduced-motion: reduce) { .splash-mark, .splash-mark *, .splash-word { animation-duration:.01ms !important; } }
+
+    /* ===== EDITORIALES FINISH – weg vom generischen SaaS/KI-Look ===== */
+    /* Flache Flächen mit Haarlinien statt Soft-Shadows */
+    .stat-card, .table-wrapper, .chart-section, .details-section, .settings-card,
+    .widget-card, .group-dash-header, .group-slot-card, .heute-slot-card, .mm-card,
+    .anmeldung-card, .ticket-card { box-shadow:none; }
+    /* Display-Überschriften in einer Serife – redaktioneller Charakter */
+    .logo, .login-logo, .section-header h2, .heute-title, .group-dash-title, .modal-header h3,
+    .login-title, .settings-dialog-header h2, .heute-group-title, .custom-dashboard-header h2,
+    .chart-section h3, .details-section h3 {
+      font-family:'Source Serif 4', Georgia, 'Times New Roman', serif; font-weight:600; letter-spacing:0; }
+    .heute-title { letter-spacing:-.01em; }
+    /* Zahlen tabellarisch ausrichten */
+    .stat-value, .heute-count-val, .group-total-chip-val, .widget-number, .group-slot-occ { font-variant-numeric:tabular-nums; }
+    /* Stat-Karten: ruhiger Kasten, Hover über die Linie statt Schatten */
+    .stat-card { transition:border-color .15s ease; }
+    .stat-card:hover { border-color:var(--ink-3); }
+    /* Tabellenkopf: kräftiger, weites Tracking */
+    .kinder-table thead { background:var(--surface-2); }
+    .kinder-table th { letter-spacing:.08em; }
+    /* Status-Chips: eckig statt runde Pillen */
+    .status-badge, .slot-tag, .badge-pending, .ticket-status, .mm-count-badge,
+    .ticket-status-offen, .ticket-status-erledigt { border-radius:var(--r-xs); }
+    /* Buttons: flach, kantig, klare Press-Reaktion */
+    .btn { letter-spacing:0; }
+    .btn-primary:active, .btn-secondary:active, .login-btn:active { transform:translateY(.5px); }
+    /* Sidebar: ruhige aktive Markierung mit Akzentkante */
+    .sidebar { box-shadow:none; }
+    .sidebar-nav .tab-button.active { box-shadow:inset 3px 0 0 var(--brand); }
+    .sidebar-logo-chip { box-shadow:none; }
+    /* Login / Dialoge: konsistent kantiger */
+    .login-box { border:1px solid var(--line); border-radius:8px; }
+    .settings-dialog { border-radius:8px; }
+    .settings-dialog-header { border-radius:8px 8px 0 0; }
+    @media(max-width:900px){ .sidebar-nav .tab-button.active { box-shadow:none; } }
   </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
@@ -818,6 +888,158 @@
   <script>
     (function(){ try { if (localStorage.getItem('elki-theme') === 'dark') document.documentElement.setAttribute('data-theme','dark'); } catch(e){} })();
   </script>
+
+  <!-- ============================================================= -->
+  <!-- NEU: Sidebar Tools – Styles (additiv, nutzt bestehende        -->
+  <!-- CSS-Variablen, damit Hell-/Dunkelmodus automatisch passen)    -->
+  <!-- ============================================================= -->
+  <style id="tools-style">
+    /* Gemeinsame Bausteine */
+    .tool-intro { font-size:14px; color:var(--ink-2); margin-bottom:20px; max-width:820px; line-height:1.6; }
+    .tool-toolbar { display:flex; flex-wrap:wrap; align-items:flex-end; gap:14px; margin-bottom:20px; }
+    .tool-field { display:flex; flex-direction:column; gap:6px; }
+    .tool-field label { font-size:11px; font-weight:700; color:var(--ink-2); text-transform:uppercase; letter-spacing:.05em; }
+    .tool-field input, .tool-field select { padding:10px 13px; border:1px solid var(--line); border-radius:var(--r-sm); font-size:14px; font-family:inherit; color:var(--ink); background:var(--surface); }
+    .tool-field input:focus, .tool-field select:focus { outline:none; border-color:var(--brand); box-shadow:0 0 0 3px var(--focus); }
+    .tool-card { background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:20px; margin-bottom:16px; }
+    .tool-card-title { font-size:15px; font-weight:800; color:var(--ink); margin-bottom:14px; display:flex; align-items:center; gap:9px; letter-spacing:-.01em; }
+    .tool-summary { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:20px; }
+    .tool-stat { background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:12px 18px; min-width:120px; }
+    .tool-stat-val { font-size:24px; font-weight:800; color:var(--ink); letter-spacing:-.02em; line-height:1.1; }
+    .tool-stat-lbl { font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.05em; margin-top:3px; }
+    .tool-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; display:inline-block; }
+
+    /* Kalender (Wochenplan) */
+    .kal-week { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; align-items:start; }
+    .kal-col { background:var(--surface); border:1px solid var(--line); border-radius:var(--r); overflow:hidden; }
+    .kal-col.is-today { border-color:var(--brand); box-shadow:inset 0 0 0 1px var(--brand); }
+    .kal-col-head { padding:10px 12px; font-size:13px; font-weight:800; color:var(--ink); background:var(--surface-2); border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; }
+    .kal-today { font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:#fff; background:var(--brand); border-radius:99px; padding:2px 7px; }
+    .kal-col-body { padding:10px; display:flex; flex-direction:column; gap:8px; }
+    .kal-slot { border:1px solid var(--line); border-left:3px solid var(--ink-3); border-radius:var(--r-sm); padding:8px 10px; background:var(--surface); }
+    .kal-slot-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .kal-slot-label { font-size:12px; font-weight:700; color:var(--ink); }
+    .kal-slot-count { font-size:14px; font-weight:800; }
+    .kal-slot-count small { font-weight:600; color:var(--ink-3); font-size:11px; }
+    .kal-slot-zeit { font-size:11px; color:var(--ink-3); margin-top:3px; }
+    .kal-slot-warte { font-size:11px; color:var(--warn); font-weight:700; margin-top:4px; }
+    .kal-empty { font-size:12px; color:var(--ink-3); font-style:italic; padding:8px 4px; text-align:center; }
+
+    /* Anwesenheit */
+    .anw-kid-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid var(--line-2); }
+    .anw-kid-row:last-child { border-bottom:none; }
+    .anw-kid-name { font-size:14px; color:var(--ink); font-weight:600; }
+    .anw-btns { display:flex; gap:6px; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end; }
+    .anw-btn { padding:6px 12px; border:1px solid var(--line); border-radius:var(--r-sm); background:var(--surface); color:var(--ink-2); font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; transition:all .15s; }
+    .anw-btn:hover { border-color:var(--ink-3); color:var(--ink); }
+    .anw-btn.on-present { background:var(--ok-bg); border-color:var(--ok); color:var(--ok); }
+    .anw-btn.on-absent { background:var(--danger-bg); border-color:var(--danger); color:var(--danger); }
+    .anw-btn.on-excused { background:var(--warn-bg); border-color:var(--warn); color:var(--warn); }
+
+    /* Warteliste+ */
+    .wlp-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:6px; }
+    .wlp-zeit { font-size:12px; color:var(--ink-3); font-weight:600; }
+    .wlp-cap { font-size:12px; font-weight:800; color:var(--ink-2); background:var(--surface-2); border:1px solid var(--line); border-radius:99px; padding:3px 12px; }
+    .wlp-cap.has-free { color:var(--ok); background:var(--ok-bg); border-color:var(--ok); }
+    .wlp-list { list-style:none; counter-reset:wlp; margin:0; padding:0; }
+    .wlp-list li { display:flex; align-items:center; gap:10px; padding:8px 0; border-top:1px solid var(--line-2); font-size:14px; color:var(--ink); }
+    .wlp-list li::before { counter-increment:wlp; content:counter(wlp); width:22px; height:22px; flex-shrink:0; background:var(--surface-2); border:1px solid var(--line); border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; color:var(--ink-2); }
+    .wlp-list li > span:first-of-type { flex:1; }
+    .wlp-bday { font-size:12px; color:var(--ink-3); }
+
+    /* Zuteilung */
+    .zut-zeit { font-size:11px; color:var(--ink-3); margin-top:2px; font-weight:400; }
+    .zut-num { text-align:center; font-weight:700; font-variant-numeric:tabular-nums; }
+    .zut-full { color:var(--danger); }
+    .zut-bar-cell { display:flex; align-items:center; gap:10px; min-width:150px; }
+    .zut-bar { flex:1; height:8px; background:var(--surface-2); border-radius:99px; overflow:hidden; }
+    .zut-bar-fill { height:100%; border-radius:99px; transition:width .3s; }
+    .zut-pct { font-size:12px; font-weight:700; color:var(--ink-2); width:40px; text-align:right; font-variant-numeric:tabular-nums; }
+
+    /* Erinnerungen */
+    .erin-add { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom:22px; }
+    .erin-item { display:flex; align-items:center; gap:12px; padding:11px 14px; background:var(--surface); border:1px solid var(--line); border-radius:var(--r); margin-bottom:8px; }
+    .erin-item.is-done { opacity:.6; }
+    .erin-item.is-done .erin-text { text-decoration:line-through; }
+    .erin-check { width:24px; height:24px; flex-shrink:0; border:1.5px solid var(--line); border-radius:6px; background:var(--surface); cursor:pointer; font-size:14px; font-weight:800; color:#fff; display:flex; align-items:center; justify-content:center; }
+    .erin-check.on { background:var(--ok); border-color:var(--ok); }
+    .erin-main { flex:1; min-width:0; }
+    .erin-text { font-size:14px; color:var(--ink); font-weight:600; word-break:break-word; }
+    .erin-due { font-size:12px; color:var(--ink-3); margin-top:2px; font-weight:600; }
+    .erin-due.overdue { color:var(--danger); }
+    .erin-del { flex-shrink:0; border:none; background:none; color:var(--ink-3); font-size:16px; cursor:pointer; padding:4px 9px; border-radius:var(--r-sm); line-height:1; }
+    .erin-del:hover { color:var(--danger); background:var(--danger-bg); }
+
+    /* Berichte */
+    .ber-report-head { margin-bottom:20px; }
+    .ber-report-head h3 { font-size:20px; font-weight:800; color:var(--ink); letter-spacing:-.02em; }
+    .ber-meta { font-size:13px; color:var(--ink-3); margin-top:4px; }
+    .ber-group { margin-bottom:24px; }
+    .ber-group h4 { font-size:16px; font-weight:800; color:var(--ink); border-left:4px solid var(--ink-3); padding-left:12px; margin-bottom:12px; }
+    .ber-sub { margin:0 0 14px 0; }
+    .ber-sub h5 { font-size:13px; font-weight:700; color:var(--ink-2); text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px; }
+    .ber-none { font-size:13px; color:var(--ink-3); font-style:italic; }
+    .ber-table th, .ber-table td { padding:8px 14px; }
+
+    @media(max-width:900px){ .kal-week { grid-template-columns:1fr 1fr; } }
+    @media(max-width:600px){ .kal-week { grid-template-columns:1fr; } }
+
+    /* Druck: Bedienelemente der Werkzeuge nicht mitdrucken */
+    @media print { .tool-toolbar, .erin-add, .tool-no-print { display:none !important; } }
+
+    /* NEU: Tool-Reifegrad (Live / Testing / Entwicklung) */
+    .stage-badge { font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; padding:2px 6px; border-radius:99px; margin-left:auto; flex-shrink:0; line-height:1.4; }
+    .stage-badge.testing { color:var(--warn); background:var(--warn-bg); border:1px solid var(--warn); }
+    .stage-banner { display:none; align-items:center; gap:10px; background:var(--warn-bg); border:1px solid var(--warn); border-left:4px solid var(--warn); color:var(--warn); border-radius:var(--r); padding:11px 16px; margin:18px 0 2px; font-size:13px; font-weight:600; }
+    .stage-banner.show { display:flex; }
+    .stage-banner svg { width:18px; height:18px; flex-shrink:0; }
+    .tool-stage-row { display:flex; align-items:center; gap:12px; padding:9px 0; border-bottom:1px solid var(--line-2); }
+    .tool-stage-row:last-child { border-bottom:none; }
+    .tool-stage-row .ts-label { flex:1; font-size:14px; font-weight:600; color:var(--ink); }
+    .tool-stage-row select { padding:7px 10px; border:1px solid var(--line); border-radius:var(--r-sm); font-size:13px; font-family:inherit; background:var(--surface); font-weight:700; }
+    .tool-stage-row select.ts-stage-live { color:var(--ok); }
+    .tool-stage-row select.ts-stage-testing { color:var(--warn); }
+    .tool-stage-row select.ts-stage-entwicklung { color:var(--danger); }
+    @media print { .stage-banner { display:none !important; } }
+
+    /* NEU: Infoseite – Inhaltsblöcke (Anzeige) */
+    .cb-page { max-width:820px; }
+    .cb-h { color:var(--ink); letter-spacing:-.01em; margin:22px 0 10px; }
+    .cb-h.cb-h-first { margin-top:0; }
+    .cb-h2 { font-size:24px; font-weight:800; }
+    .cb-h3 { font-size:18px; font-weight:800; }
+    .cb-text { font-size:15px; color:var(--ink-2); line-height:1.7; margin:0 0 14px; }
+    .cb-info { border:1px solid var(--line); border-left:4px solid var(--brand); border-radius:var(--r); padding:14px 18px; margin:0 0 16px; font-size:14px; line-height:1.6; color:var(--ink); }
+    .cb-info-info { background:var(--brand-tint); border-left-color:var(--brand); }
+    .cb-info-warn { background:var(--warn-bg); border-left-color:var(--warn); }
+    .cb-info-ok   { background:var(--ok-bg); border-left-color:var(--ok); }
+    .cb-figure { margin:0 0 18px; }
+    .cb-img { max-width:100%; height:auto; border-radius:var(--r); border:1px solid var(--line); display:block; }
+    .cb-cap { font-size:12px; color:var(--ink-3); margin-top:6px; }
+    .cb-btn-wrap { margin:0 0 18px; }
+    .cb-btn-disabled { opacity:.5; pointer-events:none; }
+    .cb-divider { border:none; border-top:1px solid var(--line); margin:22px 0; }
+
+    /* NEU: Infoseite – Block-Editor (Admin-Popup) */
+    .cb-add-bar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:14px; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r); margin-bottom:18px; }
+    .cb-add-label { font-size:12px; font-weight:700; color:var(--ink-2); text-transform:uppercase; letter-spacing:.05em; margin-right:4px; }
+    .cb-edit-list { display:flex; flex-direction:column; gap:12px; }
+    .cb-edit { border:1px solid var(--line); border-radius:var(--r); background:var(--surface); overflow:hidden; }
+    .cb-edit-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 12px; background:var(--surface-2); border-bottom:1px solid var(--line); }
+    .cb-edit-type { font-size:12px; font-weight:800; color:var(--ink-2); text-transform:uppercase; letter-spacing:.05em; }
+    .cb-edit-ctrls { display:flex; gap:6px; }
+    .cb-ic { width:28px; height:28px; border:1px solid var(--line); background:var(--surface); border-radius:var(--r-sm); cursor:pointer; font-size:13px; font-weight:700; color:var(--ink-2); display:flex; align-items:center; justify-content:center; line-height:1; }
+    .cb-ic:hover:not(:disabled) { border-color:var(--ink-3); color:var(--ink); }
+    .cb-ic:disabled { opacity:.35; cursor:default; }
+    .cb-ic-del:hover { color:var(--danger); border-color:var(--danger); background:var(--danger-bg); }
+    .cb-edit-body { padding:12px; display:flex; flex-direction:column; gap:8px; }
+    .cb-row { display:flex; gap:8px; }
+    .cb-input { width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:var(--r-sm); font-size:14px; font-family:inherit; color:var(--ink); background:var(--surface); }
+    .cb-input:focus { outline:none; border-color:var(--brand); box-shadow:0 0 0 3px var(--focus); }
+    .cb-area { min-height:84px; resize:vertical; line-height:1.5; }
+    .cb-muted { font-size:13px; color:var(--ink-3); font-style:italic; }
+    .cb-editor-actions { display:flex; gap:10px; margin-top:20px; padding-top:18px; border-top:1px solid var(--line); }
+  </style>
 </head>
 <body>
 
@@ -893,7 +1115,50 @@
         <span>Inbox</span>
         <span class="nav-badge" id="inbox-badge" style="display:none">0</span>
       </button>
-      <button class="tab-button" data-tab="einstellungen" id="tabbtn-einstellungen">
+
+      <!-- ============================================================= -->
+      <!-- NEU: Sidebar Tools – zusätzliche Werkzeuge (additiv)          -->
+      <!-- Sichtbarkeit/Reihenfolge via SIDEBAR_ITEMS + roleAllowsTab.   -->
+      <!-- Starten versteckt; applySidebarPrefs() blendet rollenabh. ein -->
+      <!-- ============================================================= -->
+      <div class="sidebar-section-label">Werkzeuge</div>
+      <!-- NEU: Sidebar Tool Infoseite (Inhalts-Editor) -->
+      <button class="tab-button" data-tab="infoseite" id="tabbtn-infoseite" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        <span>Infoseite</span>
+      </button>
+      <!-- NEU: Sidebar Tool Kalender -->
+      <button class="tab-button" data-tab="kalender" id="tabbtn-kalender" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
+        <span>Kalender</span>
+      </button>
+      <!-- NEU: Sidebar Tool Anwesenheit -->
+      <button class="tab-button" data-tab="anwesenheit" id="tabbtn-anwesenheit" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/></svg>
+        <span>Anwesenheit</span>
+      </button>
+      <!-- NEU: Sidebar Tool Warteliste+ -->
+      <button class="tab-button" data-tab="wartelisteplus" id="tabbtn-wartelisteplus" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <span>Warteliste+</span>
+      </button>
+      <!-- NEU: Sidebar Tool Zuteilung -->
+      <button class="tab-button" data-tab="zuteilung" id="tabbtn-zuteilung" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8" rx="1"/><rect x="12" y="6" width="3" height="12" rx="1"/><rect x="17" y="13" width="3" height="5" rx="1"/></svg>
+        <span>Zuteilung</span>
+      </button>
+      <!-- NEU: Sidebar Tool Erinnerungen -->
+      <button class="tab-button" data-tab="erinnerungen" id="tabbtn-erinnerungen" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span>Erinnerungen</span>
+      </button>
+      <!-- NEU: Sidebar Tool Berichte -->
+      <button class="tab-button" data-tab="berichte" id="tabbtn-berichte" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+        <span>Berichte</span>
+      </button>
+
+      <button class="tab-button" id="btn-open-settings">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         <span>Einstellungen</span>
       </button>
@@ -952,6 +1217,12 @@
 </div>
 
 <main class="container">
+
+  <!-- NEU: Reifegrad-Hinweis – erscheint über Tools, die als „Testing" markiert sind -->
+  <div class="stage-banner" id="stage-banner">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v6.5L4.6 18a2 2 0 0 0 1.7 3h11.4a2 2 0 0 0 1.7-3L14 8.5V2"/><path d="M8.5 2h7M7 14h10"/></svg>
+    <span>Dieser Bereich befindet sich noch in <b>Entwicklung (Testphase)</b> – Funktionen können sich noch ändern.</span>
+  </div>
 
   <!-- TAB: Heute (Tagesübersicht – Startseite für die Rolle "Leser") -->
   <section class="tab-content" id="tab-heute">
@@ -1045,11 +1316,12 @@
         </div>
         <div class="mm-actions">
           <button class="btn btn-primary" id="btn-mm-send">Jetzt senden</button>
+          <button class="btn btn-secondary" id="btn-mm-gmail">In Gmail öffnen</button>
           <button class="btn btn-secondary" id="btn-mm-open">Mailprogramm öffnen</button>
           <button class="btn btn-secondary" id="btn-mm-copy">Adressen kopieren</button>
         </div>
         <div class="mm-send-status off" id="mm-send-status"></div>
-        <div class="mm-hint"><b>Jetzt senden</b> verschickt die Mail direkt über euer Vereins-Google-Konto (alle Eltern im BCC). <b>Mailprogramm öffnen</b> / <b>Adressen kopieren</b> funktionieren auch ohne Einrichtung. Den Direktversand richtest du einmalig unter Einstellungen → „E-Mail-Versand" ein.</div>
+        <div class="mm-hint"><b>Jetzt senden</b> verschickt direkt über euer Vereins-Google-Konto (alle Eltern im BCC). <b>In Gmail öffnen</b> öffnet das Gmail-Fenster im Browser (ohne Einrichtung). <b>Mailprogramm öffnen</b> braucht ein installiertes Mailprogramm. <b>Adressen kopieren</b> legt die Adressen in die Zwischenablage. Den Direktversand richtest du unter Einstellungen → „E-Mail-Versand" ein.</div>
       </div>
 
       <!-- Empfänger -->
@@ -1192,10 +1464,149 @@
     <div style="height:64px"></div>
   </section>
 
+  <!-- ============================================================= -->
+  <!-- NEU: Sidebar Tools – zusätzliche Ansichten (additiv)          -->
+  <!-- Eigene, gekapselte Sektionen. Bestehende Tabs bleiben unberührt-->
+  <!-- ============================================================= -->
+
+  <!-- NEU: Sidebar Tool Infoseite (Inhalts-Editor, SharePoint-artig) -->
+  <section class="tab-content" id="tab-infoseite">
+    <div class="section-header">
+      <h2>Infoseite</h2>
+      <button class="btn btn-primary tool-no-print" id="btn-content-edit" style="display:none">Bearbeiten</button>
+    </div>
+    <div id="infoseite-body"></div>
+    <div style="height:48px"></div>
+  </section>
+
+  <!-- NEU: Sidebar Tool Kalender -->
+  <section class="tab-content" id="tab-kalender">
+    <div class="section-header"><h2>Wochenplan</h2></div>
+    <p class="tool-intro">Wochenübersicht aller Angebote (Mo–Fr) für das gewählte Schuljahr. Pro Slot siehst du die aktiv eingeteilten Kinder und die Kapazität.</p>
+    <div class="kal-week" id="kalender-body"></div>
+    <div style="height:48px"></div>
+  </section>
+
+  <!-- NEU: Sidebar Tool Anwesenheit -->
+  <section class="tab-content" id="tab-anwesenheit">
+    <div class="section-header"><h2>Anwesenheit</h2></div>
+    <p class="tool-intro">Anwesenheit pro Tag und Angebot erfassen. Tippe je Kind auf <b>Anwesend</b>, <b>Abwesend</b> oder <b>Entschuldigt</b> – die Eingabe wird automatisch gespeichert.</p>
+    <div class="tool-toolbar tool-no-print">
+      <div class="tool-field">
+        <label for="anw-date">Datum</label>
+        <input type="date" id="anw-date">
+      </div>
+    </div>
+    <div class="tool-summary" id="anw-summary"></div>
+    <div id="anw-body"></div>
+    <div style="height:48px"></div>
+  </section>
+
+  <!-- NEU: Sidebar Tool Warteliste+ -->
+  <section class="tab-content" id="tab-wartelisteplus">
+    <div class="section-header"><h2>Warteliste+</h2></div>
+    <p class="tool-intro">Alle wartenden Kinder pro Angebot – inklusive Hinweis, wo aktuell ein Platz frei ist. So siehst du auf einen Blick, wen du nachrücken lassen kannst.</p>
+    <div class="tool-summary" id="wlp-summary"></div>
+    <div id="wlp-body"></div>
+    <div style="height:48px"></div>
+  </section>
+
+  <!-- NEU: Sidebar Tool Zuteilung -->
+  <section class="tab-content" id="tab-zuteilung">
+    <div class="section-header"><h2>Zuteilung &amp; Belegung</h2></div>
+    <p class="tool-intro">Kapazitätsplanung pro Slot: belegt, frei, Warteliste und Auslastung – getrennt nach Angebot. Grundlage für die Einteilung im gewählten Schuljahr.</p>
+    <div id="zut-body"></div>
+    <div style="height:48px"></div>
+  </section>
+
+  <!-- NEU: Sidebar Tool Erinnerungen -->
+  <section class="tab-content" id="tab-erinnerungen">
+    <div class="section-header"><h2>Erinnerungen</h2></div>
+    <p class="tool-intro">Gemeinsame Aufgaben und Erinnerungen fürs Team. Überfällige Einträge werden farbig hervorgehoben.</p>
+    <div class="erin-add tool-no-print">
+      <div class="tool-field" style="flex:1;min-width:220px">
+        <label for="erin-input">Neue Erinnerung</label>
+        <input type="text" id="erin-input" placeholder="z. B. Versicherung erneuern">
+      </div>
+      <div class="tool-field">
+        <label for="erin-due">Fällig am (optional)</label>
+        <input type="date" id="erin-due">
+      </div>
+      <button class="btn btn-primary" id="btn-erin-add" type="button">Hinzufügen</button>
+    </div>
+    <div id="erin-body"></div>
+    <div style="height:48px"></div>
+  </section>
+
+  <!-- NEU: Sidebar Tool Berichte -->
+  <section class="tab-content" id="tab-berichte">
+    <div class="section-header">
+      <h2>Berichte</h2>
+      <button class="btn btn-secondary btn-small tool-no-print" id="btn-ber-print" type="button">Drucken</button>
+    </div>
+    <p class="tool-intro tool-no-print">Druckfertiger Belegungsbericht (Aktiv &amp; Warteliste) je Angebot für das gewählte Schuljahr – ideal für Vorstand und Ablage.</p>
+    <div class="tool-toolbar tool-no-print">
+      <div class="tool-field">
+        <label for="ber-gruppe">Angebot</label>
+        <select id="ber-gruppe">
+          <option value="">Alle Angebote</option>
+          <option value="spielgruppe">Spielgruppe Luftballon</option>
+          <option value="waldspielgruppe">Waldspielgruppe Sonnenstrahl</option>
+          <option value="mittagstisch">Mittagstisch</option>
+        </select>
+      </div>
+    </div>
+    <div id="ber-body"></div>
+    <div style="height:48px"></div>
+  </section>
+
   <!-- TAB: Einstellungen -->
-  <section class="tab-content" id="tab-einstellungen">
-    <h2 style="margin-bottom:24px">Einstellungen</h2>
-    <div class="settings-grid">
+  <!-- Einstellungen (Popup-Fenster) -->
+  <div class="settings-modal-overlay" id="settings-modal">
+    <div class="settings-backdrop" id="settings-backdrop"></div>
+    <div class="settings-dialog" role="dialog" aria-modal="true" aria-label="Einstellungen">
+      <div class="settings-dialog-header">
+        <h2>Einstellungen</h2>
+        <button class="settings-close" id="btn-settings-close" aria-label="Schliessen" title="Schliessen">&times;</button>
+      </div>
+      <div class="settings-dialog-body">
+
+        <!-- Darstellung -->
+        <section class="settings-section">
+          <h3 class="settings-section-title">Darstellung</h3>
+          <div class="settings-card">
+            <div class="setting-row">
+              <div>
+                <div class="setting-row-label">Dunkelmodus</div>
+                <div class="setting-row-sub">Dunkles Farbschema für die App – gilt auf diesem Gerät.</div>
+              </div>
+              <label class="switch"><input type="checkbox" id="set-darkmode"><span class="switch-slider"></span></label>
+            </div>
+          </div>
+        </section>
+
+        <!-- Seitenleiste -->
+        <section class="settings-section">
+          <h3 class="settings-section-title">Seitenleiste</h3>
+          <div class="settings-card">
+            <p class="settings-card-sub">Welche Bereiche in der Seitenleiste erscheinen sollen (gilt auf diesem Gerät). Es werden nur Bereiche angezeigt, die deine Rolle erlaubt – das Aus-/Einblenden ändert nichts an deinen Rechten.</p>
+            <div id="sidebar-config" class="sidebar-config"></div>
+          </div>
+        </section>
+
+        <!-- NEU: Tool-Verwaltung / Reifegrad (nur Admin) -->
+        <section class="settings-section" id="section-tool-stages" style="display:none">
+          <h3 class="settings-section-title">Tool-Verwaltung (Reifegrad)</h3>
+          <div class="settings-card" id="card-tool-stages">
+            <p class="settings-card-sub">Lege je Bereich fest, wie weit er entwickelt ist. <b>Live</b> = für alle nutzbar. <b>Testing</b> = für alle sichtbar, aber als „in Entwicklung" gekennzeichnet. <b>Entwicklung</b> = nur für Admin sichtbar. Diese Einstellung gilt zentral für alle Benutzer.</p>
+            <div id="tool-stages-config"></div>
+          </div>
+        </section>
+
+        <!-- Kapazitäten -->
+        <section class="settings-section">
+          <h3 class="settings-section-title">Kapazitäten</h3>
+          <div class="settings-grid">
 
       <!-- Kapazitäten Spielgruppe -->
       <div class="settings-card">
@@ -1217,6 +1628,14 @@
         <div class="capacity-inputs" id="caps-mittagstisch"></div>
         <button class="btn btn-primary" data-save-caps="mittagstisch">Speichern</button>
       </div>
+
+          </div>
+        </section>
+
+        <!-- Versand & Integrationen -->
+        <section class="settings-section">
+          <h3 class="settings-section-title">Versand &amp; Integrationen</h3>
+          <div class="settings-grid">
 
       <!-- Google Sheets -->
       <div class="settings-card">
@@ -1271,6 +1690,14 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
         </details>
       </div>
 
+          </div>
+        </section>
+
+        <!-- Daten -->
+        <section class="settings-section">
+          <h3 class="settings-section-title">Daten</h3>
+          <div class="settings-grid">
+
       <!-- CSV -->
       <div class="settings-card">
         <h3>Daten Import/Export</h3>
@@ -1300,6 +1727,14 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
           im Kind-Formular (Bereich „Dokumente"); ein Klick auf den Dateinamen öffnet das Dokument.
         </p>
       </div>
+
+          </div>
+        </section>
+
+        <!-- Verwaltung -->
+        <section class="settings-section">
+          <h3 class="settings-section-title">Verwaltung</h3>
+          <div class="settings-grid">
 
       <!-- Schuljahre / Zeitachsen verwalten (nur Administrator) -->
       <div class="settings-card" id="card-schuljahre">
@@ -1351,8 +1786,40 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
         <button class="btn btn-danger" id="btn-delete-all">Alle Daten löschen</button>
       </div>
 
+          </div>
+        </section>
+
+      </div><!-- /settings-dialog-body -->
+    </div><!-- /settings-dialog -->
+  </div><!-- /settings-modal-overlay -->
+
+  <!-- NEU: Inhalts-Editor für die Infoseite (Popup, nur Admin) -->
+  <div class="settings-modal-overlay" id="content-editor-modal">
+    <div class="settings-backdrop" id="content-editor-backdrop"></div>
+    <div class="settings-dialog" role="dialog" aria-modal="true" aria-label="Infoseite bearbeiten">
+      <div class="settings-dialog-header">
+        <h2>Infoseite bearbeiten</h2>
+        <button class="settings-close" id="btn-content-close" aria-label="Schliessen" title="Schliessen">&times;</button>
+      </div>
+      <div class="settings-dialog-body">
+        <p class="settings-card-sub">Baue die Seite aus Blöcken zusammen – ähnlich wie bei SharePoint. Blöcke hinzufügen, bearbeiten, verschieben (↑/↓) oder löschen (✕). Änderungen gelten nach <b>Speichern</b> für alle.</p>
+        <div class="cb-add-bar">
+          <span class="cb-add-label">Block hinzufügen:</span>
+          <button class="btn btn-secondary btn-small" data-cb-add="heading" type="button">+ Überschrift</button>
+          <button class="btn btn-secondary btn-small" data-cb-add="text" type="button">+ Text</button>
+          <button class="btn btn-secondary btn-small" data-cb-add="info" type="button">+ Info-Box</button>
+          <button class="btn btn-secondary btn-small" data-cb-add="image" type="button">+ Bild</button>
+          <button class="btn btn-secondary btn-small" data-cb-add="button" type="button">+ Button</button>
+          <button class="btn btn-secondary btn-small" data-cb-add="divider" type="button">+ Trenner</button>
+        </div>
+        <div id="content-editor-list" class="cb-edit-list"></div>
+        <div class="cb-editor-actions">
+          <button class="btn btn-primary" id="btn-content-save" type="button">Speichern</button>
+          <button class="btn btn-secondary" id="btn-content-cancel" type="button">Abbrechen</button>
+        </div>
+      </div>
     </div>
-  </section>
+  </div><!-- /content-editor-modal -->
 </main>
   </div><!-- /app-main -->
 </div><!-- /app-shell -->
@@ -1897,74 +2364,140 @@ function applyRolePermissions() {
   const addWidget = document.getElementById('btn-add-widget');
   if (addWidget) addWidget.style.display = editor ? '' : 'none';
 
-  // Einstellungen-Tab: nur für Bearbeiter/Admin (Viewer = nur Lesen)
-  const settingsTabBtn = document.getElementById('tabbtn-einstellungen');
-  if (settingsTabBtn) settingsTabBtn.style.display = editor ? '' : 'none';
-  if (!editor) {
-    const settingsTab = document.getElementById('tab-einstellungen');
-    if (settingsTab && settingsTab.classList.contains('active')) {
-      switchTab('kinder', document.querySelector('.tab-button[data-tab="kinder"]'));
-    }
-  }
+  // Einstellungen-Knopf (öffnet das Popup): nur Bearbeiter/Admin
+  const settingsBtn = document.getElementById('btn-open-settings');
+  if (settingsBtn) settingsBtn.style.display = editor ? '' : 'none';
 
-  // Tickets-Tab: nur für Admin
-  const ticketsTabBtn = document.getElementById('tabbtn-tickets');
-  if (ticketsTabBtn) ticketsTabBtn.style.display = admin ? '' : 'none';
-  if (!admin) {
-    const ticketsTab = document.getElementById('tab-tickets');
-    if (ticketsTab && ticketsTab.classList.contains('active')) {
-      switchTab('kinder', document.querySelector('.tab-button[data-tab="kinder"]'));
-    }
-  }
-
-  // Inbox-Tab: für Supervisor/Bearbeiter (nicht Admin, nicht Leser)
-  const inboxAllowed = editor && !admin;
-  const inboxTabBtn = document.getElementById('tabbtn-inbox');
-  if (inboxTabBtn) inboxTabBtn.style.display = inboxAllowed ? '' : 'none';
-  if (!inboxAllowed) {
-    const inboxTab = document.getElementById('tab-inbox');
-    if (inboxTab && inboxTab.classList.contains('active')) {
-      switchTab('kinder', document.querySelector('.tab-button[data-tab="kinder"]'));
-    }
-  }
-
-  // Massenmail-Tab: eigene Kategorie nur für Supervisor + Admin
-  const mailTabBtn = document.getElementById('tabbtn-massenmail');
-  if (mailTabBtn) mailTabBtn.style.display = canMassMail() ? '' : 'none';
+  // E-Mail-Versand-Karte (Einstellungen): nur Supervisor + Admin
   const mailSettingsCard = document.getElementById('card-mail-settings');
   if (mailSettingsCard) mailSettingsCard.style.display = canMassMail() ? '' : 'none';
-  if (!canMassMail()) {
-    const mailTab = document.getElementById('tab-massenmail');
-    if (mailTab && mailTab.classList.contains('active')) {
-      switchTab('kinder', document.querySelector('.tab-button[data-tab="kinder"]'));
-    }
-  }
 
-  // ── Rolle "Leser" (Spielgruppenleitung): nur Tagesübersicht + Dashboard ──
-  // Datenattribut steuert zusätzlich per CSS, was ausgeblendet wird.
-  const viewer = getRole() === 'viewer';
+  // Rolle als Datenattribut (steuert zusätzlich per CSS, was ausgeblendet wird)
   document.body.setAttribute('data-role', getRole());
 
-  // Bearbeiter-Tabs (Kinderliste, Anmeldungen) für Leser ausblenden
-  const kinderTabBtn = document.querySelector('.tab-button[data-tab="kinder"]');
-  if (kinderTabBtn) kinderTabBtn.style.display = viewer ? 'none' : '';
-  const anmTabBtn = document.getElementById('tabbtn-anmeldungen');
-  if (anmTabBtn) anmTabBtn.style.display = viewer ? 'none' : '';
-
-  // Leser landet auf der Tagesübersicht; falls auf einem gesperrten Tab → umleiten
-  if (viewer) {
-    const activeTabEl = document.querySelector('.tab-content.active');
-    const activeName  = activeTabEl ? activeTabEl.id.replace('tab-', '') : '';
-    if (!['heute', 'dashboard'].includes(activeName)) {
-      switchTab('heute', document.querySelector('.tab-button[data-tab="heute"]'));
-    }
-  }
+  // Seitenleiste: Sichtbarkeit = Rolle erlaubt UND persönliche Auswahl (Einstellungen)
+  renderSidebarConfig();
+  applySidebarPrefs();
 
   // Kinder-Tabelle neu zeichnen (Bearbeiten/Löschen-Buttons hängen an der Rolle)
   renderKinderTable();
   renderWidgets();
   renderYearBar();
   renderHeute();
+}
+
+// ===== EINSTELLUNGEN-POPUP / DARSTELLUNG / SEITENLEISTE =====
+// Konfigurierbare Seitenleisten-Einträge (Einstellungen-Knopf bleibt immer separat).
+const SIDEBAR_ITEMS = [
+  { tab:'heute',       label:'Heute' },
+  { tab:'kinder',      label:'Kinder' },
+  { tab:'dashboard',   label:'Dashboard' },
+  { tab:'anmeldungen', label:'Anmeldungen' },
+  { tab:'massenmail',  label:'Massenmail' },
+  { tab:'tickets',     label:'Tickets' },
+  { tab:'inbox',       label:'Inbox' },
+  // NEU: Sidebar Tools – zusätzliche Werkzeuge (Reihenfolge in der Seitenleiste)
+  { tab:'infoseite',      label:'Infoseite' },
+  { tab:'kalender',       label:'Kalender' },
+  { tab:'anwesenheit',    label:'Anwesenheit' },
+  { tab:'wartelisteplus', label:'Warteliste+' },
+  { tab:'zuteilung',      label:'Zuteilung' },
+  { tab:'erinnerungen',   label:'Erinnerungen' },
+  { tab:'berichte',       label:'Berichte' },
+];
+// Persönliche Auswahl (pro Gerät, localStorage). Default: alles sichtbar.
+let sidebarPrefs = {};
+try { sidebarPrefs = JSON.parse(localStorage.getItem('elki-sidebar') || '{}') || {}; } catch (e) { sidebarPrefs = {}; }
+
+// Welche Tabs erlaubt die aktuelle Rolle? (spiegelt die Rollen-Logik)
+function roleAllowsTab(tab) {
+  switch (tab) {
+    case 'heute':
+    case 'dashboard':    return true;
+    case 'kinder':
+    case 'anmeldungen':  return getRole() !== 'viewer';
+    case 'massenmail':   return canMassMail();
+    case 'tickets':      return isAdminRole();
+    case 'inbox':        return canEdit() && !isAdminRole();
+    // NEU: Sidebar Tools – Rollen-Sichtbarkeit (spiegelt bestehende Logik)
+    case 'infoseite':      return true;                    // Infoseite: lesen alle; bearbeiten nur Admin (im Tool)
+    case 'kalender':       return true;                    // Übersicht (nur Zahlen) – für alle Rollen
+    case 'anwesenheit':    return canEdit();               // erfasst Daten → Bearbeiter+
+    case 'wartelisteplus': return getRole() !== 'viewer';  // Kinderdaten → wie Kinder/Anmeldungen
+    case 'zuteilung':      return getRole() !== 'viewer';
+    case 'erinnerungen':   return canEdit();               // Team-Aufgaben → Bearbeiter+
+    case 'berichte':       return getRole() !== 'viewer';
+    default:             return false;
+  }
+}
+
+// Seitenleiste anwenden: sichtbar = Rolle erlaubt UND persönlich aktiviert
+function applySidebarPrefs() {
+  if (typeof ensureToolStages === 'function') ensureToolStages(); // NEU: Reifegrad (Live/Testing/Entwicklung) lazy laden
+  SIDEBAR_ITEMS.forEach(it => {
+    const btn = document.querySelector(`.sidebar-nav .tab-button[data-tab="${it.tab}"]`);
+    if (!btn) return;
+    // NEU: zusätzlich Reifegrad berücksichtigen – „Entwicklung" nur für Admin sichtbar
+    const show = roleAllowsTab(it.tab) && (sidebarPrefs[it.tab] !== false) && (typeof stageAllows !== 'function' || stageAllows(it.tab));
+    btn.style.display = show ? '' : 'none';
+  });
+  // Aktiven Tab verlassen, falls er jetzt versteckt ist → erster sichtbarer
+  const active = document.querySelector('.tab-content.active');
+  const activeTab = active ? active.id.replace('tab-', '') : '';
+  const activeOk = activeTab && roleAllowsTab(activeTab) && (sidebarPrefs[activeTab] !== false) && (typeof stageAllows !== 'function' || stageAllows(activeTab));
+  if (!activeOk) {
+    const first = SIDEBAR_ITEMS.find(it => roleAllowsTab(it.tab) && (sidebarPrefs[it.tab] !== false) && (typeof stageAllows !== 'function' || stageAllows(it.tab)));
+    if (first) switchTab(first.tab, document.querySelector(`.sidebar-nav .tab-button[data-tab="${first.tab}"]`));
+  }
+  // NEU: Testing-Kennzeichnung (Badge in der Seitenleiste + Hinweisbanner)
+  if (typeof applyStageBadges === 'function') applyStageBadges();
+  if (typeof updateStageBanner === 'function') updateStageBanner();
+}
+
+// Checkbox-Liste „welche Bereiche in der Seitenleiste" (nur rollen-erlaubte)
+function renderSidebarConfig() {
+  const box = document.getElementById('sidebar-config');
+  if (!box) return;
+  const items = SIDEBAR_ITEMS.filter(it => roleAllowsTab(it.tab) && (typeof stageAllows !== 'function' || stageAllows(it.tab))); // NEU: „Entwicklung"-Tools für Nicht-Admin ausblenden
+  box.innerHTML = items.map(it =>
+    `<label class="sidebar-config-row">
+       <input type="checkbox" data-sb="${it.tab}" ${sidebarPrefs[it.tab] !== false ? 'checked' : ''}>
+       <span>${it.label}</span>
+     </label>`
+  ).join('') || '<p class="settings-card-sub" style="margin:0">Keine konfigurierbaren Bereiche.</p>';
+  box.querySelectorAll('input[data-sb]').forEach(cb =>
+    cb.addEventListener('change', () => {
+      sidebarPrefs[cb.dataset.sb] = cb.checked;
+      try { localStorage.setItem('elki-sidebar', JSON.stringify(sidebarPrefs)); } catch (e) {}
+      applySidebarPrefs();
+    })
+  );
+}
+
+// ── Darstellung / Dunkelmodus (pro Gerät, localStorage 'elki-theme') ──
+function isDarkTheme() { return document.documentElement.getAttribute('data-theme') === 'dark'; }
+function setTheme(dark) {
+  if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+  else      document.documentElement.removeAttribute('data-theme');
+  try { localStorage.setItem('elki-theme', dark ? 'dark' : 'light'); } catch (e) {}
+  const cb = document.getElementById('set-darkmode'); if (cb) cb.checked = dark;
+}
+
+// ── Einstellungen-Popup öffnen / schliessen ──
+function openSettings() {
+  if (!canEdit()) { showToast('Keine Berechtigung', 'error'); return; }
+  const m = document.getElementById('settings-modal');
+  if (!m) return;
+  const cb = document.getElementById('set-darkmode'); if (cb) cb.checked = isDarkTheme();
+  renderSidebarConfig();
+  if (typeof renderToolStageConfig === 'function') renderToolStageConfig(); // NEU: Admin – Reifegrad-Konfiguration
+  m.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeSettings() {
+  const m = document.getElementById('settings-modal');
+  if (m) m.classList.remove('open');
+  document.body.style.overflow = '';
 }
 
 // Benutzerliste rendern
@@ -2091,11 +2624,7 @@ function registerAuthEvents() {
   document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
   document.getElementById('login-username').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('login-password').focus(); });
   document.getElementById('btn-logout').addEventListener('click', doLogout);
-  document.getElementById('btn-theme').addEventListener('click', () => {
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    if (isDark) { document.documentElement.removeAttribute('data-theme'); try { localStorage.setItem('elki-theme','light'); } catch(e){} }
-    else { document.documentElement.setAttribute('data-theme','dark'); try { localStorage.setItem('elki-theme','dark'); } catch(e){} }
-  });
+  document.getElementById('btn-theme').addEventListener('click', () => setTheme(!isDarkTheme()));
 
   // ── Neuen Benutzer anlegen ───────────────────────────────
   const btnAddUser = document.getElementById('btn-add-user');
@@ -2283,6 +2812,7 @@ async function switchSchoolYear(year) {
   updateStats();
   updateDashboard();
   renderWidgets();
+  if (typeof renderActiveTool === 'function') renderActiveTool(); // NEU: Sidebar Tools mit aktualisieren
   showToast(`Schuljahr ${year}`, 'info');
 }
 
@@ -2318,6 +2848,7 @@ async function deleteSchoolYearFlow(jahr = currentSchoolYear) {
   updateStats();
   updateDashboard();
   renderWidgets();
+  if (typeof renderActiveTool === 'function') renderActiveTool(); // NEU: Sidebar Tools mit aktualisieren
   showToast(`Schuljahr ${jahr} gelöscht`, 'success');
 }
 
@@ -2596,9 +3127,20 @@ function buildCapacityInputs() {
 
 // ===== EVENTS =====
 function registerEventListeners() {
-  document.querySelectorAll('.tab-button').forEach(btn =>
+  document.querySelectorAll('.tab-button[data-tab]').forEach(btn =>
     btn.addEventListener('click', e => switchTab(e.currentTarget.dataset.tab, e.currentTarget))
   );
+  // Einstellungen-Knopf öffnet das Popup (kein Tab)
+  document.getElementById('btn-open-settings')?.addEventListener('click', openSettings);
+  document.getElementById('btn-settings-close')?.addEventListener('click', closeSettings);
+  document.getElementById('settings-backdrop')?.addEventListener('click', closeSettings);
+  document.getElementById('set-darkmode')?.addEventListener('change', e => setTheme(e.target.checked));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      const m = document.getElementById('settings-modal');
+      if (m && m.classList.contains('open')) closeSettings();
+    }
+  });
   document.querySelectorAll('.dash-subtab').forEach(btn =>
     btn.addEventListener('click', e => switchDashPanel(e.currentTarget.dataset.panel, e.currentTarget))
   );
@@ -2615,6 +3157,7 @@ function registerEventListeners() {
   document.getElementById('mm-filter-gruppe')?.addEventListener('change', renderMassenmail);
   document.getElementById('mm-filter-status')?.addEventListener('change', renderMassenmail);
   document.getElementById('btn-mm-send')?.addEventListener('click', massenmailSend);
+  document.getElementById('btn-mm-gmail')?.addEventListener('click', massenmailGmail);
   document.getElementById('btn-mm-open')?.addEventListener('click', massenmailOpen);
   document.getElementById('btn-mm-copy')?.addEventListener('click', massenmailCopy);
 
@@ -2684,6 +3227,8 @@ function switchTab(tabName, clickedBtn) {
   if (tabName === 'massenmail') { renderMassenmail(); }
   if (tabName === 'tickets') { refreshTickets(); }
   if (tabName === 'inbox') { refreshTickets(); }
+  // NEU: Sidebar Tools – passenden Renderer beim Öffnen aufrufen (guarded)
+  if (typeof TOOL_RENDERERS !== 'undefined' && TOOL_RENDERERS[tabName]) TOOL_RENDERERS[tabName]();
 }
 
 function switchDashPanel(panelName, clickedBtn) {
@@ -3382,21 +3927,53 @@ function renderMassenmail() {
   updateMassenmailSendUI();
 }
 
-// Öffnet das Standard-Mailprogramm mit allen Adressen im BCC + Betreff/Text.
+// Empfänger + Betreff + Text für einen Mail-Link (gemeinsam genutzt).
+function massenmailParts() {
+  const { emails } = massenmailRecipients();
+  return {
+    emails,
+    subject: (document.getElementById('mm-subject') || {}).value || '',
+    body:    (document.getElementById('mm-body') || {}).value || ''
+  };
+}
+
+// URL/Link zuverlässig öffnen – per <a>-Klick (robuster als location.href,
+// und für Gmail in neuem Tab statt die App-Seite zu verlassen).
+function openLink(url, newTab) {
+  const a = document.createElement('a');
+  a.href = url;
+  if (newTab) { a.target = '_blank'; a.rel = 'noopener'; }
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+// Öffnet das installierte Standard-Mailprogramm (Desktop) – alle Adressen im BCC.
 function massenmailOpen() {
   if (!canMassMail()) { showToast('Keine Berechtigung', 'error'); return; }
-  const { emails } = massenmailRecipients();
+  const { emails, subject, body } = massenmailParts();
   if (!emails.length) { showToast('Keine Empfänger-Adressen für diese Auswahl', 'error'); return; }
-  const subject = (document.getElementById('mm-subject') || {}).value || '';
-  const body    = (document.getElementById('mm-body') || {}).value || '';
-  const href = `mailto:${encodeURIComponent(VEREIN_MAIL)}`
+  const href = `mailto:${VEREIN_MAIL}`
     + `?bcc=${encodeURIComponent(emails.join(','))}`
     + `&subject=${encodeURIComponent(subject)}`
     + `&body=${encodeURIComponent(body)}`;
   if (href.length > 1900) {
-    showToast('Sehr viele Empfänger – falls das Mailprogramm nicht alle übernimmt, bitte „Adressen kopieren" nutzen', 'info');
+    showToast('Sehr viele Empfänger – falls das Mailprogramm nicht alle übernimmt, bitte „In Gmail öffnen" oder „Adressen kopieren" nutzen', 'info');
   }
-  window.location.href = href;
+  openLink(href, false);
+}
+
+// Öffnet das Gmail-Compose-Fenster im Browser – funktioniert OHNE Desktop-Mailprogramm.
+function massenmailGmail() {
+  if (!canMassMail()) { showToast('Keine Berechtigung', 'error'); return; }
+  const { emails, subject, body } = massenmailParts();
+  if (!emails.length) { showToast('Keine Empfänger-Adressen für diese Auswahl', 'error'); return; }
+  const url = `https://mail.google.com/mail/?view=cm&fs=1`
+    + `&to=${encodeURIComponent(VEREIN_MAIL)}`
+    + `&bcc=${encodeURIComponent(emails.join(','))}`
+    + `&su=${encodeURIComponent(subject)}`
+    + `&body=${encodeURIComponent(body)}`;
+  openLink(url, true);
 }
 
 // Kopiert die eindeutigen Adressen (Komma-getrennt) in die Zwischenablage.
@@ -4620,6 +5197,623 @@ function exportExcel(panelId) {
   }
 }
 
+</script>
+
+<!-- ================================================================= -->
+<!-- NEU: Sidebar Tools – Logik (additiv, eigene IIFE-Kapselung)       -->
+<!-- Tools: Kalender, Anwesenheit, Warteliste+, Zuteilung,             -->
+<!--        Erinnerungen, Berichte.                                    -->
+<!-- Nutzt ausschliesslich bestehende Helfer/Daten (ANGEBOTE, kinder,  -->
+<!-- slotsOf, aktiveKinderImSlot, slotCapacity, window._fb …) und      -->
+<!-- verändert KEINE bestehende Funktion/Datenstruktur. Neue Daten     -->
+<!-- liegen in eigenen Firestore-Dokumenten (data/anwesenheit,         -->
+<!-- data/erinnerungen).                                               -->
+<!-- ================================================================= -->
+<script>
+(function(){
+  "use strict";
+
+  // ---- lokale Helfer (gekapselt, kollidieren nicht mit Bestehendem) ----
+  function $(id){ return document.getElementById(id); }
+  function todayISO(){
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  var ISO_TO_DAY = { 1:'Mo', 2:'Di', 3:'Mi', 4:'Do', 5:'Fr' };
+  function isoToDay(iso){
+    if(!iso) return null;
+    var d = new Date(iso + 'T00:00:00');
+    return ISO_TO_DAY[d.getDay()] || null;
+  }
+
+  // =================================================================
+  // NEU: Sidebar Tool Kalender (Wochenplan, read-only)
+  // =================================================================
+  function renderKalender(){
+    var body = $('kalender-body');
+    if(!body) return;
+    var today = (typeof heuteTodayKey === 'function') ? heuteTodayKey() : null;
+    body.innerHTML = DAYS.map(function(day){
+      var slots = getAllSlots().filter(function(s){ return s.day === day; })
+                  .sort(function(a,b){ return a.zeit.localeCompare(b.zeit); });
+      var cells = slots.length ? slots.map(function(s){
+        var akt = aktiveKinderImSlot(s.id).length;
+        var cap = slotCapacity(s.id);
+        var warte = warteKinderImSlot(s.id).length;
+        return '<div class="kal-slot" style="border-left-color:'+s.gruppe.color+'">'
+          + '<div class="kal-slot-top"><span class="kal-slot-label">'+escHtml(s.gruppe.shortLabel)+'</span>'
+          + '<span class="kal-slot-count" style="color:'+s.gruppe.color+'">'+akt+'<small>/'+cap+'</small></span></div>'
+          + '<div class="kal-slot-zeit">'+escHtml(s.label)+' · '+escHtml(s.zeit)+'</div>'
+          + (warte ? '<div class="kal-slot-warte">'+warte+' auf Warteliste</div>' : '')
+          + '</div>';
+      }).join('') : '<div class="kal-empty">kein Angebot</div>';
+      return '<div class="kal-col'+(day===today?' is-today':'')+'">'
+        + '<div class="kal-col-head">'+TAG_LABELS[day]+(day===today?' <span class="kal-today">heute</span>':'')+'</div>'
+        + '<div class="kal-col-body">'+cells+'</div></div>';
+    }).join('');
+  }
+
+  // =================================================================
+  // NEU: Sidebar Tool Anwesenheit (persistiert in data/anwesenheit)
+  // Struktur: { '<ISO-Datum>': { '<slotId>': { '<kindId>': 'present'|'absent'|'excused' } } }
+  // =================================================================
+  var anwData = null;
+  async function ensureAnw(){
+    if(anwData) return;
+    try { anwData = (await window._fb.fbLoad('data/anwesenheit', {})) || {}; }
+    catch(e){ anwData = {}; }
+  }
+  function saveAnw(){
+    if(window._fb && window._fb.fbSave) window._fb.fbSave('data/anwesenheit', anwData);
+  }
+  function renderAnwesenheit(){ ensureAnw().then(drawAnwesenheit); }
+  function drawAnwesenheit(){
+    var body = $('anw-body'); if(!body) return;
+    var dateEl = $('anw-date');
+    if(dateEl && !dateEl.value) dateEl.value = todayISO();
+    var date = (dateEl && dateEl.value) || todayISO();
+    var day = isoToDay(date);
+    var sumEl = $('anw-summary');
+    if(!day){
+      body.innerHTML = '<div class="empty-state">Am Wochenende findet kein Betrieb statt. Bitte einen Wochentag (Mo–Fr) wählen.</div>';
+      if(sumEl) sumEl.innerHTML = '';
+      return;
+    }
+    var slots = getAllSlots().filter(function(s){ return s.day === day; });
+    var dayRec = anwData[date] || {};
+    var nP=0, nA=0, nE=0;
+    var html = slots.map(function(s){
+      var kids = aktiveKinderImSlot(s.id);
+      var slotRec = dayRec[s.id] || {};
+      var rows = kids.length ? kids.map(function(k){
+        var st = slotRec[k.id] || '';
+        if(st==='present') nP++; else if(st==='absent') nA++; else if(st==='excused') nE++;
+        return '<div class="anw-kid-row"><span class="anw-kid-name">'+escHtml(k.vorname)+' '+escHtml(k.nachname)+'</span>'
+          + '<span class="anw-btns">'
+          + '<button class="anw-btn'+(st==='present'?' on-present':'')+'" data-anw-kid="'+k.id+'" data-anw-slot="'+s.id+'" data-anw-state="present" type="button">Anwesend</button>'
+          + '<button class="anw-btn'+(st==='absent'?' on-absent':'')+'" data-anw-kid="'+k.id+'" data-anw-slot="'+s.id+'" data-anw-state="absent" type="button">Abwesend</button>'
+          + '<button class="anw-btn'+(st==='excused'?' on-excused':'')+'" data-anw-kid="'+k.id+'" data-anw-slot="'+s.id+'" data-anw-state="excused" type="button">Entschuldigt</button>'
+          + '</span></div>';
+      }).join('') : '<div class="empty-state" style="padding:18px 8px !important">Keine aktiven Kinder in diesem Slot.</div>';
+      return '<div class="tool-card"><div class="tool-card-title"><span class="tool-dot" style="background:'+s.gruppe.color+'"></span>'
+        + escHtml(s.gruppe.shortLabel)+' · '+escHtml(s.label)+' <span style="color:var(--ink-3);font-weight:600;font-size:12px">'+escHtml(s.zeit)+'</span></div>'
+        + rows + '</div>';
+    }).join('');
+    body.innerHTML = html || '<div class="empty-state">An diesem Tag gibt es kein Angebot.</div>';
+    if(sumEl){
+      sumEl.innerHTML =
+        '<div class="tool-stat"><div class="tool-stat-val" style="color:var(--ok)">'+nP+'</div><div class="tool-stat-lbl">Anwesend</div></div>'
+      + '<div class="tool-stat"><div class="tool-stat-val" style="color:var(--danger)">'+nA+'</div><div class="tool-stat-lbl">Abwesend</div></div>'
+      + '<div class="tool-stat"><div class="tool-stat-val" style="color:var(--warn)">'+nE+'</div><div class="tool-stat-lbl">Entschuldigt</div></div>';
+    }
+  }
+  function setAnw(date, slot, kid, state){
+    if(typeof canEdit==='function' && !canEdit()){ showToast('Keine Berechtigung','error'); return; }
+    if(!anwData[date]) anwData[date] = {};
+    if(!anwData[date][slot]) anwData[date][slot] = {};
+    if(anwData[date][slot][kid] === state){ delete anwData[date][slot][kid]; }
+    else { anwData[date][slot][kid] = state; }
+    if(Object.keys(anwData[date][slot]).length === 0) delete anwData[date][slot];
+    if(Object.keys(anwData[date]).length === 0) delete anwData[date];
+    saveAnw();
+    drawAnwesenheit();
+  }
+
+  // =================================================================
+  // NEU: Sidebar Tool Warteliste+ (read-only, aus Bestand abgeleitet)
+  // =================================================================
+  function renderWartelistePlus(){
+    var body = $('wlp-body'); if(!body) return;
+    var entries = getAllSlots().map(function(s){ return { s:s, warte: warteKinderImSlot(s.id) }; })
+                  .filter(function(x){ return x.warte.length > 0; });
+    var sumEl = $('wlp-summary');
+    if(sumEl){
+      var distinct = {}, freeSlots = 0;
+      entries.forEach(function(x){
+        x.warte.forEach(function(k){ distinct[k.id] = 1; });
+        if(Math.max(0, slotCapacity(x.s.id) - aktiveKinderImSlot(x.s.id).length) > 0) freeSlots++;
+      });
+      sumEl.innerHTML =
+        '<div class="tool-stat"><div class="tool-stat-val" style="color:var(--warn)">'+Object.keys(distinct).length+'</div><div class="tool-stat-lbl">Kinder wartend</div></div>'
+      + '<div class="tool-stat"><div class="tool-stat-val" style="color:var(--ok)">'+freeSlots+'</div><div class="tool-stat-lbl">Slots mit freiem Platz</div></div>';
+    }
+    if(!entries.length){
+      body.innerHTML = '<div class="empty-state">Aktuell stehen keine Kinder auf einer Warteliste.</div>';
+      return;
+    }
+    body.innerHTML = entries.map(function(x){
+      var s = x.s;
+      var belegt = aktiveKinderImSlot(s.id).length;
+      var cap = slotCapacity(s.id);
+      var frei = Math.max(0, cap - belegt);
+      return '<div class="tool-card">'
+        + '<div class="wlp-head"><div><span class="tool-dot" style="background:'+s.gruppe.color+'"></span> <b>'+escHtml(s.gruppe.shortLabel)+'</b> · '+escHtml(s.label)+' <span class="wlp-zeit">'+escHtml(s.zeit)+'</span></div>'
+        + '<div class="wlp-cap'+(frei>0?' has-free':'')+'">'+(frei>0 ? (frei+' Platz'+(frei>1?'e':'')+' frei') : 'voll belegt')+' · '+belegt+'/'+cap+'</div></div>'
+        + '<ol class="wlp-list">'
+        + x.warte.map(function(k){ return '<li><span>'+escHtml(k.vorname)+' '+escHtml(k.nachname)+'</span><span class="wlp-bday">'+formatDate(k.geburtsdatum)+'</span></li>'; }).join('')
+        + '</ol></div>';
+    }).join('');
+  }
+
+  // =================================================================
+  // NEU: Sidebar Tool Zuteilung (Kapazität/Belegung, read-only)
+  // =================================================================
+  function renderZuteilung(){
+    var body = $('zut-body'); if(!body) return;
+    body.innerHTML = Object.keys(ANGEBOTE).map(function(gId){
+      var g = ANGEBOTE[gId];
+      var rows = g.slots.map(function(slot){
+        var belegt = aktiveKinderImSlot(slot.id).length;
+        var cap = slotCapacity(slot.id);
+        var frei = Math.max(0, cap - belegt);
+        var warte = warteKinderImSlot(slot.id).length;
+        var pct = cap ? Math.round(belegt/cap*100) : 0;
+        var barColor = pct>=100 ? 'var(--danger)' : (pct>=80 ? 'var(--warn)' : g.color);
+        return '<tr><td><b>'+escHtml(slot.label)+'</b><div class="zut-zeit">'+escHtml(slot.zeit)+'</div></td>'
+          + '<td class="zut-num">'+belegt+'/'+cap+'</td>'
+          + '<td class="zut-num'+(frei===0?' zut-full':'')+'">'+frei+'</td>'
+          + '<td class="zut-num">'+(warte||'–')+'</td>'
+          + '<td><div class="zut-bar-cell"><div class="zut-bar"><div class="zut-bar-fill" style="width:'+Math.min(100,pct)+'%;background:'+barColor+'"></div></div><span class="zut-pct">'+pct+'%</span></div></td></tr>';
+      }).join('');
+      return '<div class="tool-card"><div class="tool-card-title"><span class="tool-dot" style="background:'+g.color+'"></span>'+escHtml(g.label)+'</div>'
+        + '<div class="table-wrapper"><table class="kinder-table"><thead><tr><th>Slot</th><th style="text-align:center">Belegt</th><th style="text-align:center">Frei</th><th style="text-align:center">Warteliste</th><th>Auslastung</th></tr></thead><tbody>'
+        + rows + '</tbody></table></div></div>';
+    }).join('');
+  }
+
+  // =================================================================
+  // NEU: Sidebar Tool Erinnerungen (persistiert in data/erinnerungen)
+  // =================================================================
+  var erinData = null;
+  async function ensureErin(){
+    if(erinData) return;
+    try { erinData = (await window._fb.fbLoad('data/erinnerungen', [])) || []; }
+    catch(e){ erinData = []; }
+    if(!Array.isArray(erinData)) erinData = [];
+  }
+  function saveErin(){
+    if(window._fb && window._fb.fbSave) window._fb.fbSave('data/erinnerungen', erinData);
+  }
+  function renderErinnerungen(){ ensureErin().then(drawErinnerungen); }
+  function drawErinnerungen(){
+    var body = $('erin-body'); if(!body) return;
+    var items = erinData.slice().sort(function(a,b){
+      if(!!a.done !== !!b.done) return a.done ? 1 : -1;
+      return String(a.due||'9999-99-99').localeCompare(String(b.due||'9999-99-99'));
+    });
+    if(!items.length){
+      body.innerHTML = '<div class="empty-state">Noch keine Erinnerungen. Füge oben eine hinzu.</div>';
+      return;
+    }
+    var ti = todayISO();
+    body.innerHTML = items.map(function(it){
+      var overdue = it.due && !it.done && it.due < ti;
+      return '<div class="erin-item'+(it.done?' is-done':'')+'">'
+        + '<button class="erin-check'+(it.done?' on':'')+'" data-erin-toggle="'+it.id+'" type="button" title="Erledigt">'+(it.done?'✓':'')+'</button>'
+        + '<div class="erin-main"><div class="erin-text">'+escHtml(it.text)+'</div>'
+        + (it.due ? '<div class="erin-due'+(overdue?' overdue':'')+'">'+(overdue?'überfällig · ':'')+'fällig '+formatDate(it.due)+'</div>' : '')
+        + '</div>'
+        + '<button class="erin-del" data-erin-del="'+it.id+'" type="button" title="Löschen">✕</button>'
+        + '</div>';
+    }).join('');
+  }
+  async function addErinnerung(){
+    if(typeof canEdit==='function' && !canEdit()){ showToast('Keine Berechtigung','error'); return; }
+    var t = $('erin-input'), d = $('erin-due');
+    var text = ((t && t.value) || '').trim();
+    if(!text){ showToast('Bitte Text eingeben','error'); return; }
+    await ensureErin();
+    erinData.push({ id: 'e'+Date.now()+Math.random().toString(36).slice(2,6), text:text, due:(d&&d.value)||'', done:false, created: todayISO() });
+    if(t) t.value=''; if(d) d.value='';
+    saveErin(); drawErinnerungen();
+    showToast('Erinnerung hinzugefügt','success');
+  }
+  async function toggleErinnerung(id){
+    await ensureErin();
+    var it = erinData.find(function(x){ return x.id === id; });
+    if(it){ it.done = !it.done; saveErin(); drawErinnerungen(); }
+  }
+  async function deleteErinnerung(id){
+    if(typeof canEdit==='function' && !canEdit()){ showToast('Keine Berechtigung','error'); return; }
+    await ensureErin();
+    erinData = erinData.filter(function(x){ return x.id !== id; });
+    saveErin(); drawErinnerungen();
+  }
+
+  // =================================================================
+  // NEU: Sidebar Tool Berichte (druckfertig, read-only)
+  // =================================================================
+  function renderBerichte(){
+    var body = $('ber-body'); if(!body) return;
+    var sel = $('ber-gruppe');
+    var only = sel ? sel.value : '';
+    var groups = only ? [only] : Object.keys(ANGEBOTE);
+    var stand = new Date().toLocaleDateString('de-CH');
+    var html = '<div class="ber-report-head"><h3>ELKI Verein Trimmis – Belegungsbericht</h3>'
+      + '<div class="ber-meta">Schuljahr '+escHtml(currentSchoolYear||'')+' · Stand '+stand+'</div></div>';
+    groups.forEach(function(gId){
+      var g = ANGEBOTE[gId];
+      if(!g) return;
+      html += '<div class="ber-group"><h4 style="border-left-color:'+g.color+'">'+escHtml(g.label)+'</h4>';
+      ['aktiv','warteliste'].forEach(function(status){
+        var kids = kinder.filter(function(k){
+          return getGruppenIdsFromSlots(slotsOf(k)).indexOf(gId) !== -1 && statusForGroup(k, gId) === status;
+        }).sort(function(a,b){ return (a.nachname||'').localeCompare(b.nachname||'', 'de'); });
+        html += '<div class="ber-sub"><h5>'+(STATUS_LABELS[status]||status)+' ('+kids.length+')</h5>';
+        if(!kids.length){ html += '<p class="ber-none">keine</p>'; }
+        else {
+          html += '<table class="kinder-table ber-table"><thead><tr><th>#</th><th>Name</th><th>Geburtsdatum</th><th>Gebuchte Zeiten</th></tr></thead><tbody>';
+          kids.forEach(function(k,i){
+            var zeiten = slotsOf(k).map(getSlotById).filter(function(s){ return s && s.gruppeId === gId; }).map(function(s){ return s.label; }).join(', ');
+            html += '<tr><td>'+(i+1)+'</td><td>'+escHtml(k.nachname)+' '+escHtml(k.vorname)+'</td><td>'+formatDate(k.geburtsdatum)+'</td><td>'+(escHtml(zeiten)||'–')+'</td></tr>';
+          });
+          html += '</tbody></table>';
+        }
+        html += '</div>';
+      });
+      html += '</div>';
+    });
+    body.innerHTML = html;
+  }
+
+  // ---- Dispatcher: global, damit switchTab/switchSchoolYear (guarded) zugreifen ----
+  window.TOOL_RENDERERS = {
+    kalender: renderKalender,
+    anwesenheit: renderAnwesenheit,
+    wartelisteplus: renderWartelistePlus,
+    zuteilung: renderZuteilung,
+    erinnerungen: renderErinnerungen,
+    berichte: renderBerichte
+  };
+  window.renderActiveTool = function(){
+    var active = document.querySelector('.tab-content.active');
+    if(!active) return;
+    var tab = active.id.replace('tab-','');
+    if(window.TOOL_RENDERERS[tab]) window.TOOL_RENDERERS[tab]();
+  };
+
+  // ---- Event-Verdrahtung (eigene, additive Listener) ----
+  function wireTools(){
+    var anwDate = $('anw-date');
+    if(anwDate) anwDate.addEventListener('change', drawAnwesenheit);
+    var anwBody = $('anw-body');
+    if(anwBody) anwBody.addEventListener('click', function(e){
+      var btn = e.target.closest('[data-anw-state]');
+      if(!btn) return;
+      var date = ($('anw-date') && $('anw-date').value) || todayISO();
+      setAnw(date, btn.getAttribute('data-anw-slot'), btn.getAttribute('data-anw-kid'), btn.getAttribute('data-anw-state'));
+    });
+
+    var addBtn = $('btn-erin-add');
+    if(addBtn) addBtn.addEventListener('click', addErinnerung);
+    var erinInput = $('erin-input');
+    if(erinInput) erinInput.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); addErinnerung(); } });
+    var erinBody = $('erin-body');
+    if(erinBody) erinBody.addEventListener('click', function(e){
+      var tg = e.target.closest('[data-erin-toggle]');
+      if(tg){ toggleErinnerung(tg.getAttribute('data-erin-toggle')); return; }
+      var dl = e.target.closest('[data-erin-del]');
+      if(dl){ deleteErinnerung(dl.getAttribute('data-erin-del')); return; }
+    });
+
+    var berSel = $('ber-gruppe');
+    if(berSel) berSel.addEventListener('change', renderBerichte);
+    var berPrint = $('btn-ber-print');
+    if(berPrint) berPrint.addEventListener('click', function(){ window.print(); });
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', wireTools);
+  } else {
+    wireTools();
+  }
+})();
+</script>
+
+<!-- ================================================================= -->
+<!-- NEU: Tool-Reifegrad (Live / Testing / Entwicklung) – Admin-Steuerung -->
+<!-- Zentrale Einstellung in Firestore: config/toolStages = { tab: stage }-->
+<!-- Wirkt additiv über applySidebarPrefs (guarded). Default = 'live'.   -->
+<!-- ================================================================= -->
+<script>
+(function(){
+  "use strict";
+  function $(id){ return document.getElementById(id); }
+
+  var STAGES = ['live','testing','entwicklung'];
+  var STAGE_LABELS = { live:'Live', testing:'Testing', entwicklung:'Entwicklung' };
+  var toolStages = null;        // null = noch nicht geladen
+  var stagesLoading = false;
+
+  function stageOf(tab){ return (toolStages && toolStages[tab]) || 'live'; }
+  function isAdmin(){ return typeof isAdminRole === 'function' && isAdminRole(); }
+
+  // Global verfügbar machen, damit das Hauptskript (applySidebarPrefs etc.) zugreifen kann
+  window.stageOfTool = stageOf;
+  window.stageAllows = function(tab){ return stageOf(tab) !== 'entwicklung' || isAdmin(); };
+
+  // Lazy-Load: beim ersten applySidebarPrefs anstossen; danach erneut anwenden
+  window.ensureToolStages = function(){
+    if (toolStages !== null || stagesLoading) return;
+    if (!window._fb || !window._fb.fbLoad) return;
+    stagesLoading = true;
+    window._fb.fbLoad('config/toolStages', {}).then(function(s){
+      toolStages = (s && typeof s === 'object') ? s : {};
+      stagesLoading = false;
+      if (typeof applySidebarPrefs === 'function') applySidebarPrefs(); // jetzt mit Reifegrad neu anwenden
+      window.renderToolStageConfig();
+    }).catch(function(){ toolStages = {}; stagesLoading = false; });
+  };
+
+  // Seitenleisten-Badge „Test" an Testing-Tools
+  window.applyStageBadges = function(){
+    if (typeof SIDEBAR_ITEMS === 'undefined') return;
+    SIDEBAR_ITEMS.forEach(function(it){
+      var btn = document.querySelector('.sidebar-nav .tab-button[data-tab="'+it.tab+'"]');
+      if (!btn) return;
+      var old = btn.querySelector('.stage-badge'); if (old) old.remove();
+      if (stageOf(it.tab) === 'testing' && btn.style.display !== 'none') {
+        var b = document.createElement('span');
+        b.className = 'stage-badge testing';
+        b.textContent = 'Test';
+        btn.appendChild(b);
+      }
+    });
+  };
+
+  // Hinweisbanner über dem aktiven Tab, wenn dieses „testing" ist
+  window.updateStageBanner = function(){
+    var banner = $('stage-banner'); if (!banner) return;
+    var active = document.querySelector('.tab-content.active');
+    var tab = active ? active.id.replace('tab-','') : '';
+    if (tab && stageOf(tab) === 'testing') banner.classList.add('show');
+    else banner.classList.remove('show');
+  };
+
+  // Admin-Konfiguration (Dropdown je Bereich) – nur für Admin sichtbar
+  window.renderToolStageConfig = function(){
+    var sec = $('section-tool-stages');
+    var box = $('tool-stages-config');
+    if (!sec || !box) return;
+    if (!isAdmin()) { sec.style.display = 'none'; return; }
+    sec.style.display = '';
+    window.ensureToolStages();
+    if (toolStages === null) { box.innerHTML = '<p class="settings-card-sub" style="margin:0">Wird geladen …</p>'; return; }
+    box.innerHTML = SIDEBAR_ITEMS.map(function(it){
+      var cur = stageOf(it.tab);
+      var opts = STAGES.map(function(s){ return '<option value="'+s+'"'+(s===cur?' selected':'')+'>'+STAGE_LABELS[s]+'</option>'; }).join('');
+      return '<div class="tool-stage-row"><span class="ts-label">'+escHtml(it.label)+'</span>'
+        + '<select data-stage-tab="'+it.tab+'" class="ts-stage-'+cur+'">'+opts+'</select></div>';
+    }).join('');
+    box.querySelectorAll('select[data-stage-tab]').forEach(function(sel){
+      sel.addEventListener('change', function(){
+        if (!isAdmin()) { showToast('Keine Berechtigung','error'); return; }
+        var tab = sel.getAttribute('data-stage-tab');
+        if (!toolStages) toolStages = {};
+        toolStages[tab] = sel.value;
+        sel.className = 'ts-stage-' + sel.value;
+        if (window._fb && window._fb.fbSave) window._fb.fbSave('config/toolStages', toolStages);
+        if (typeof applySidebarPrefs === 'function') applySidebarPrefs();
+        window.updateStageBanner();
+        showToast('Reifegrad gespeichert: ' + STAGE_LABELS[sel.value], 'success');
+      });
+    });
+  };
+
+  // Eigener Klick-Listener auf die Navigation → Banner sofort aktualisieren
+  function wireStage(){
+    var nav = document.querySelector('.sidebar-nav');
+    if (nav) nav.addEventListener('click', function(){ setTimeout(window.updateStageBanner, 0); });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireStage);
+  else wireStage();
+})();
+</script>
+
+<!-- ================================================================= -->
+<!-- NEU: Infoseite – Inhalts-Editor (SharePoint-artig, nur Admin)      -->
+<!-- Blöcke (Überschrift/Text/Info/Bild/Button/Trenner) werden zentral  -->
+<!-- in Firestore data/contentBlocks gespeichert; Anzeige als neue      -->
+<!-- Sidebar-Seite „Infoseite" (alle Rollen lesen, nur Admin bearbeitet).-->
+<!-- Rein additiv; registriert sich in window.TOOL_RENDERERS.           -->
+<!-- ================================================================= -->
+<script>
+(function(){
+  "use strict";
+  function $(id){ return document.getElementById(id); }
+  function isAdmin(){ return typeof isAdminRole === 'function' && isAdminRole(); }
+  function safeUrl(u){ u = (u||'').trim(); return /^https?:\/\//i.test(u) ? u : ''; }
+
+  var BLOCK_TYPES = { heading:'Überschrift', text:'Text', info:'Info-Box', image:'Bild', button:'Button / Link', divider:'Trenner' };
+
+  var contentBlocks = null;   // null = noch nicht geladen
+  var editorDraft = null;     // Arbeitskopie während des Bearbeitens
+
+  function ensureContent(cb){
+    if (contentBlocks !== null) { if (cb) cb(); return; }
+    if (!window._fb || !window._fb.fbLoad) { contentBlocks = []; if (cb) cb(); return; }
+    window._fb.fbLoad('data/contentBlocks', []).then(function(v){
+      contentBlocks = Array.isArray(v) ? v : [];
+      if (cb) cb();
+    }).catch(function(){ contentBlocks = []; if (cb) cb(); });
+  }
+  function saveContent(){ if (window._fb && window._fb.fbSave) window._fb.fbSave('data/contentBlocks', contentBlocks); }
+
+  function newBlock(type){
+    var id = 'b' + Date.now() + Math.random().toString(36).slice(2,6);
+    if (type==='heading') return { id:id, type:type, text:'Neue Überschrift', level:2 };
+    if (type==='text')    return { id:id, type:type, text:'Neuer Textabschnitt …' };
+    if (type==='info')    return { id:id, type:type, text:'Wichtiger Hinweis …', variant:'info' };
+    if (type==='image')   return { id:id, type:type, url:'', caption:'' };
+    if (type==='button')  return { id:id, type:type, text:'Mehr erfahren', url:'' };
+    if (type==='divider') return { id:id, type:type };
+    return { id:id, type:'text', text:'' };
+  }
+
+  // ---- Anzeige (read-only) ----
+  function renderInfoseite(){ ensureContent(drawInfoseite); }
+  function drawInfoseite(){
+    var body = $('infoseite-body'); if (!body) return;
+    var editBtn = $('btn-content-edit'); if (editBtn) editBtn.style.display = isAdmin() ? '' : 'none';
+    if (!contentBlocks || !contentBlocks.length){
+      body.innerHTML = '<div class="empty-state">Noch keine Inhalte. '
+        + (isAdmin() ? 'Klicke oben auf „Bearbeiten", um Blöcke hinzuzufügen.' : 'Der Admin hat noch keine Inhalte erstellt.')
+        + '</div>';
+      return;
+    }
+    body.innerHTML = '<div class="cb-page">' + contentBlocks.map(function(b,i){ return blockToHtml(b, i===0); }).join('') + '</div>';
+  }
+  function blockToHtml(b, first){
+    if (b.type==='heading'){
+      var lvl = (String(b.level)==='3') ? 3 : 2;
+      return '<h'+lvl+' class="cb-h cb-h'+lvl+(first?' cb-h-first':'')+'">'+escHtml(b.text||'')+'</h'+lvl+'>';
+    }
+    if (b.type==='text') return '<p class="cb-text">'+escHtml(b.text||'').replace(/\n/g,'<br>')+'</p>';
+    if (b.type==='info'){
+      var v = (b.variant==='warn'||b.variant==='ok') ? b.variant : 'info';
+      return '<div class="cb-info cb-info-'+v+'">'+escHtml(b.text||'').replace(/\n/g,'<br>')+'</div>';
+    }
+    if (b.type==='image'){
+      var u = safeUrl(b.url); if (!u) return '';
+      return '<figure class="cb-figure"><img class="cb-img" src="'+escAttr(u)+'" alt="'+escAttr(b.caption||'')+'" loading="lazy">'
+        + (b.caption ? '<figcaption class="cb-cap">'+escHtml(b.caption)+'</figcaption>' : '') + '</figure>';
+    }
+    if (b.type==='button'){
+      var bu = safeUrl(b.url);
+      return '<div class="cb-btn-wrap"><a class="btn btn-primary'+(bu?'':' cb-btn-disabled')+'"'+(bu?(' href="'+escAttr(bu)+'" target="_blank" rel="noopener"'):'')+'>'+escHtml(b.text||'Link')+'</a></div>';
+    }
+    if (b.type==='divider') return '<hr class="cb-divider">';
+    return '';
+  }
+
+  // ---- Editor (Popup, nur Admin) ----
+  function openContentEditor(){
+    if (!isAdmin()) { showToast('Nur für Admin','error'); return; }
+    ensureContent(function(){
+      editorDraft = JSON.parse(JSON.stringify(contentBlocks || []));
+      renderEditorList();
+      var m = $('content-editor-modal'); if (m) m.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    });
+  }
+  function closeContentEditor(){
+    var m = $('content-editor-modal'); if (m) m.classList.remove('open');
+    document.body.style.overflow = '';
+    editorDraft = null;
+  }
+  function saveContentEditor(){
+    if (!isAdmin()) { showToast('Keine Berechtigung','error'); return; }
+    if (editorDraft) { contentBlocks = editorDraft.slice(); saveContent(); drawInfoseite(); }
+    closeContentEditor();
+    showToast('Infoseite gespeichert','success');
+  }
+  function renderEditorList(){
+    var list = $('content-editor-list'); if (!list || !editorDraft) return;
+    if (!editorDraft.length){
+      list.innerHTML = '<div class="empty-state" style="padding:24px 8px !important">Noch keine Blöcke. Füge oben einen hinzu.</div>';
+      return;
+    }
+    list.innerHTML = editorDraft.map(function(b, i){
+      return '<div class="cb-edit">'
+        + '<div class="cb-edit-head"><span class="cb-edit-type">'+(BLOCK_TYPES[b.type]||b.type)+'</span>'
+        + '<span class="cb-edit-ctrls">'
+        + '<button class="cb-ic" data-cb-move="up" data-i="'+i+'" type="button" title="Nach oben"'+(i===0?' disabled':'')+'>↑</button>'
+        + '<button class="cb-ic" data-cb-move="down" data-i="'+i+'" type="button" title="Nach unten"'+(i===editorDraft.length-1?' disabled':'')+'>↓</button>'
+        + '<button class="cb-ic cb-ic-del" data-cb-del="'+i+'" type="button" title="Löschen">✕</button>'
+        + '</span></div>'
+        + '<div class="cb-edit-body">' + blockEditFields(b, i) + '</div>'
+        + '</div>';
+    }).join('');
+  }
+  function blockEditFields(b, i){
+    if (b.type==='heading')
+      return '<div class="cb-row"><select class="cb-input" data-cb-field="level" data-i="'+i+'"><option value="2"'+(String(b.level)!=='3'?' selected':'')+'>Gross (H2)</option><option value="3"'+(String(b.level)==='3'?' selected':'')+'>Mittel (H3)</option></select></div>'
+        + '<input class="cb-input" type="text" data-cb-field="text" data-i="'+i+'" value="'+escAttr(b.text||'')+'" placeholder="Überschrift">';
+    if (b.type==='text')
+      return '<textarea class="cb-input cb-area" data-cb-field="text" data-i="'+i+'" placeholder="Text …">'+escHtml(b.text||'')+'</textarea>';
+    if (b.type==='info')
+      return '<div class="cb-row"><select class="cb-input" data-cb-field="variant" data-i="'+i+'"><option value="info"'+(b.variant!=='warn'&&b.variant!=='ok'?' selected':'')+'>Hinweis</option><option value="warn"'+(b.variant==='warn'?' selected':'')+'>Warnung</option><option value="ok"'+(b.variant==='ok'?' selected':'')+'>Erfolg</option></select></div>'
+        + '<textarea class="cb-input cb-area" data-cb-field="text" data-i="'+i+'" placeholder="Hinweistext …">'+escHtml(b.text||'')+'</textarea>';
+    if (b.type==='image')
+      return '<input class="cb-input" type="text" data-cb-field="url" data-i="'+i+'" value="'+escAttr(b.url||'')+'" placeholder="Bild-URL (https://…)">'
+        + '<input class="cb-input" type="text" data-cb-field="caption" data-i="'+i+'" value="'+escAttr(b.caption||'')+'" placeholder="Bildunterschrift (optional)">';
+    if (b.type==='button')
+      return '<input class="cb-input" type="text" data-cb-field="text" data-i="'+i+'" value="'+escAttr(b.text||'')+'" placeholder="Button-Text">'
+        + '<input class="cb-input" type="text" data-cb-field="url" data-i="'+i+'" value="'+escAttr(b.url||'')+'" placeholder="Link-URL (https://…)">';
+    if (b.type==='divider') return '<div class="cb-muted">Eine horizontale Trennlinie.</div>';
+    return '';
+  }
+  function addBlock(type){
+    if (!editorDraft) editorDraft = [];
+    editorDraft.push(newBlock(type));
+    renderEditorList();
+    var list = $('content-editor-list'); if (list) list.scrollTop = list.scrollHeight;
+  }
+  function moveBlock(i, dir){
+    var j = dir==='up' ? i-1 : i+1;
+    if (!editorDraft || j<0 || j>=editorDraft.length) return;
+    var t = editorDraft[i]; editorDraft[i] = editorDraft[j]; editorDraft[j] = t;
+    renderEditorList();
+  }
+  function delBlock(i){ if (editorDraft){ editorDraft.splice(i,1); renderEditorList(); } }
+  function setField(i, field, val){
+    if (!editorDraft || !editorDraft[i]) return;
+    if (field==='level') val = parseInt(val,10);
+    editorDraft[i][field] = val;
+  }
+
+  // ---- Renderer registrieren (TOOL_RENDERERS existiert aus dem Tools-Block) ----
+  window.TOOL_RENDERERS = window.TOOL_RENDERERS || {};
+  window.TOOL_RENDERERS.infoseite = renderInfoseite;
+
+  // ---- Verdrahtung ----
+  function wireContent(){
+    var editBtn = $('btn-content-edit'); if (editBtn) editBtn.addEventListener('click', openContentEditor);
+    var saveBtn = $('btn-content-save'); if (saveBtn) saveBtn.addEventListener('click', saveContentEditor);
+    var closeBtn = $('btn-content-close'); if (closeBtn) closeBtn.addEventListener('click', closeContentEditor);
+    var cancelBtn = $('btn-content-cancel'); if (cancelBtn) cancelBtn.addEventListener('click', closeContentEditor);
+    var bd = $('content-editor-backdrop'); if (bd) bd.addEventListener('click', closeContentEditor);
+    var modal = $('content-editor-modal');
+    if (modal){
+      modal.addEventListener('click', function(e){
+        var add = e.target.closest('[data-cb-add]'); if (add){ addBlock(add.getAttribute('data-cb-add')); return; }
+        var mv = e.target.closest('[data-cb-move]'); if (mv){ moveBlock(parseInt(mv.getAttribute('data-i'),10), mv.getAttribute('data-cb-move')); return; }
+        var dl = e.target.closest('[data-cb-del]'); if (dl){ delBlock(parseInt(dl.getAttribute('data-cb-del'),10)); return; }
+      });
+      modal.addEventListener('input', function(e){
+        var f = e.target.closest('[data-cb-field]'); if (f) setField(parseInt(f.getAttribute('data-i'),10), f.getAttribute('data-cb-field'), f.value);
+      });
+      modal.addEventListener('change', function(e){
+        var f = e.target.closest('[data-cb-field]'); if (f && f.tagName === 'SELECT') setField(parseInt(f.getAttribute('data-i'),10), f.getAttribute('data-cb-field'), f.value);
+      });
+    }
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape'){ var m = $('content-editor-modal'); if (m && m.classList.contains('open')) closeContentEditor(); }
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireContent);
+  else wireContent();
+})();
 </script>
 <script>
   (function(){
