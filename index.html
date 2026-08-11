@@ -2602,8 +2602,18 @@ function kindStatuses(k) {
   if (gs.length === 0) return [bookingOf(k).status || 'inaktiv'];
   return gs.map(g => statusForGroup(k, g));
 }
+// Hat das Kind IRGENDEINEN Slot mit diesem Status?
+//
+// Bewusst SLOT-GENAU statt über den Gruppen-Status (Aggregat).
+// Vorher lief das über kindStatuses() → statusForGroup(), und das liefert
+// 'aktiv', sobald EIN Slot der Gruppe aktiv ist. Ein Kind mit
+// Mo = aktiv und Di = Warteliste galt damit NICHT als wartend und fehlte
+// im Filter „Warteliste", in der Kennzahl und in der Massenmail —
+// obwohl es sehr wohl auf einer Warteliste steht (2026-08-09 gemeldet).
 function kindHasStatus(k, status) {
-  return kindStatuses(k).includes(status);
+  const slots = slotsOf(k);
+  if (slots.length === 0) return (bookingOf(k).status || 'inaktiv') === status;
+  return slots.some(sid => statusForSlot(k, sid) === status);
 }
 function overallStatus(k) {
   const st = kindStatuses(k);
@@ -2611,9 +2621,16 @@ function overallStatus(k) {
   if (st.includes('warteliste')) return 'warteliste';
   return 'inaktiv';
 }
+// Filter-Treffer. Auch mit gewähltem Angebot SLOT-GENAU – sonst wäre es
+// widersprüchlich: Ein Kind mit Mo aktiv / Di Warteliste erschiene ohne
+// Angebots-Filter unter „Warteliste", mit Angebots-Filter aber nicht.
 function kindMatchesStatus(k, status, gruppeId) {
   if (!status) return true;
-  if (gruppeId) return statusForGroup(k, gruppeId) === status;
+  if (gruppeId) {
+    const inGruppe = slotsOf(k).filter(sid => getSlotById(sid)?.gruppeId === gruppeId);
+    if (inGruppe.length === 0) return statusForGroup(k, gruppeId) === status;
+    return inGruppe.some(sid => statusForSlot(k, sid) === status);
+  }
   return kindHasStatus(k, status);
 }
 function kindStatusSingle(k, gruppeId) {
@@ -7558,6 +7575,18 @@ function exportExcel(panelId) {
   .nachr-frei { font-size:12px; color:var(--ok); font-weight:700; }
   .nachr-actions { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
   .nachr-empty { font-size:13px; color:var(--ink-3); font-style:italic; }
+  .nachr-info { background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-sm);
+    padding:12px 14px; margin-bottom:12px; font-size:13px; color:var(--ink-2); line-height:1.55; }
+  .nachr-info b { color:var(--ink); }
+  .nachr-info-klein { font-size:12px; color:var(--ink-3); }
+  .nachr-zurueck { border:1px solid var(--line); border-radius:var(--r-sm); padding:12px 14px; background:var(--surface); }
+  .nachr-zurueck-kopf { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--ink-3); margin-bottom:4px; }
+  .nachr-zurueck-zeile { display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:9px 0; border-bottom:1px solid var(--line-2); }
+  .nachr-zurueck-zeile:last-child { border-bottom:none; }
+  .nachr-zurueck-name { font-size:14px; font-weight:700; color:var(--ink); }
+  .nachr-zurueck-slot { flex:1; font-size:12px; color:var(--ink-3); font-weight:600; }
 
   /* Schulangaben (Klasse / Klassenlehrperson) – gelten pro Schuljahr */
   .jahr-hinweis { font-weight:400; color:var(--ink-3); font-size:11.5px; }
@@ -7732,11 +7761,39 @@ function exportExcel(panelId) {
   }
 
   // --- Anzeige ---
+  // Zurückgestellte dieses Jahres, die tatsächlich noch warten
+  function zurueckDiesesJahr(){
+    if (!bereit()) return [];
+    return daten.zurueck.filter(function(z){
+      if ((z.schuljahr || currentSchoolYear) !== currentSchoolYear) return false;
+      var k = kinder.find(function(x){ return x.id === z.kindId; });
+      return k && wartetImSlot(k, z.slotId);
+    });
+  }
+  // Wartende, für die es zurzeit gar keinen freien Platz gibt
+  function wartendOhnePlatz(){
+    if (!bereit()) return [];
+    var raus = [];
+    getAllSlots().forEach(function(s){
+      if (slotCapacity(s.id) - slotActiveCount(s.id) > 0) return;   // dort gibt es Vorschläge
+      kinder.forEach(function(k){
+        if (wartetImSlot(k, s.id)) raus.push({ k:k, s:s });
+      });
+    });
+    return raus;
+  }
+
   function zeichnen(){
     var block = $('nachruecken-block'), liste = $('nachruecken-list');
     if (!block || !liste) return;
-    var offen = bereit() ? offeneDiesesJahr() : [];
-    if (!offen.length) { block.style.display = 'none'; liste.innerHTML = ''; return; }
+    var offen   = bereit() ? offeneDiesesJahr() : [];
+    var zurueck = zurueckDiesesJahr();
+    var ohne    = wartendOhnePlatz();
+    // Der Abschnitt erscheint jetzt auch, wenn es KEINE Vorschläge gibt –
+    // sonst bleibt unerklärlich, warum Wartende nirgends auftauchen.
+    if (!offen.length && !zurueck.length && !ohne.length) {
+      block.style.display = 'none'; liste.innerHTML = ''; return;
+    }
     block.style.display = '';
 
     liste.innerHTML = offen.map(function(v){
@@ -7765,12 +7822,65 @@ function exportExcel(panelId) {
         + '</div>';
     }).join('');
 
+    // --- Wartende, für die zurzeit kein Platz frei ist ---
+    // Ohne diesen Hinweis wirkt es, als wären sie „verschwunden".
+    if (ohne.length) {
+      var namen = {};
+      ohne.forEach(function(x){ namen[x.k.id] = (x.k.vorname||'') + ' ' + (x.k.nachname||''); });
+      var liste2 = Object.keys(namen).map(function(id){ return namen[id].trim(); }).sort();
+      liste.innerHTML += '<div class="nachr-info">'
+        + '<b>' + liste2.length + ' Kind(er) warten, aber der Platz ist belegt.</b><br>'
+        + escHtml(liste2.join(' · '))
+        + '<br><span class="nachr-info-klein">Sobald dort jemand abgemeldet oder inaktiv gesetzt wird '
+        + 'oder du die Kapazität erhöhst, erscheint hier automatisch ein Vorschlag.</span></div>';
+    }
+
+    // --- Zurückgestellte: sichtbar UND rückholbar ---
+    // Vorher war eine Zurückstellung endgültig und nirgends einsehbar –
+    // die Kinder tauchten nie wieder auf, obwohl sie weiter warteten.
+    if (zurueck.length) {
+      var darfZ = (typeof canEdit === 'function') && canEdit();
+      liste.innerHTML += '<div class="nachr-zurueck">'
+        + '<div class="nachr-zurueck-kopf">Zurückgestellt (' + zurueck.length + ')</div>'
+        + '<div class="nachr-info-klein">Diese Kinder stehen weiter auf der Warteliste, werden für den '
+        + 'jeweiligen Platz aber nicht mehr vorgeschlagen.</div>'
+        + zurueck.map(function(z){
+            var k = kinder.find(function(x){ return x.id === z.kindId; });
+            var s = getSlotById(z.slotId);
+            if (!k || !s) return '';
+            return '<div class="nachr-zurueck-zeile">'
+              + '<span class="nachr-zurueck-name">' + escHtml((k.vorname||'') + ' ' + (k.nachname||'')).trim() + '</span>'
+              + '<span class="nachr-zurueck-slot">' + escHtml(s.gruppe.shortLabel + ' · ' + s.label) + '</span>'
+              + (darfZ ? '<button class="btn btn-secondary btn-small" data-nachr="hol"'
+                  + ' data-kind="' + k.id + '" data-slot="' + escAttr(z.slotId) + '">Wieder vorschlagen</button>' : '')
+              + '</div>';
+          }).join('')
+        + '</div>';
+    }
+
     liste.querySelectorAll('[data-nachr="auf"]').forEach(function(b){
       b.addEventListener('click', function(){ aufnehmen(parseInt(b.dataset.kind, 10), b.dataset.slot); });
     });
     liste.querySelectorAll('[data-nachr="zurueck"]').forEach(function(b){
       b.addEventListener('click', function(){ zurueckstellen(parseInt(b.dataset.kind, 10), b.dataset.slot); });
     });
+    liste.querySelectorAll('[data-nachr="hol"]').forEach(function(b){
+      b.addEventListener('click', function(){ zurueckholen(parseInt(b.dataset.kind, 10), b.dataset.slot); });
+    });
+  }
+
+  // Zurückstellung aufheben – das Kind wird wieder vorgeschlagen, sobald Platz da ist
+  function zurueckholen(kindId, slotId){
+    if (!canEdit()) { showToast('Keine Berechtigung', 'error'); return; }
+    daten.zurueck = daten.zurueck.filter(function(z){
+      return !(z.kindId === kindId && z.slotId === slotId
+               && (z.schuljahr || currentSchoolYear) === currentSchoolYear);
+    });
+    sichern();
+    abgleichen();
+    zeichnen();
+    badgeAktualisieren();
+    showToast('Zurückstellung aufgehoben', 'success');
   }
 
   // --- Aktionen ---
