@@ -2036,9 +2036,9 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
             <div class="ap-fertig-titel">✓ Eingerichtet und einsatzbereit</div>
             <div id="ap-fertig-doku" class="ap-fertig-doku"></div>
             <div class="button-group" style="margin-top:12px">
-              <button class="btn btn-primary" id="btn-ap-doku-wechseln">Vertrag austauschen</button>
-              <button class="btn btn-secondary" id="btn-ap-texte-aendern">Texte ändern</button>
-              <button class="btn btn-outline" id="btn-ap-neu-pruefen">Alles nochmals durchgehen</button>
+              <button type="button" class="btn btn-primary" id="btn-ap-doku-wechseln">Vertrag austauschen</button>
+              <button type="button" class="btn btn-secondary" id="btn-ap-texte-aendern">Texte ändern</button>
+              <button type="button" class="btn btn-outline" id="btn-ap-neu-pruefen">Alles nochmals durchgehen</button>
             </div>
           </div>
         </div>
@@ -2051,8 +2051,8 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
         <div class="ap-feld">
           <label class="ap-label" for="ap-versandweg">Versandweg</label>
           <select id="ap-versandweg" class="text-input full-width">
-            <option value="gmail">Gmail-Fenster öffnen – ich klicke auf „Senden“ (empfohlen)</option>
-            <option value="script">Direktversand über Apps Script – verschickt von selbst</option>
+            <option value="gmail">Gmail-Fenster öffnen – ICH klicke auf „Senden“ (keine Einrichtung nötig)</option>
+            <option value="script">Direktversand – das TOOL verschickt selbst (Apps Script nötig)</option>
           </select>
           <p class="hilfe-text" style="margin-top:6px" id="ap-versandweg-hinweis"></p>
         </div>
@@ -2061,7 +2061,7 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
           <label class="ap-label" for="ap-absender">Absender-Konto <span class="ap-sub">– aus diesem Gmail-Konto geht die Mail raus</span></label>
           <input type="email" id="ap-absender" class="text-input full-width" placeholder="elkivereintrimmis@gmail.com">
           <div class="button-group" style="margin-top:8px">
-            <button class="btn btn-outline btn-small" id="btn-ap-absender-pruefen">Konto prüfen</button>
+            <button type="button" class="btn btn-outline btn-small" id="btn-ap-absender-pruefen">Konto prüfen</button>
           </div>
           <div class="ap-tipp">
             <b>Was das bewirkt:</b> Das Gmail-Fenster öffnet sich gezielt in
@@ -2089,7 +2089,7 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
           </ol>
           <input type="url" id="ap-vertrag-link" class="text-input full-width" placeholder="https://drive.google.com/file/d/…/view">
           <div class="button-group" style="margin-top:8px">
-            <button class="btn btn-outline btn-small" id="btn-ap-link-pruefen">Link öffnen und prüfen</button>
+            <button type="button" class="btn btn-outline btn-small" id="btn-ap-link-pruefen">Link öffnen und prüfen</button>
           </div>
           <div class="ap-tipp">
             <b>Für später – Vertrag austauschen ohne neuen Link:</b><br>
@@ -2106,9 +2106,9 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
           <div id="ap-vertrag-status" class="ap-status">Wird geladen …</div>
           <div class="button-group">
             <input type="file" id="ap-vertrag-datei" accept="application/pdf" style="display:none">
-            <button class="btn btn-secondary" id="btn-ap-vertrag-waehlen">PDF hochladen</button>
-            <button class="btn btn-outline" id="btn-ap-vertrag-ansehen">Ansehen</button>
-            <button class="btn btn-delete" id="btn-ap-vertrag-loeschen">Entfernen</button>
+            <button type="button" class="btn btn-secondary" id="btn-ap-vertrag-waehlen">PDF hochladen</button>
+            <button type="button" class="btn btn-outline" id="btn-ap-vertrag-ansehen">Ansehen</button>
+            <button type="button" class="btn btn-delete" id="btn-ap-vertrag-loeschen">Entfernen</button>
           </div>
           <p class="hilfe-text" style="margin-top:6px">Ein PDF für alle Angebote. Höchstens 4 MB. <b>Ein Gmail-Fenster kann keine Datei anhängen</b> – beim empfohlenen Weg zählt deshalb der Link oben, nicht diese Datei.</p>
         </div>
@@ -2160,9 +2160,9 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
         </details>
 
         <div class="button-group" style="margin-top:12px">
-          <button class="btn btn-primary" id="btn-ap-speichern">Vorlagen speichern</button>
-          <button class="btn btn-secondary" id="btn-ap-vorschau">Vorschau</button>
-          <button class="btn btn-outline" id="btn-ap-standard">Standardtexte einsetzen</button>
+          <button type="button" class="btn btn-primary" id="btn-ap-speichern">Vorlagen speichern</button>
+          <button type="button" class="btn btn-secondary" id="btn-ap-vorschau">Vorschau</button>
+          <button type="button" class="btn btn-outline" id="btn-ap-standard">Standardtexte einsetzen</button>
         </div>
         <div id="ap-vorschau" class="ap-vorschau" style="display:none"></div>
         <div class="ap-feld" style="margin-top:14px">
@@ -2173,12 +2173,14 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
         <div class="ap-schritt" data-schritt="4">
         <div class="ap-schritt-kopf"><span class="ap-schritt-nr">4</span> Einmal ausprobieren</div>
         <p class="hilfe-text" style="margin-bottom:10px">Schickt die fertige Zusage-Mail an eine Adresse deiner Wahl – mit Beispieldaten, <b>ohne</b> dass ein Kind angelegt oder etwas gespeichert wird. So siehst du, was bei einer Familie ankommt.</p>
+        <div class="ap-tipp" id="ap-test-hinweis" style="margin-bottom:12px"></div>
         <div class="ap-feld">
           <label class="ap-label" for="ap-test-mail">Testadresse</label>
           <input type="email" id="ap-test-mail" class="text-input full-width" placeholder="deine.adresse@example.com">
           <div class="button-group" style="margin-top:8px">
-            <button class="btn btn-primary" id="btn-ap-testmail">Test-Mail vorbereiten</button>
+            <button type="button" class="btn btn-primary" id="btn-ap-testmail">Test-Mail vorbereiten</button>
           </div>
+          <div id="ap-testmail-fallback" class="ap-tipp" style="display:none;margin-top:10px"></div>
           <div class="ap-tipp" style="margin-top:10px">
             <b>Darauf achten:</b> Steht der zugesagte Tag drin? Steht der volle Tag
             als <b>Warteliste</b> drin? Öffnet sich der <b>Vertragslink</b>?
@@ -2190,9 +2192,9 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
         </div><!-- /Schritt 4 -->
 
         <div class="ap-nav">
-          <button class="btn btn-outline" id="btn-ap-zurueck">← Zurück</button>
+          <button type="button" class="btn btn-outline" id="btn-ap-zurueck">← Zurück</button>
           <span class="ap-nav-mitte" id="ap-nav-mitte"></span>
-          <button class="btn btn-primary" id="btn-ap-weiter">Weiter →</button>
+          <button type="button" class="btn btn-primary" id="btn-ap-weiter">Weiter →</button>
         </div>
         </div><!-- /Assistent -->
 
@@ -11938,9 +11940,15 @@ function exportExcel(panelId) {
 
   // Unbekannte Platzhalter bleiben ABSICHTLICH stehen: Ein Tippfehler fällt
   // so in der Vorschau auf, statt still eine Lücke im Elternbrief zu lassen.
+  //
+  // `null`/`undefined` werden dagegen zu LEER. Sonst stand im Elternbrief
+  // wörtlich „Platzzusage null" — passiert, wenn die Einstellungen geöffnet
+  // werden, bevor `currentSchoolYear` geladen ist.
   function fuellen(text, werte){
     return String(text == null ? '' : text).replace(/\{\{\s*([a-zA-Z_]+)\s*\}\}/g, function(ganz, name){
-      return Object.prototype.hasOwnProperty.call(werte, name) ? werte[name] : ganz;
+      if (!Object.prototype.hasOwnProperty.call(werte, name)) return ganz;
+      var w = werte[name];
+      return (w === null || w === undefined) ? '' : String(w);
     });
   }
 
@@ -11965,7 +11973,10 @@ function exportExcel(panelId) {
       angebote_warteliste: slotListe(warteSlots),
       angebote: slotListe((zusageSlots || []).concat(warteSlots || [])),
       vertragslink: (vorlagen && vorlagen.vertragLink) || '',
-      schuljahr: (typeof currentSchoolYear !== 'undefined' ? currentSchoolYear : ''),
+      // `|| ''` statt nur der typeof-Prüfung: Die Variable EXISTIERT früh,
+      // ist aber bis zum Laden `null` — und „Schuljahr null" stand dann
+      // wörtlich im Elternbrief.
+      schuljahr: (typeof currentSchoolYear !== 'undefined' && currentSchoolYear) ? currentSchoolYear : '',
       frist: String(frist),
       fristdatum: datumPlus(frist),
       datum: new Date().toLocaleDateString('de-CH'),
@@ -12436,11 +12447,42 @@ function exportExcel(panelId) {
     vorlagen.vertragLink = gespeichert;
     var betreff = '[TEST] ' + fuellen((($('ap-zusage-betreff')||{}).value || ''), werte);
     var text = fuellen((($('ap-zusage-text')||{}).value || ''), werte);
+    // Direktversand: WIRKLICH verschicken. Das ist der einzige Weg, auf dem
+    // das Tool selbst eine Mail losschicken kann.
     if (vorlagen.versandweg === 'script') {
-      meldung('Beim Direktversand wird die Test-Mail nicht automatisch verschickt.\nStelle für den Test auf „Gmail-Fenster" um oder gib eine echte Anmeldung frei.', 'info');
+      if (typeof mailConfig === 'undefined' || !mailConfig.url) {
+        meldung('Der Direktversand ist noch nicht eingerichtet.\nEinstellungen → Versand & Integrationen → Web-App-URL eintragen.\n\nOhne das kann das Tool keine Mail selbst verschicken.', 'error');
+        return;
+      }
+      if (!confirm('Test-Mail JETZT wirklich an ' + an + ' verschicken?\n\n'
+        + 'Betreff: ' + betreff + '\n'
+        + (vertragMeta && vertragMeta.id ? 'Mit Vertrag im Anhang: ' + vertragMeta.name : 'Ohne Anhang – kein Vertrags-PDF hinterlegt')
+        + '\n\nEs geht eine echte Mail raus.')) return;
+      var knopf = $('btn-ap-testmail');
+      var beschriftung = knopf ? knopf.textContent : '';
+      if (knopf) { knopf.disabled = true; knopf.textContent = 'Wird gesendet…'; }
+      try {
+        await mailSenden(an, betreff, text, !!(vertragMeta && vertragMeta.id));
+        meldung('Test-Mail an ' + an + ' verschickt.\nSchau auch im Spam-Ordner nach.', 'success');
+      } catch(e) {
+        meldung('Test-Mail fehlgeschlagen:\n' + (e.message || e), 'error');
+      } finally {
+        if (knopf) { knopf.disabled = false; knopf.textContent = beschriftung; }
+      }
       return;
     }
-    perGmailOeffnen(an, betreff, text);
+    var url = perGmailOeffnen(an, betreff, text);
+    // Den Link zusätzlich sichtbar hinlegen. Öffnet der Browser das Fenster
+    // nicht (Popup-Blocker) oder tut er etwas Unerwartetes, ist der Weg
+    // damit trotzdem begehbar — und man SIEHT, wohin er führt.
+    var fb = $('ap-testmail-fallback');
+    if (fb) {
+      fb.style.display = '';
+      fb.innerHTML = 'Hat sich kein Gmail-Fenster geöffnet?<br>'
+        + '<a href="' + escAttr(url) + '" target="_blank" rel="noopener">Test-Mail hier öffnen</a>'
+        + '<div style="margin-top:6px;color:var(--ink-3)">Wird stattdessen etwas <b>heruntergeladen</b>, '
+        + 'blockiert etwas den Aufruf von mail.google.com — dann bitte melden.</div>';
+    }
     meldung('Gmail-Fenster geöffnet – Betreff beginnt mit [TEST]', 'info');
   }
 
@@ -12483,6 +12525,19 @@ function exportExcel(panelId) {
     if (feldAbs) feldAbs.style.display = (weg === 'gmail') ? '' : 'none';
     var det = $('ap-details-script');
     if (det) det.style.display = (weg === 'script') ? '' : 'none';   // Skript-Anleitung nur wenn relevant
+
+    // In Schritt 4 ehrlich sagen, WER verschickt. „Test-Mail" heisst je
+    // nach Weg etwas anderes — und nur einer davon verschickt wirklich.
+    var th = $('ap-test-hinweis');
+    if (th) {
+      th.innerHTML = (weg === 'script')
+        ? '<b>Beim Direktversand wird wirklich verschickt.</b> Ein Klick, und die Mail ist unterwegs – mit dem Vertrags-PDF im Anhang.'
+        : '<b>Beim Gmail-Weg öffnet sich ein Fenster mit der fertigen Mail – gesendet wird erst durch deinen Klick auf „Senden“.</b>'
+          + '<br><br>Das Tool kann auf diesem Weg <b>nicht selbst verschicken</b>: Ein Compose-Link bereitet nur vor. '
+          + 'Soll das Tool von sich aus senden, braucht es den <b>Direktversand über Apps Script</b> (Schritt 1).';
+    }
+    var tb = $('btn-ap-testmail');
+    if (tb) tb.textContent = (weg === 'script') ? 'Test-Mail jetzt senden' : 'Test-Mail vorbereiten';
   }
 
   function vorschau(){
