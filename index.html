@@ -2056,6 +2056,24 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
           </select>
           <p class="hilfe-text" style="margin-top:6px" id="ap-versandweg-hinweis"></p>
         </div>
+
+        <div class="ap-feld" id="ap-feld-absender">
+          <label class="ap-label" for="ap-absender">Absender-Konto <span class="ap-sub">– aus diesem Gmail-Konto geht die Mail raus</span></label>
+          <input type="email" id="ap-absender" class="text-input full-width" placeholder="elkivereintrimmis@gmail.com">
+          <div class="button-group" style="margin-top:8px">
+            <button class="btn btn-outline btn-small" id="btn-ap-absender-pruefen">Konto prüfen</button>
+          </div>
+          <div class="ap-tipp">
+            <b>Was das bewirkt:</b> Das Gmail-Fenster öffnet sich gezielt in
+            diesem Konto (über <code>authuser</code>), auch wenn im Browser
+            mehrere Google-Konten angemeldet sind.<br><br>
+            <b>Was es nicht bewirkt:</b> Gmail verschickt immer aus dem Konto,
+            in dem du angemeldet bist — <b>ein fremder Absender lässt sich nicht
+            erzwingen</b>. Ist das Vereinskonto im Browser nicht angemeldet,
+            fragt Gmail zuerst danach.<br><br>
+            Leer lassen = das gerade aktive Konto.
+          </div>
+        </div>
         </div><!-- /Schritt 1 -->
 
         <div class="ap-schritt" data-schritt="2">
@@ -11723,6 +11741,11 @@ function exportExcel(panelId) {
       fristTage: Number(v.fristTage) > 0 ? Number(v.fristTage) : STANDARD.fristTage,
       versandweg: (v.versandweg === 'script') ? 'script' : 'gmail',
       vertragLink: (v.vertragLink || '').trim(),
+      // Leer = das gerade aktive Google-Konto. Fällt auf die Absenderadresse
+      // aus „Versand & Integrationen" zurück, damit man sie nicht zweimal
+      // pflegen muss.
+      absender: (v.absender || '').trim()
+        || ((typeof mailConfig !== 'undefined' && mailConfig.from) ? mailConfig.from : ''),
       texteOk: !!v.texteOk,
       testOk: !!v.testOk,
       vertragGeaendertAm: v.vertragGeaendertAm || '',
@@ -11748,7 +11771,12 @@ function exportExcel(panelId) {
   async function vorlagenSpeichern(){
     if (!darf()) { meldung('Keine Berechtigung', 'error'); return false; }
     var link = (($('ap-vertrag-link')||{}).value || '').trim();
+    var absender = (($('ap-absender')||{}).value || '').trim();
+    if (absender && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(absender)) {
+      meldung('Das Absender-Konto ist keine gültige E-Mail-Adresse', 'error'); return false;
+    }
     var neu = {
+      absender: absender,
       fristTage: Math.max(1, Math.min(120, parseInt(($('ap-frist')||{}).value, 10) || STANDARD.fristTage)),
       versandweg: (($('ap-versandweg')||{}).value === 'script') ? 'script' : 'gmail',
       vertragLink: link,
@@ -11952,7 +11980,13 @@ function exportExcel(panelId) {
   // prinzipiell keine Datei anhängen, deshalb steht der Vertrag als Link
   // im Text ({{vertragslink}}).
   function perGmailOeffnen(an, betreff, text){
+    // `authuser` lenkt Gmail auf ein bestimmtes angemeldetes Konto — nötig,
+    // wenn im Browser mehrere Google-Konten laufen. Es ERZWINGT keinen
+    // Absender: Gmail verschickt immer aus dem Konto, in dem man angemeldet
+    // ist. Ist das Konto nicht angemeldet, fragt Gmail zuerst danach.
+    var absender = (vorlagen && vorlagen.absender) || '';
     var url = 'https://mail.google.com/mail/?view=cm&fs=1'
+      + (absender ? '&authuser=' + encodeURIComponent(absender) : '')
       + '&to=' + encodeURIComponent(an)
       + '&su=' + encodeURIComponent(betreff)
       + '&body=' + encodeURIComponent(text);
@@ -12113,7 +12147,8 @@ function exportExcel(panelId) {
       + vertragHinweis + '\n\n'
       + (perScript
           ? 'Jetzt verschicken?\n[Abbrechen] verschickt nichts – '
-          : 'Gmail-Fenster jetzt öffnen? Gesendet wird erst durch deinen\nKlick auf „Senden" in Gmail.\n[Abbrechen] öffnet nichts – ')
+          : ('Absender: ' + (vorlagen.absender || 'das gerade aktive Google-Konto') + '\n\n'
+             + 'Gmail-Fenster jetzt öffnen? Gesendet wird erst durch deinen\nKlick auf „Senden" in Gmail.\n[Abbrechen] öffnet nichts – '))
       + name + ' bleibt in jedem Fall gespeichert.';
 
     if (!confirm(frage)) { meldung('Nichts verschickt – ' + name + ' ist gespeichert', 'info'); return; }
@@ -12359,6 +12394,9 @@ function exportExcel(panelId) {
             : '<b>kein Link hinterlegt</b>');
       doku.innerHTML =
           '<div class="ap-fd-zeile">Versandweg: <b>' + (perScript ? 'Direktversand über Apps Script' : 'Gmail-Fenster') + '</b></div>'
+        + (!perScript
+            ? '<div class="ap-fd-zeile">Absender: <b>' + (vorlagen.absender ? esc(vorlagen.absender) : 'das gerade aktive Google-Konto') + '</b></div>'
+            : '')
         + '<div class="ap-fd-zeile">' + was + '</div>'
         + (vorlagen.vertragGeaendertAm
             ? '<div class="ap-fd-zeile" style="color:var(--ink-3)">Dokument zuletzt geändert: '
@@ -12417,6 +12455,7 @@ function exportExcel(panelId) {
     var e = $('ap-frist');          if (e) e.value = vorlagen.fristTage;
     var w = $('ap-versandweg');     if (w) w.value = vorlagen.versandweg;
     var l = $('ap-vertrag-link');   if (l) l.value = vorlagen.vertragLink;
+    var ab = $('ap-absender');      if (ab) ab.value = vorlagen.absender;
     var t1 = $('ap-texte-ok');      if (t1) t1.checked = !!vorlagen.texteOk;
     var t2 = $('ap-test-ok');       if (t2) t2.checked = !!vorlagen.testOk;
     versandwegZeichnen();
@@ -12438,6 +12477,10 @@ function exportExcel(panelId) {
     }
     if (feldLink) feldLink.style.display = (weg === 'gmail') ? '' : 'none';
     if (feldPdf)  feldPdf.style.display  = (weg === 'script') ? '' : 'none';
+    // Das Absender-Konto zählt nur beim Gmail-Weg. Beim Direktversand
+    // bestimmt die Adresse aus „Versand & Integrationen" den Absender.
+    var feldAbs = $('ap-feld-absender');
+    if (feldAbs) feldAbs.style.display = (weg === 'gmail') ? '' : 'none';
     var det = $('ap-details-script');
     if (det) det.style.display = (weg === 'script') ? '' : 'none';   // Skript-Anleitung nur wenn relevant
   }
@@ -12511,6 +12554,16 @@ function exportExcel(panelId) {
     var zu = $('btn-ap-zurueck'); if (zu) zu.addEventListener('click', function(){ zeigeSchritt(aktuellerSchritt - 1); });
     var we = $('btn-ap-weiter');  if (we) we.addEventListener('click', weiter);
     var tm = $('btn-ap-testmail'); if (tm) tm.addEventListener('click', testMail);
+    var ap = $('btn-ap-absender-pruefen'); if (ap) ap.addEventListener('click', function(){
+      var a = (($('ap-absender')||{}).value || '').trim();
+      if (!a) { meldung('Kein Absender-Konto eingetragen – es wird das gerade aktive Google-Konto verwendet', 'info'); return; }
+      // Gmail-Postfach in genau diesem Konto öffnen. Landet man in einem
+      // ANDEREN Postfach, ist das Konto im Browser nicht angemeldet — genau
+      // das soll die Prüfung zeigen.
+      var u = 'https://mail.google.com/mail/?authuser=' + encodeURIComponent(a);
+      if (typeof openLink === 'function') openLink(u, true); else window.open(u, '_blank', 'noopener');
+      meldung('Gmail geöffnet.\nSteht oben rechts ' + a + '? Dann passt es.\nSonst im Browser bei diesem Konto anmelden.', 'info');
+    });
     var lp = $('btn-ap-link-pruefen'); if (lp) lp.addEventListener('click', function(){
       var u = (($('ap-vertrag-link')||{}).value || '').trim();
       if (!/^https?:\/\//i.test(u)) { meldung('Bitte zuerst einen Link eintragen (http:// oder https://)', 'error'); return; }
