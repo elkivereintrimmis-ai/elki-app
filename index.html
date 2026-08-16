@@ -10957,6 +10957,27 @@ function exportExcel(panelId) {
         return res;
       };
     }
+
+    // NEU (2026-08-16): Auch neu zeichnen, wenn die ROLLENRECHTE gesetzt
+    // werden. `kachelnZeichnen` fragt die Karten nach ihrem
+    // `style.display` — und den setzt `applyRolePermissions`. Bisher lief
+    // das Zeichnen nur (a) beim Start, wo noch niemand angemeldet ist, und
+    // (b) beim Öffnen der Einstellungen. Kommt die Rolle ERST DANACH an
+    // — beim Anmelden ist sie ein Firestore-Lesevorgang auf `rollen/{uid}`
+    // und damit langsamer als die Oberfläche —, blieb der Kachel-Stand auf
+    // dem Zwischenzustand stehen, bis irgendetwas neu zeichnete.
+    //
+    // Genau das war der Effekt „die Einstellungen erscheinen erst, wenn
+    // ich Mein Konto öffne und wieder schliesse": `schliessen()` ruft
+    // `openSettings()` erneut auf und zeichnet dabei nach.
+    if (typeof window.applyRolePermissions === 'function') {
+      var origRollen = window.applyRolePermissions;
+      window.applyRolePermissions = function(){
+        var res = origRollen.apply(this, arguments);
+        try { kachelnZeichnen(); } catch(e){ console.warn('Kacheln nach Rollenwechsel', e); }
+        return res;
+      };
+    }
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', aufbauen);
@@ -12358,7 +12379,11 @@ function exportExcel(panelId) {
   }
 
   // Test-Mail: echte Vorlage, Beispieldaten, KEIN Kind, KEIN Eintrag.
-  function testMail(){
+  async function testMail(){
+    // Die Kachel öffnet sofort, das Nachladen läuft daneben — wer schnell
+    // klickt, träfe sonst auf `vorlagen === null`.
+    if (!vorlagen) { await sicherstellenGeladen(); }
+    if (!vorlagen) { meldung('Die Vorlagen sind noch nicht geladen – kurz warten und nochmals versuchen', 'error'); return; }
     var an = (($('ap-test-mail')||{}).value || '').trim();
     if (!an || an.indexOf('@') === -1) { meldung('Bitte eine Testadresse eingeben', 'error'); return; }
     var alle = (typeof getAllSlots === 'function') ? getAllSlots() : [];
@@ -12419,6 +12444,7 @@ function exportExcel(panelId) {
 
   function vorschau(){
     var ziel = $('ap-vorschau'); if (!ziel) return;
+    if (!vorlagen) { meldung('Die Vorlagen sind noch nicht geladen – kurz warten', 'error'); return; }
     // Beispielkind – zeigt bewusst den gemischten Fall, weil der am
     // häufigsten vorkommt und in der Vorlage am leichtesten übersehen wird.
     var beispielSlots = (typeof getAllSlots === 'function') ? getAllSlots() : [];
@@ -12522,7 +12548,13 @@ function exportExcel(panelId) {
   function umschliessen(){
     if (typeof renderAnmeldungen === 'function') {
       var origRender = window.renderAnmeldungen;
-      window.renderAnmeldungen = function(){ origRender.apply(this, arguments); zeichnen(); };
+      window.renderAnmeldungen = function(){
+        origRender.apply(this, arguments);
+        // Erster Blick auf die Anmeldungen = der Moment, in dem die Daten
+        // gebraucht werden. Vorher wäre es Wartezeit ohne Gegenwert.
+        if (geladen) zeichnen();
+        else nachladenUndZeichnen();
+      };
     }
     if (typeof updateAnmeldungenBadge === 'function') {
       var origBadge = window.updateAnmeldungenBadge;
@@ -12577,24 +12609,55 @@ function exportExcel(panelId) {
     fb()._anmeldeProzessUmschlossen = true;
   }
 
-  async function starten(){
-    verdrahten();
-    umschliessen();
-    fbUmschliessen();
-    if (!bereit()) return;
-    try { await vorlagenLaden(); await versandLaden(); }
-    catch(e){ console.warn('Anmelde-Prozess laden', e); }
+  // Wird beim ersten Hinsehen nachgeholt, nicht beim Start.
+  var geladen = false, amLaden = null;
+  async function sicherstellenGeladen(){
+    if (geladen) return true;
+    if (amLaden) return amLaden;                      // parallele Aufrufe teilen sich einen Lauf
+    if (!bereit()) return false;
+    if (typeof currentUser === 'undefined' || !currentUser) return false;   // vor der Anmeldung nicht lesen
+    if (typeof getRole === 'function' && getRole() === 'viewer') return false;
+    amLaden = (async function(){
+      try { await vorlagenLaden(); await versandLaden(); geladen = true; }
+      catch(e){ console.warn('Anmelde-Prozess laden', e); }
+      finally { amLaden = null; }
+      return geladen;
+    })();
+    return amLaden;
+  }
+
+  async function nachladenUndZeichnen(){
+    if (!(await sicherstellenGeladen())) return;
     vorlagenInsFormular();
     ansichtWaehlen();
     zeichnen();
     if (typeof updateAnmeldungenBadge === 'function') updateAnmeldungenBadge();
   }
 
+  function starten(){
+    verdrahten();
+    umschliessen();
+    fbUmschliessen();
+    // BEWUSST ohne Datenbank-Zugriff. Dieser Block läuft bei
+    // `DOMContentLoaded` — also VOR der Anmeldung. Drei Lesevorgänge an
+    // dieser Stelle sind Wartezeit für JEDEN Benutzer, auch für Leser, die
+    // den Anmelde-Prozess nie zu sehen bekommen. Und sobald die
+    // Firestore-Regeln eingespielt sind, scheitern sie ohnehin: Sie
+    // verlangen eine Anmeldung.
+    //
+    // Das ist die Regel aus [[ELKI Architektur & Datenmodell]]:
+    // „Neue Ladeschritte gehören in verwaltungAufbauen()." Geladen wird
+    // hier deshalb erst, wenn jemand die Anmeldungen oder die
+    // Einstellungs-Kachel wirklich ansieht.
+  }
+
   // Nach dem Anmelden noch einmal laden – vorher greifen die
   // Firestore-Regeln und es kommt nichts zurück.
-  window.elkiAnmeldeVorlagenAuffrischen = async function(){
-    if (!bereit()) return;
-    try { await vorlagenLaden(); await versandLaden(); } catch(e){}
+  // Wird als `frisch`-Rückruf der Einstellungs-Kachel aufgerufen und nach
+  // dem Anmelden. Lädt beim ersten Mal nach; danach nur noch zeichnen.
+  window.elkiAnmeldeVorlagenAuffrischen = async function(neuLaden){
+    if (neuLaden === true) geladen = false;       // erzwungenes Neulesen
+    if (!(await sicherstellenGeladen())) return;
     vorlagenInsFormular();
     ansichtWaehlen();
     zeichnen();
