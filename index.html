@@ -833,28 +833,50 @@
     // Schema: [{ id, name, username, email }]
     // E-Mail-Format: username@elki.local
     async function fbGetUsers() {
-      const raw = await fbLoad('config/users', null);
-      if (raw) {
-        // Migration: jedem Benutzer eine Rolle zuweisen (alte Datensätze ohne 'role')
-        let changed = false;
-        raw.forEach(u => {
-          if (!u.role) {
-            u.role = (u.id === 1 || u.username === 'admin') ? 'admin' : 'user';
-            changed = true;
-          }
-          // Es darf nur EINEN Admin geben (den ursprünglichen Account)
-          if (u.role === 'admin' && !(u.id === 1 || u.username === 'admin')) {
-            u.role = 'user';
-            changed = true;
-          }
-        });
-        if (changed) await fbSave('config/users', raw);
-        return raw;
+      // GEHÄRTET 2026-08-16: früher las diese Funktion mit fbLoad, das jeden
+      // Lesefehler VERSCHLUCKT und den Ersatzwert (null) liefert. Ein
+      // permission-denied (z.B. nachdem die Firestore-Regeln scharf wurden)
+      // galt damit als „Datenbank leer / Erster Start" — und die Zeile ganz
+      // unten überschrieb die ECHTE Benutzerliste mit einem einzigen
+      // Standard-Admin. Genau dieser Pfad hat am 2026-08-16 config/users
+      // gelöscht (die Supervisor landeten danach im Lesermodus).
+      //
+      // Fix = dieselbe Härtung wie bei data/kinder (kinderGeladen):
+      // fbGetRaw WIRFT bei einem Lesefehler. Ein Lesefehler darf NIEMALS zum
+      // Überschreiben führen. Nur ein WIRKLICH fehlendes Dokument
+      // (fbGetRaw === null) gilt als Erststart.
+      let rohdoc;
+      try {
+        rohdoc = await fbGetRaw('config/users');            // wirft bei Lesefehler
+      } catch (e) {
+        console.error('fbGetUsers: Lesefehler bei config/users – Liste wird NICHT überschrieben', e);
+        throw new Error('Benutzerliste konnte nicht gelesen werden ('
+          + ((e && e.code) || (e && e.message) || e) + '). Nichts wurde verändert.');
       }
-      // Erster Start: Admin-Eintrag anlegen
-      const defaults = [{ id:1, name:'Administrator', username:'admin', email:'admin@elki.local', role:'admin' }];
-      await fbSave('config/users', defaults);
-      return defaults;
+      if (rohdoc === null) {
+        // Dokument fehlt tatsächlich → echter Erststart.
+        const defaults = [{ id:1, name:'Administrator', username:'admin', email:'admin@elki.local', role:'admin' }];
+        await fbSave('config/users', defaults);
+        return defaults;
+      }
+      // Dokument existiert (Lesen erfolgreich) → seinen Wert nehmen. Ein
+      // leeres Array bleibt leer (wie bisher) — es wird nichts angelegt.
+      const raw = Array.isArray(rohdoc.value) ? rohdoc.value : [];
+      // Migration: jedem Benutzer eine Rolle zuweisen (alte Datensätze ohne 'role')
+      let changed = false;
+      raw.forEach(u => {
+        if (!u.role) {
+          u.role = (u.id === 1 || u.username === 'admin') ? 'admin' : 'user';
+          changed = true;
+        }
+        // Es darf nur EINEN Admin geben (den ursprünglichen Account)
+        if (u.role === 'admin' && !(u.id === 1 || u.username === 'admin')) {
+          u.role = 'user';
+          changed = true;
+        }
+      });
+      if (changed) await fbSave('config/users', raw);
+      return raw;
     }
     async function fbSaveUsers(users) { await fbSave('config/users', users); }
 
