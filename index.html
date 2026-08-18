@@ -2057,6 +2057,60 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
           <p class="hilfe-text" style="margin-top:6px" id="ap-versandweg-hinweis"></p>
         </div>
 
+        <!-- Einrichtung des Direktversands – bewusst HIER und nicht in
+             „Versand & Integrationen": Wer den automatischen Versand will,
+             soll nicht zwischen zwei Kacheln hin und her springen. -->
+        <div class="ap-feld" id="ap-feld-einrichtung">
+          <label class="ap-label">Einrichtung <span class="ap-sub">– einmalig, danach läuft alles ohne dich</span></label>
+          <div id="ap-script-status" class="ap-status">Wird geprüft …</div>
+          <ol class="ap-anleitung">
+            <li><a href="https://script.google.com/home/my" target="_blank" rel="noopener">script.google.com öffnen</a> — mit dem <b>Vereins-Google-Konto</b> — und auf <b>Neues Projekt</b> klicken</li>
+            <li>Den vorhandenen Beispielcode <b>ganz löschen</b>, unseren einfügen (Knopf unten), dann <b>Strg + S</b></li>
+            <li>Oben rechts <b>Bereitstellen</b> → <b>Neue Bereitstellung</b> → Zahnrad → Typ <b>Web-App</b></li>
+            <li>Ausführen als <b>Ich</b>, Zugriff <b>Jeder</b> → <b>Bereitstellen</b> → <b>Zugriff erlauben</b> (Google fragt nach Berechtigungen — das musst du selbst bestätigen)</li>
+            <li>Die angezeigte <b>Web-App-URL</b> (endet auf <code>/exec</code>) kopieren und unten einfügen</li>
+          </ol>
+          <div class="button-group" style="margin-bottom:10px">
+            <button type="button" class="btn btn-secondary" id="btn-ap-code-kopieren">Skript-Code kopieren</button>
+            <button type="button" class="btn btn-outline btn-small" id="btn-ap-code-zeigen">Code ansehen</button>
+          </div>
+          <pre id="ap-script-code" style="display:none;max-height:260px;overflow:auto">function doPost(e){
+  var API_SECRET = PropertiesService.getScriptProperties().getProperty('API_SECRET');
+  var d = JSON.parse(e.postData.contents);
+  if (API_SECRET &amp;&amp; d.token !== API_SECRET) return out({ ok:false, error:'token' });
+  if (d.action === 'test'){ return out({ ok:true }); }
+  if (d.action === 'mail'){
+    var to = d.to || d.from || Session.getEffectiveUser().getEmail();
+    var opts = { name: d.fromName || 'ELKI Verein Trimmis', replyTo: d.from || '' };
+    if (d.bcc &amp;&amp; d.bcc.length) opts.bcc = d.bcc.join(',');
+    if (d.attachments &amp;&amp; d.attachments.length){
+      opts.attachments = d.attachments.map(function(a){
+        return Utilities.newBlob(Utilities.base64Decode(a.data), a.mimeType || 'application/pdf', a.name || 'Vertrag.pdf');
+      });
+    }
+    try { if (d.from) opts.from = d.from; GmailApp.sendEmail(to, d.subject || '(kein Betreff)', d.body || '', opts); }
+    catch (err){ delete opts.from; GmailApp.sendEmail(to, d.subject || '(kein Betreff)', d.body || '', opts); }
+    return out({ ok:true, sent: (d.bcc &amp;&amp; d.bcc.length) ? d.bcc.length : 1 });
+  }
+  return out({ ok:false });
+}
+function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }</pre>
+          <label for="ap-script-url" class="ap-mini">Web-App-URL</label>
+          <input type="url" id="ap-script-url" class="text-input full-width" placeholder="https://script.google.com/macros/s/…/exec">
+          <div class="button-group" style="margin-top:8px">
+            <button type="button" class="btn btn-primary" id="btn-ap-script-test">Verbindung testen</button>
+          </div>
+          <div class="ap-tipp">
+            Ein <b>Zugriffs-Token</b> ist nicht nötig, damit es läuft. Wer es
+            sicherer will, legt später unter <b>Projekteinstellungen →
+            Skripteigenschaften</b> ein <code>API_SECRET</code> an und trägt
+            denselben Wert unter „Versand &amp; Integrationen“ ein.<br><br>
+            <b>Änderst du den Code später:</b> immer <i>Bereitstellen →
+            Bereitstellungen verwalten → Stift → Neue Version</i>. Sonst läuft
+            weiter die alte Fassung.
+          </div>
+        </div>
+
         <div class="ap-feld" id="ap-feld-absender">
           <label class="ap-label" for="ap-absender">Absender-Konto <span class="ap-sub">– aus diesem Gmail-Konto geht die Mail raus</span></label>
           <input type="email" id="ap-absender" class="text-input full-width" placeholder="elkivereintrimmis@gmail.com">
@@ -11768,6 +11822,12 @@ function exportExcel(panelId) {
     try { v = await fb().fbLoad(P_VORLAGEN, null); } catch(e){ console.warn('Anmelde-Vorlagen laden', e); }
     vorlagen = mitStandard(v);
     try { vertragMeta = await fb().fbLoad(P_VERTRAG, null); } catch(e){ vertragMeta = null; }
+    // Die Web-App-URL kommt normalerweise über loadMailConfig() beim
+    // Anmelden. Wer die Kachel früher öffnet, sähe sonst „nicht
+    // eingerichtet", obwohl alles steht — ein Lesevorgang, nur wenn nötig.
+    if (typeof mailConfig !== 'undefined' && !mailConfig.url) {
+      try { mailConfig.url = (await fb().fbLoad('config/mailUrl', '')) || ''; } catch(e){}
+    }
   }
 
   async function vorlagenSpeichern(){
@@ -12331,6 +12391,84 @@ function exportExcel(panelId) {
     if (typeof updateAnmeldungenBadge === 'function') updateAnmeldungenBadge();
   }
 
+  /* ---------- Einrichtung des Direktversands ---------- */
+
+  function scriptEingerichtet(){
+    return !!(typeof mailConfig !== 'undefined' && mailConfig.url);
+  }
+
+  function scriptStatusZeichnen(){
+    var el = $('ap-script-status'); if (!el) return;
+    if (scriptEingerichtet()) {
+      el.className = 'ap-status da';
+      el.textContent = '✓ Eingerichtet – das Tool verschickt selbst. URL: ' + mailConfig.url;
+    } else {
+      el.className = 'ap-status leer';
+      el.textContent = 'Noch nicht eingerichtet – bis dahin kann das Tool keine Mail selbst verschicken.';
+    }
+    var u = $('ap-script-url');
+    if (u && !u.value && scriptEingerichtet()) u.value = mailConfig.url;
+  }
+
+  async function scriptUrlSpeichern(url){
+    if (!/^https:\/\/script\.google\.com\/macros\/.+\/exec$/.test(url)) {
+      meldung('Das sieht nicht nach einer Web-App-URL aus.\nSie beginnt mit https://script.google.com/macros/ und endet auf /exec', 'error');
+      return false;
+    }
+    var ok = false;
+    try { ok = await fb().fbSave('config/mailUrl', url); } catch(e){ ok = false; }
+    if (ok === false) {
+      meldung('Die URL konnte nicht gespeichert werden.\nSie gehört zu den Konfigurations-Werten, die nur der Administrator ändern darf.', 'error');
+      return false;
+    }
+    mailConfig.url = url;
+    if (typeof updateMassenmailSendUI === 'function') { try { updateMassenmailSendUI(); } catch(e){} }
+    var feld = document.getElementById('mail-url'); if (feld) feld.value = url;   // andere Kachel mitziehen
+    scriptStatusZeichnen();
+    return true;
+  }
+
+  async function scriptVerbindungTesten(){
+    var url = (($('ap-script-url')||{}).value || '').trim();
+    if (!url) { meldung('Bitte zuerst die Web-App-URL einfügen', 'error'); return; }
+    if (!(await scriptUrlSpeichern(url))) return;
+    var knopf = $('btn-ap-script-test');
+    var txt = knopf ? knopf.textContent : '';
+    if (knopf) { knopf.disabled = true; knopf.textContent = 'Wird geprüft…'; }
+    try {
+      var res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ action:'test', token: mailConfig.token || '' }) });
+      var ok = res.ok;
+      try { var j = await res.json(); if (j && j.ok === false) ok = false; } catch(_){}
+      meldung(ok
+        ? 'Verbindung steht. Der Direktversand ist eingerichtet –\nab jetzt verschickt das Tool selbst.'
+        : 'Das Skript antwortet, lehnt aber ab.\nMeist fehlt eine NEUE Bereitstellung nach dem Einfügen des Codes\n(Bereitstellen → Bereitstellungen verwalten → Stift → Neue Version).',
+        ok ? 'success' : 'error');
+    } catch(e) {
+      meldung('Keine Antwort vom Skript.\nStimmt die URL, und steht der Zugriff auf „Jeder"?\n\n' + (e.message || e), 'error');
+    } finally {
+      if (knopf) { knopf.disabled = false; knopf.textContent = txt; }
+      scriptStatusZeichnen();
+      // Auch die Statusleiste: Schritt 1 ist mit der gespeicherten URL
+      // erledigt. Ohne das blieb er auf „offen" stehen, obwohl der Test
+      // gerade erfolgreich war — und der Ablauf sah nie fertig aus.
+      statusLeisteZeichnen();
+    }
+  }
+
+  async function skriptCodeKopieren(){
+    var pre = $('ap-script-code'); if (!pre) return;
+    var code = pre.textContent;
+    try {
+      await navigator.clipboard.writeText(code);
+      meldung('Code kopiert – im Apps Script alles markieren und einfügen', 'success');
+    } catch(e) {
+      // Ohne Clipboard-Recht: Code sichtbar machen, damit man ihn von Hand nimmt
+      pre.style.display = '';
+      meldung('Kopieren war nicht erlaubt – der Code steht jetzt offen da, bitte von Hand markieren', 'info');
+    }
+  }
+
   /* ---------- Geführter Ablauf ---------- */
 
   var SCHRITTE = [
@@ -12346,7 +12484,18 @@ function exportExcel(panelId) {
   //  - Urteil eines Menschen (Texte gelesen, Test war gut) → gespeichert
   function schrittFertig(nr){
     if (!vorlagen) return false;
-    if (nr === 1) return true;                       // hat immer einen gültigen Wert
+    // Der Gmail-Weg braucht keine Einrichtung. Der Direktversand schon —
+    // ohne Web-App-URL kann er nichts verschicken, und dann darf der
+    // Schritt nicht als erledigt durchgehen.
+    //
+    // Gelesen wird der Wert im FELD, nicht der gespeicherte: Wer eben auf
+    // Direktversand umgestellt hat, soll sofort sehen, dass Schritt 1 offen
+    // ist — und nicht erst nach dem Speichern.
+    if (nr === 1) {
+      var feld = $('ap-versandweg');
+      var weg = feld ? feld.value : vorlagen.versandweg;
+      return (weg === 'script') ? scriptEingerichtet() : true;
+    }
     if (nr === 2) return (vorlagen.versandweg === 'script')
                     ? !!(vertragMeta && vertragMeta.id)
                     : !!vorlagen.vertragLink;
@@ -12525,6 +12674,9 @@ function exportExcel(panelId) {
     if (feldAbs) feldAbs.style.display = (weg === 'gmail') ? '' : 'none';
     var det = $('ap-details-script');
     if (det) det.style.display = (weg === 'script') ? '' : 'none';   // Skript-Anleitung nur wenn relevant
+    var ein = $('ap-feld-einrichtung');
+    if (ein) { ein.style.display = (weg === 'script') ? '' : 'none'; if (weg === 'script') scriptStatusZeichnen(); }
+    statusLeisteZeichnen();   // Schritt 1 kann durch den Wechsel offen geworden sein
 
     // In Schritt 4 ehrlich sagen, WER verschickt. „Test-Mail" heisst je
     // nach Weg etwas anderes — und nur einer davon verschickt wirklich.
@@ -12604,6 +12756,14 @@ function exportExcel(panelId) {
     var vs = $('btn-ap-vorschau');         if (vs) vs.addEventListener('click', vorschau);
     var st = $('btn-ap-standard');         if (st) st.addEventListener('click', standardEinsetzen);
     var wg = $('ap-versandweg');           if (wg) wg.addEventListener('change', versandwegZeichnen);
+    var ck = $('btn-ap-code-kopieren');    if (ck) ck.addEventListener('click', skriptCodeKopieren);
+    var cz = $('btn-ap-code-zeigen');      if (cz) cz.addEventListener('click', function(){
+      var pre = $('ap-script-code'); if (!pre) return;
+      var offen = pre.style.display !== 'none';
+      pre.style.display = offen ? 'none' : '';
+      cz.textContent = offen ? 'Code ansehen' : 'Code verbergen';
+    });
+    var stest = $('btn-ap-script-test');   if (stest) stest.addEventListener('click', scriptVerbindungTesten);
 
     // --- Assistent ---
     var zu = $('btn-ap-zurueck'); if (zu) zu.addEventListener('click', function(){ zeigeSchritt(aktuellerSchritt - 1); });
