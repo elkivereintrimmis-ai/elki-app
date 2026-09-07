@@ -34,6 +34,7 @@
       --line:#e3ddd1; --line-2:#ece7db; --bg:#f6f3ec; --surface:#fffdf8; --surface-2:#f3efe5;
       --ok:#3a6b4c; --ok-bg:#e6efe5; --warn:#8a5a14; --warn-bg:#f4e9d4; --idle:#6b6256; --idle-bg:#ede8dc;
       --danger:#a8392f; --danger-bg:#f3e1dd;
+      --danger-wash:#fbf2f0; --ok-wash:#f1f5f0; --warn-wash:#faf4e8;
       --focus:rgba(47,97,82,.20);
       --r:4px; --r-sm:3px; --r-xs:3px;
       --sh-sm:none;
@@ -47,6 +48,10 @@
       --line:#352f27; --line-2:#2a251f; --bg:#15120e; --surface:#1e1a15; --surface-2:#231e18;
       --ok:#6cae84; --ok-bg:#1b2a1d; --warn:#d99a4a; --warn-bg:#2e2410; --idle:#9a907f; --idle-bg:#2a251f;
       --danger:#e0746a; --danger-bg:#33201c;
+      /* Sehr dezente Toenungen fuer Hinweiskaesten (2026-09-07) — bewusst
+         schwaecher als --*-bg: sie sollen den Kasten auffindbar machen,
+         nicht einfaerben. Fliesstext bleibt dadurch normal lesbar. */
+      --danger-wash:#251a18; --ok-wash:#1a211b; --warn-wash:#241d12;
       --focus:rgba(126,179,163,.32);
       --sh-sm:none;
       --sh:none;
@@ -430,8 +435,8 @@
     .mm-reci-name { font-weight:700; color:var(--ink); white-space:nowrap; flex-shrink:0; }
     .mm-reci-mail { color:var(--ink-2); min-width:0; overflow:hidden; text-overflow:ellipsis; }
     .mm-reci-empty { font-size:13px; color:var(--ink-3); font-style:italic; padding:14px 2px; text-align:center; }
-    .mm-warn { margin-top:14px; padding:12px 14px; background:var(--warn-bg); border:1px solid #e9d09a; border-radius:var(--r-sm); font-size:12.5px; color:var(--warn); line-height:1.55; }
-    .mm-warn b { font-weight:800; }
+    .mm-warn { margin-top:14px; padding:11px 13px; background:var(--warn-wash); border:1px solid var(--line); border-left:2px solid var(--warn); border-radius:var(--r); font-size:12.5px; color:var(--ink-2); line-height:1.55; }
+    .mm-warn b { color:var(--ink); font-weight:700; }
     .mm-send-status { font-size:12px; font-weight:600; margin-top:12px; padding:9px 12px; border-radius:var(--r-xs); line-height:1.45; }
     .mm-send-status.ok { color:var(--ok); background:var(--ok-bg); }
     .mm-send-status.off { color:var(--ink-3); background:var(--surface-2); border:1px dashed var(--line); }
@@ -460,7 +465,6 @@
     .settings-card-sub { font-size:12.5px; color:var(--ink-2); margin-bottom:12px; line-height:1.55; }
     .setting-row { display:flex; align-items:center; justify-content:space-between; gap:16px; }
     .setting-row-label { font-size:14px; font-weight:700; color:var(--ink); }
-    .setting-row-sub { font-size:12.5px; color:var(--ink-3); margin-top:2px; }
     /* Toggle-Switch */
     .switch { position:relative; display:inline-block; width:46px; height:26px; flex-shrink:0; }
     .switch input { opacity:0; width:0; height:0; }
@@ -822,6 +826,10 @@
     .wl-box .btn { min-width:180px; }
   </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha512-r22gChDnGvBylk90+2e/ycr3RVrDi8DIOkIGNhJlKfuyQM4tIRAI062MaV8sfjQKYVGjOBaZBOA87z+IhZE9DA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- QR-Erzeugung fuer die Schweizer QR-Rechnung. Wie beim xlsx-Skript mit
+     Integritaets-Pruefsumme (SRI) gegen cdnjs gegengeprueft: ein manipuliertes
+     CDN kann so keinen fremden Code in die angemeldete Sitzung einschleusen. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" integrity="sha512-ZDSPMa/JM1D+7kdg2x3BsruQ6T/JpJo3jWDWkCZsP+5yVyp1KfESqLI+7RqB5k24F7p2cV7i2YHh/890y6P6Sw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
   <!-- ========================================================
        FIREBASE KONFIGURATION
@@ -837,7 +845,8 @@
              EmailAuthProvider, reauthenticateWithCredential,
              setPersistence, inMemoryPersistence }
       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc }
+    import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc,
+             updateDoc, deleteField, FieldPath }
       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     // *** DEINE FIREBASE-KONFIGURATION HIER EINTRAGEN ***
@@ -992,6 +1001,49 @@
     async function fbSetRaw(docPath, obj) {
       await setDoc(doc(db, docPath), obj);
     }
+
+    // ── Feldgenaues Schreiben (NEU 2026-08-26) ───────────────
+    //
+    // WARUM: fbSave/fbSetRaw schreiben IMMER das ganze Dokument. Bei
+    // data/anwesenheit heisst das: Wer speichert, drueckt seinen kompletten
+    // (womoeglich 25 s alten) Stand ueber alles drueber. Tippen zwei
+    // Betreuerinnen im selben Zeitfenster, geht die Bestaetigung der
+    // ersten verloren — still, ohne Fehlermeldung.
+    //
+    // fbSetPath aendert NUR den angegebenen Pfad. Firestore fuehrt das
+    // serverseitig zusammen: Zwei Geraete, die verschiedene Kinder setzen,
+    // kollidieren gar nicht mehr.
+    //
+    // segmente = Pfad-Teile, z. B. ['value', '2026-08-26', 'sp_Mo_VM', '42'].
+    // Bewusst FieldPath statt Punkt-Text: sonst wuerde ein Punkt in einem
+    // Schluessel den Pfad zerreissen.
+    // wert === null/undefined/'' loescht das Feld.
+    async function fbSetPath(docPath, segmente, wert) {
+      const ref = doc(db, docPath);
+      const loeschen = (wert === undefined || wert === null || wert === '');
+      try {
+        await updateDoc(ref, new FieldPath(...segmente), loeschen ? deleteField() : wert);
+        return true;
+      } catch (e) {
+        // updateDoc scheitert, wenn das Dokument noch gar nicht existiert.
+        if (e && e.code === 'not-found') {
+          if (loeschen) return true;               // nichts da = nichts zu loeschen
+          let obj = wert;                          // verschachtelt aufbauen
+          for (let i = segmente.length - 1; i > 0; i--) obj = { [segmente[i]]: obj };
+          await setDoc(ref, { [segmente[0]]: obj }, { merge: true });
+          return true;
+        }
+        throw e;
+      }
+    }
+
+    // Mehrere Felder auf einmal zusammenfuehren, ohne den Rest anzufassen
+    // (fuer den Tagesabschluss: viele Kinder in EINEM Schreibvorgang).
+    // merge:true fuehrt verschachtelte Maps zusammen statt sie zu ersetzen.
+    async function fbMerge(docPath, obj) {
+      await setDoc(doc(db, docPath), obj, { merge: true });
+      return true;
+    }
     async function fbListCollection(name) {
       const snap = await getDocs(collection(db, name));
       return snap.docs.map(d => ({ _id: d.id, ...d.data() }));
@@ -1074,6 +1126,7 @@
       fbListAnmeldungen, fbDeleteAnmeldung,
       fbDeleteDoc,
       fbGetRaw, fbSetRaw, fbListCollection,
+      fbSetPath, fbMerge,
       signInWithEmailAndPassword, signOut, onAuthStateChanged
     };
 
@@ -1372,10 +1425,11 @@
     .cb-h2 { font-size:24px; font-weight:800; }
     .cb-h3 { font-size:18px; font-weight:800; }
     .cb-text { font-size:15px; color:var(--ink-2); line-height:1.7; margin:0 0 14px; }
-    .cb-info { border:1px solid var(--line); border-left:4px solid var(--brand); border-radius:var(--r); padding:14px 18px; margin:0 0 16px; font-size:14px; line-height:1.6; color:var(--ink); }
+    .cb-info { border:1px solid var(--line); border-left:2px solid var(--brand); border-radius:var(--r); padding:13px 16px; margin:0 0 16px; font-size:14px; line-height:1.6; color:var(--ink-2); }
+    .cb-info b { color:var(--ink); font-weight:700; }
     .cb-info-info { background:var(--brand-tint); border-left-color:var(--brand); }
-    .cb-info-warn { background:var(--warn-bg); border-left-color:var(--warn); }
-    .cb-info-ok   { background:var(--ok-bg); border-left-color:var(--ok); }
+    .cb-info-warn { background:var(--warn-wash); border-left-color:var(--warn); }
+    .cb-info-ok   { background:var(--ok-wash);   border-left-color:var(--ok); }
     .cb-figure { margin:0 0 18px; }
     .cb-img { max-width:100%; height:auto; border-radius:var(--r); border:1px solid var(--line); display:block; }
     .cb-cap { font-size:12px; color:var(--ink-3); margin-top:6px; }
@@ -1527,6 +1581,22 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         <span>Erinnerungen</span>
       </button>
+      <!-- NEU 2026-09-06: Sidebar Tool Hilfe -->
+      <button class="tab-button" data-tab="hilfe" id="tabbtn-hilfe" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+          <circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <span>Hilfe</span>
+      </button>
+
+      <!-- NEU 2026-09-06: Sidebar Tool Rechnungen -->
+      <button class="tab-button" data-tab="rechnungen" id="tabbtn-rechnungen" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+          <path d="M4 3h16v18l-3-2-2 2-3-2-3 2-2-2-3 2z"/><path d="M8 8h8"/><path d="M8 12h8"/><path d="M8 16h4"/>
+        </svg>
+        <span>Rechnungen</span>
+      </button>
+
       <!-- NEU: Sidebar Tool Berichte -->
       <button class="tab-button" data-tab="berichte" id="tabbtn-berichte" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
@@ -1632,7 +1702,7 @@
       <button class="btn btn-primary" id="btn-add-kind">+ Kind hinzufügen</button>
     </div>
     <div class="filters">
-      <input type="text" id="search-input" placeholder="Nach Name suchen…" class="search-field">
+      <input type="text" id="search-input" placeholder="Suche" class="search-field">
       <select id="filter-gruppe" class="filter-select">
         <option value="">Alle Gruppen</option>
         <option value="spielgruppe">Spielgruppe Luftballon</option>
@@ -1705,7 +1775,7 @@
         <h3>Nachricht</h3>
         <div class="mm-field">
           <label for="mm-subject">Betreff</label>
-          <input type="text" id="mm-subject" placeholder="z. B. Infos zum Spielgruppen-Start">
+          <input type="text" id="mm-subject">
         </div>
         <div class="mm-field">
           <label for="mm-body">Nachricht</label>
@@ -1910,11 +1980,10 @@
   <!-- NEU: Sidebar Tool Termine (Vereinskalender: Anlässe, Ferien, Schliesstage) -->
   <section class="tab-content" id="tab-termine">
     <div class="section-header"><h2>Termine</h2></div>
-    <p class="tool-intro">Der Vereinskalender: Anlässe (z. B. Waldtag, Elternabend), Ferien und Schliesstage – für das ganze Team sichtbar.</p>
     <div class="tool-toolbar tool-no-print" id="term-add-bar" style="display:none">
       <div class="tool-field" style="flex:1;min-width:180px">
         <label for="term-titel">Titel</label>
-        <input type="text" id="term-titel" placeholder="z. B. Elternabend">
+        <input type="text" id="term-titel">
       </div>
       <div class="tool-field">
         <label for="term-typ">Art</label>
@@ -1950,7 +2019,6 @@
   <!-- NEU: Sidebar Tool Anwesenheit (Erfassen + Monatsauswertung) -->
   <section class="tab-content" id="tab-anwesenheit">
     <div class="section-header"><h2>Anwesenheit</h2></div>
-    <p class="tool-intro">Anwesenheit pro Tag und Angebot erfassen – und pro Monat auswerten (z. B. für Absenzen-Übersichten). Eingaben werden automatisch gespeichert.</p>
     <div class="tool-toolbar tool-no-print">
       <div class="tool-field">
         <label>Ansicht</label>
@@ -1980,7 +2048,6 @@
   <!-- NEU: Sidebar Tool Freie Plätze (Kapazität + Warteliste/Nachrücken in einem) -->
   <section class="tab-content" id="tab-wartelisteplus">
     <div class="section-header"><h2>Freie Plätze &amp; Warteliste</h2></div>
-    <p class="tool-intro">Alle Slots auf einen Blick: wie viele Plätze belegt und frei sind und wer auf der Warteliste steht. So siehst du sofort, wo du eine Anmeldung annehmen oder ein Kind nachrücken lassen kannst.</p>
     <div class="tool-summary" id="wlp-summary"></div>
     <div id="wlp-body"></div>
     <div style="height:48px"></div>
@@ -1995,11 +2062,10 @@
         <button class="erin-view" id="erin-view-liste" type="button" title="Einfache Liste">☰ Liste</button>
       </div>
     </div>
-    <p class="tool-intro tool-no-print">Gemeinsame Aufgaben fürs Team – als <b>Board</b> (Kanban: Offen · In Arbeit · Erledigt) oder als <b>Liste</b> (To-Do). Überfällige werden hervorgehoben. Karten lassen sich per Knopf oder Ziehen verschieben.</p>
     <div class="erin-add tool-no-print">
       <div class="tool-field" style="flex:2;min-width:200px">
         <label for="erin-input">Neue Aufgabe</label>
-        <input type="text" id="erin-input" placeholder="z. B. Versicherung erneuern">
+        <input type="text" id="erin-input">
       </div>
       <div class="tool-field">
         <label for="erin-due">Fällig (optional)</label>
@@ -2007,7 +2073,7 @@
       </div>
       <div class="tool-field">
         <label for="erin-wer">Wer? (optional)</label>
-        <input type="text" id="erin-wer" placeholder="z. B. Anna" maxlength="40">
+        <input type="text" id="erin-wer" maxlength="40">
       </div>
       <div class="tool-field">
         <label for="erin-prio">Priorität</label>
@@ -2024,12 +2090,26 @@
   </section>
 
   <!-- NEU: Sidebar Tool Berichte -->
+  <section class="tab-content" id="tab-hilfe">
+    <div class="section-header">
+      <h2>Hilfe</h2>
+    </div>
+    <div id="hf-inhalt"></div>
+  </section>
+
+  <section class="tab-content" id="tab-rechnungen">
+    <div class="section-header">
+      <h2>Rechnungen</h2>
+    </div>
+    <p class="tool-intro">Verrechnet nur die <b>bezogenen Zeiten</b> — Abwesenheiten kosten nichts.</p>
+    <div id="rg-inhalt"></div>
+  </section>
+
   <section class="tab-content" id="tab-berichte">
     <div class="section-header">
       <h2>Berichte</h2>
       <button class="btn btn-secondary btn-small tool-no-print" id="btn-ber-print" type="button">Drucken</button>
     </div>
-    <p class="tool-intro tool-no-print">Stell dir eine Liste zusammen: <b>Zeilen filtern, Spalten ankreuzen, als Excel herunterladen.</b> Das Auswerten (Filtern, Summen, Pivot) machst du danach in Excel – so bleibt das Tool einfach und die Möglichkeiten offen.</p>
     <div id="ber-tool" class="tool-no-print"></div>
     <div id="ber-body"></div>
     <div style="height:48px"></div>
@@ -2069,7 +2149,6 @@
             <div class="setting-row">
               <div>
                 <div class="setting-row-label">Dunkelmodus</div>
-                <div class="setting-row-sub">Dunkles Farbschema für die App – gilt auf diesem Gerät.</div>
               </div>
               <label class="switch"><input type="checkbox" id="set-darkmode"><span class="switch-slider"></span></label>
             </div>
@@ -2209,7 +2288,6 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
       <!-- NEU: Wartungs-/Update-Ankündigung (nur Admin) -->
       <div class="settings-card" id="card-wartung">
         <h3>Wartung / Update</h3>
-        <p class="hilfe-text" style="margin-bottom:10px">Geführter Ablauf für ein Update: Ankündigung setzen, Datenstand sichern – und zum gewählten Zeitpunkt sperrt sich das Tool <b>nahtlos</b> selbst für alle, damit während des Updates niemand mehr etwas ändert.</p>
 
         <div id="wt-status-leiste"></div>
 
@@ -2228,21 +2306,19 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
         <div id="wt-assistent">
           <div class="ap-schritt" data-wt="1">
             <div class="ap-schritt-kopf"><span class="ap-schritt-nr">1</span> Ankündigung</div>
-            <p class="hilfe-text" style="margin-bottom:10px">Wann findet das Update statt? Ab dem „Live schalten“ sehen alle einen Hinweis mit diesem Zeitpunkt.</p>
             <div class="wt-row">
               <div class="wt-f"><label for="wt-datum">Datum</label><input type="date" id="wt-datum" class="text-input"></div>
               <div class="wt-f"><label for="wt-zeit">Uhrzeit</label><input type="time" id="wt-zeit" class="text-input"></div>
             </div>
             <div class="ap-feld">
               <label for="wt-text" class="ap-mini">Zusatztext (optional)</label>
-              <input type="text" id="wt-text" class="text-input full-width" maxlength="160" placeholder="z. B. Das Tool ist ca. 30 Min. nicht erreichbar.">
+              <input type="text" id="wt-text" class="text-input full-width" maxlength="160">
             </div>
             <div id="wt-vorschau" class="wt-vorschau" style="display:none"></div>
           </div>
 
           <div class="ap-schritt" data-wt="2">
             <div class="ap-schritt-kopf"><span class="ap-schritt-nr">2</span> Automatische Sperre</div>
-            <p class="hilfe-text">Zum oben gewählten Zeitpunkt geht die Ankündigung <b>nahtlos</b> in eine Vollbild-Sperre über – ohne Lücke. Ab dann kann <b>niemand mehr etwas ändern</b>, der Datenstand bleibt sicher.</p>
             <div class="ap-tipp" id="wt-schritt2-info"></div>
             <div class="ap-feld" style="margin-top:10px">
               <label class="ap-check"><input type="checkbox" id="wt-verstanden"> <span>Verstanden – zum Zeitpunkt werden alle gesperrt</span></label>
@@ -2261,7 +2337,6 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
           <div class="ap-schritt" data-wt="4">
             <div class="ap-schritt-kopf"><span class="ap-schritt-nr">4</span> Zusammenfassung &amp; Live schalten</div>
             <div id="wt-summary" class="ap-tipp"></div>
-            <p class="hilfe-text" style="margin-top:10px">Mit „Live schalten“ erscheint sofort die Ankündigung. Zum gewählten Zeitpunkt sperrt sich das Tool automatisch. Die Sperre beendest du nach dem Update selbst.</p>
             <div class="button-group" style="margin-top:10px"><button type="button" class="btn btn-primary" id="btn-wt-live">Prozess live schalten</button></div>
           </div>
 
@@ -2275,7 +2350,6 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
 
       <div class="settings-card" id="card-anmeldeprozess">
         <h3>Anmelde-Prozess (Mail &amp; Vertrag)</h3>
-        <p class="hilfe-text" style="margin-bottom:10px">Was den Eltern geschickt wird, sobald eine Anmeldung <b>freigegeben</b> oder ein Kind von der Warteliste <b>aufgenommen</b> wird. Ohne Freigabe passiert nichts.</p>
 
         <!-- Statusleiste: was ist erledigt, was fehlt -->
         <div id="ap-status-leiste"></div>
@@ -2567,43 +2641,20 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
       <!-- Dokumente -->
       <div class="settings-card" id="card-dokumente">
         <h3>Dokumente am Kind</h3>
-        <p class="hilfe-text" style="font-size:13px;color:var(--ink-2);margin-bottom:8px">
-          PDF- und Bild-Dateien (PNG/JPG) werden pro Kind direkt in der <b>Datenbank (Firestore)</b> gespeichert –
-          <b>keine zusätzliche Firebase-Einrichtung</b> nötig, es funktioniert sofort. Die Dokumente bleiben über
-          <b>alle Schuljahre</b> erhalten.
-        </p>
-        <p class="hilfe-text" style="font-size:12px;color:var(--ink-3)">
-          Max. 10&nbsp;MB pro Datei. Grosse Dateien werden automatisch in Teile zerlegt. Hochladen/Löschen erfolgt
-          im Kind-Formular (Bereich „Dokumente"); ein Klick auf den Dateinamen öffnet das Dokument.
-        </p>
       </div>
 
       <!-- NEU: Datensicherung (Komplett-Backup / Wiederherstellen) – Admin + Supervisor -->
       <div class="settings-card" id="card-backup">
         <h3>Datensicherung (Backup)</h3>
-        <p class="hilfe-text" style="font-size:13px;color:var(--ink-2);margin-bottom:10px">
-          Lädt den <b>gesamten Datenstand</b> als einzelne Sicherungsdatei herunter – Kinder, Buchungen, Schuljahre,
-          Kapazitäten, Tickets, Anwesenheit, Erinnerungen, Infoseite, hochgeladene Dokumente und Einstellungen. Bewahre die Datei sicher auf.
-          Geht etwas verloren, kannst du damit den ganzen Stand <b>wiederherstellen</b>.
-        </p>
         <button class="btn btn-primary full-width" id="btn-backup-download" style="margin-bottom:8px">Komplett-Backup herunterladen</button>
         <input type="file" id="backup-restore-input" accept=".json,application/json" style="display:none">
         <button class="btn btn-secondary full-width" id="btn-backup-restore">Backup wiederherstellen …</button>
         <div id="backup-status"></div>
-        <p class="hilfe-text" style="font-size:12px;color:var(--ink-3);margin-top:10px">
-          Format <b>.json</b> – das bewährte Komplett-Backup. <b>Inklusive</b> der hochgeladenen Dokumente
-          (PDF/Bilder). Login-Passwörter sind nicht enthalten (die verwaltet Firebase separat).
-          <b>Wiederherstellen überschreibt</b> den aktuellen Stand vollständig.
-        </p>
+        <p class="hilfe-text" style="font-size:12px;color:var(--ink-3);margin-top:10px"><b>Wiederherstellen überschreibt</b> den aktuellen Stand vollständig.</p>
 
         <!-- NEU: Automatische lokale Sicherung in einen gewählten Ordner -->
         <div class="lokal-block" id="lokal-block">
           <div class="csv-backup-title">Automatisch in einen Ordner auf diesem PC</div>
-          <p class="hilfe-text" style="font-size:13px;color:var(--ink-2);margin-bottom:10px">
-            Einmal einen Ordner wählen – danach legt die App die Sicherung dort ab,
-            <b>ohne Speichern-Dialog</b>. Ist die letzte Sicherung älter als die eingestellte
-            Anzahl Tage, erinnert die App nach dem Anmelden daran.
-          </p>
           <div class="lokal-status" id="lokal-status"></div>
           <div class="csv-buttons">
             <button class="btn btn-primary full-width" id="btn-lokal-jetzt">Jetzt lokal sichern</button>
@@ -2657,11 +2708,6 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
       <!-- Schuljahre / Zeitachsen verwalten (nur Administrator) -->
       <div class="settings-card" id="card-schuljahre">
         <h3>Schuljahre / Zeitachsen</h3>
-        <p class="hilfe-text" style="font-size:13px;color:var(--ink-2);margin-bottom:8px">
-          Zeitachsen umbenennen, löschen oder neu anlegen. Beim <b>Umbenennen</b> werden alle Zuteilungen
-          mitverschoben. Beim <b>Löschen</b> gehen die Zuteilungen dieses Jahres verloren – die Kinder und
-          ihre Dokumente bleiben erhalten.
-        </p>
         <div class="user-list" id="schuljahr-list"></div>
         <button class="btn btn-primary" id="btn-add-year-settings">+ Neues Schuljahr</button>
       </div>
@@ -2678,7 +2724,6 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
       <!-- Ticket System -->
       <div class="settings-card" id="card-tickets">
         <h3>Ticket System</h3>
-        <p class="hilfe-text" style="font-size:13px;color:#6B7280;margin-bottom:14px">Melden Sie Probleme oder Wünsche direkt an das ELKI-Team.</p>
         <div style="margin-bottom:14px">
           <button class="btn btn-primary full-width" id="btn-open-ticket-modal">+ Neues Ticket erfassen</button>
         </div>
@@ -2691,8 +2736,28 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
       <!-- NEU: Aktivitätsprotokoll (nur Admin) -->
       <div class="settings-card" id="card-audit">
         <h3>Aktivitätsprotokoll</h3>
-        <p class="hilfe-text" style="font-size:13px;color:var(--ink-2);margin-bottom:10px">Letzte Aktionen im Tool – wer hat wann was gemacht. Für Nachvollziehbarkeit (z. B. wer ein Kind geändert oder gelöscht hat).</p>
         <div id="audit-list" style="max-height:300px;overflow:auto"></div>
+      </div>
+
+      <!-- Rechnungen sind seit 2026-09-06 KEINE Einstellungs-Karte mehr,
+           sondern ein eigenes Werkzeug in der Seitenleiste (Tab
+           "rechnungen"). Grund: die Einstellungen wurden zu voll, und
+           Rechnungen sind Tagesgeschäft, keine Konfiguration. -->
+
+      <!-- NEU 2026-09-01: gezieltes Bereinigen einzelner Bereiche.
+           Bewusst GETRENNT von der Gefahrenzone: dort geht es um "alles",
+           hier um einen einzelnen Bereich – mit Vorschau (was genau faellt
+           weg?), Backup-Pflicht und Tippbestaetigung statt nur OK-Klick. -->
+      <div class="settings-card danger" id="card-bereinigen">
+        <h3>Daten bereinigen</h3>
+        <p class="warning-text">Löscht gezielt einzelne Bereiche. Nicht rückgängig zu machen.</p>
+        <div id="ber-backup-hinweis"></div>
+        <div id="ber-liste"></div>
+        <div class="loesch-hinweis" style="margin-top:12px">
+          <b>Nie angetastet:</b> Kinder und Stammdaten, Benutzer und Rollen,
+          Kapazitaeten, Schuljahre und die Versand-Einstellungen.
+          Kinder loeschen geht bewusst nur ueber die Gefahrenzone.
+        </div>
       </div>
 
       <!-- Danger Zone -->
@@ -2791,12 +2856,12 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
       <div class="form-row">
         <div class="form-group">
           <label for="input-klasse">Klasse <span class="jahr-hinweis" id="klasse-jahr-hinweis"></span></label>
-          <input type="text" id="input-klasse" list="klassen-vorschlaege" placeholder="z.B. 1a" maxlength="40">
+          <input type="text" id="input-klasse" list="klassen-vorschlaege" maxlength="40">
           <datalist id="klassen-vorschlaege"></datalist>
         </div>
         <div class="form-group">
           <label for="input-lehrperson">Klassenlehrperson <span class="jahr-hinweis" id="lp-jahr-hinweis"></span></label>
-          <input type="text" id="input-lehrperson" list="lehrpersonen-vorschlaege" placeholder="z.B. Frau Meier" maxlength="80">
+          <input type="text" id="input-lehrperson" list="lehrpersonen-vorschlaege" maxlength="80">
           <datalist id="lehrpersonen-vorschlaege"></datalist>
         </div>
       </div>
@@ -2812,7 +2877,7 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
       </div>
       <div class="form-group">
         <label for="input-notiz">Notiz</label>
-        <textarea id="input-notiz" rows="3" placeholder="Spezielle Anmerkungen…"></textarea>
+        <textarea id="input-notiz" rows="3"></textarea>
       </div>
       <!-- NEU: Anwesenheit je Schuljahr (nur Anzeige) – erscheint nur beim Bearbeiten -->
       <div class="form-group" id="modal-anw-group" style="display:none">
@@ -2847,7 +2912,7 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
     <div class="ticket-dialog-body">
       <div class="ticket-field">
         <label for="ticket-name">Ihr Name *</label>
-        <input type="text" id="ticket-name" placeholder="z.B. Maria Muster">
+        <input type="text" id="ticket-name">
       </div>
       <div class="ticket-field">
         <label for="ticket-kategorie">Kategorie *</label>
@@ -2861,11 +2926,11 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
       </div>
       <div class="ticket-field">
         <label for="ticket-titel">Titel *</label>
-        <input type="text" id="ticket-titel" placeholder="Kurze Beschreibung des Anliegens">
+        <input type="text" id="ticket-titel">
       </div>
       <div class="ticket-field">
         <label for="ticket-beschreibung">Beschreibung *</label>
-        <textarea id="ticket-beschreibung" placeholder="Beschreiben Sie das Problem oder den Wunsch so genau wie möglich…"></textarea>
+        <textarea id="ticket-beschreibung"></textarea>
       </div>
     </div>
     <div class="ticket-actions">
@@ -2912,7 +2977,7 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
       </div>
       <div class="ticket-field">
         <label for="ta-antwort">Rückmeldung (Antwort an den Melder)</label>
-        <textarea id="ta-antwort" placeholder="Antwort / Kommentar zum Ticket…"></textarea>
+        <textarea id="ta-antwort"></textarea>
       </div>
       <div class="ticket-field">
         <label>Verlauf / Kommentare</label>
@@ -2920,7 +2985,7 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
       </div>
       <div class="ticket-field">
         <label for="ta-kommentar">Kommentar hinzufügen (optional)</label>
-        <textarea id="ta-kommentar" placeholder="Kommentar zum Ticket…"></textarea>
+        <textarea id="ta-kommentar"></textarea>
       </div>
     </div>
     <div class="ticket-actions">
@@ -2948,7 +3013,7 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
       </div>
       <div class="ticket-field">
         <label for="inbox-kommentar">Kommentar hinzufügen</label>
-        <textarea id="inbox-kommentar" placeholder="Deine Antwort / Frage zum Ticket…"></textarea>
+        <textarea id="inbox-kommentar"></textarea>
       </div>
     </div>
     <div class="ticket-actions">
@@ -3307,6 +3372,27 @@ function getRole()     { return (currentUser && currentUser.role) || 'viewer'; }
 function isAdminRole() { return getRole() === 'admin'; }                                 // nur Admin: Benutzerverwaltung + Alle-Daten-löschen
 function canEdit()     { return ['admin','supervisor','user'].includes(getRole()); }     // bearbeiten
 function canDelete()   { return ['admin','supervisor'].includes(getRole()); }            // einzelne Kinder löschen
+
+// ── Handy-App („Leser-Modus") — seit 2026-09-07 NICHT mehr an der Rolle ──
+//
+// Vorher galt: Rolle Leser = Handy-App, alle anderen = Verwaltung. Im Betrieb
+// gibt es aber Leute, die BEIDES brauchen (Alessio, 2026-09-07): morgens die
+// Gruppe betreuen, nachmittags die Verwaltung machen.
+//
+// Jetzt: Die Rolle **Leser** bringt die App wie bisher immer mit — daran
+// ändert sich nichts. Alle anderen Rollen bekommen sie nur, wenn sie in der
+// Rollenverwaltung ausdrücklich zugeteilt wurde (`handyApp`).
+//
+// WICHTIG: Das ist eine ANSICHT, keine Berechtigung. Wer die App bekommt,
+// erhält dadurch kein einziges Recht dazu — geschrieben wird weiterhin nur,
+// was die Firestore-Regeln für seine Rolle erlauben. Deshalb steht das hier
+// bei den Rollen-Helfern und NICHT in `canEdit()`/`canDelete()`.
+function darfHandyApp(u) {
+  const p = u || currentUser;
+  if (!p) return false;                 // nicht angemeldet: nie
+  if (p.role === 'viewer') return true; // Rolle Leser: unverändert
+  return p.handyApp === true;
+}
 // Rundmail an Eltern. Beachtet die persönliche Werkzeug-Zuteilung!
 //
 // WARUM: Bis 2026-08-12 hing das nur an der Rolle. Teilte der Admin einem
@@ -3389,7 +3475,9 @@ const SIDEBAR_ITEMS = [
   { tab:'wartelisteplus', label:'Freie Plätze' },
   { tab:'erinnerungen',   label:'Erinnerungen' },
   { tab:'berichte',       label:'Berichte' },
+  { tab:'rechnungen',     label:'Rechnungen' },
   { tab:'infoseite',      label:'Infoseite' },
+  { tab:'hilfe',          label:'Hilfe' },
 ];
 // Persönliche Auswahl (pro Gerät, localStorage). Default: alles sichtbar.
 let sidebarPrefs = {};
@@ -3423,6 +3511,12 @@ function roleAllowsTab(tab, rolle) {
     case 'wartelisteplus': return !istLeser;    // „Freie Plätze": Kinderdaten → wie Kinder/Anmeldungen
     case 'erinnerungen':   return darfEdit;     // Team-Aufgaben → Bearbeiter+
     case 'berichte':       return !istLeser;
+    // Rechnungen: Kinderdaten + Geld → Bearbeiter+, wie Massenmail-Niveau.
+    // Bewusst NICHT für Leser: die sehen ohnehin keine Stammdaten.
+    case 'rechnungen':     return darfEdit;
+    // Hilfe: für alle. Sie erklärt nur, sie zeigt keine Daten — und wer
+    // etwas nicht darf, soll wenigstens nachlesen können, warum.
+    case 'hilfe':          return true;
     default:             return false;
   }
 }
@@ -3927,11 +4021,17 @@ function registerAuthEvents() {
       // Braucht ein Leser später doch die Verwaltung (zugeteiltes
       // Werkzeug → „Zur Verwaltung"), lädt `elkiVerwaltungNachladen()`
       // das Fehlende nach.
-      if (typeof getRole === 'function' && getRole() === 'viewer') {
-        if (typeof window.leserAppZeichnen === 'function') window.leserAppZeichnen();
-        return;
-      }
+      // Handy-App zeichnen, sobald sie zugeteilt ist (Rolle Leser ODER
+      // ausdrücklich gesetzt). Kostet keinen Lesevorgang — leserAppZeichnen()
+      // nutzt nur, was schon geladen ist, und steigt selbst aus, wenn die
+      // Person die App gar nicht hat.
+      if (typeof window.leserAppZeichnen === 'function') window.leserAppZeichnen();
 
+      // Nur die Rolle **Leser** braucht die Verwaltung nicht. Wer die App
+      // zusätzlich bekommen hat (Bearbeiter, Supervisor, Admin), bekommt sie
+      // aufgebaut — sonst wäre „Zur Verwaltung" beim ersten Antippen eine
+      // mehrsekündige Wartezeit statt eines Umschaltens.
+      if (typeof getRole === 'function' && getRole() === 'viewer') return;
       await verwaltungAufbauen();
     } else {
       // Abgemeldet: Merkmal leeren, damit auch dieselbe Person nach einer
@@ -5178,7 +5278,11 @@ async function deleteAllData() {
     ['data/nachruecken', { offen: [], zurueck: [] }],
     ['data/termine', []], ['data/erinnerungen', []],
     ['data/tickets', []], ['config/ticketCounter', 0],
-    ['data/contentBlocks', []], ['config/widgets', []]
+    ['data/contentBlocks', []], ['config/widgets', []],
+    // Ausgestellte Rechnungen. Die Zahlungsangaben und Tarife
+    // (config/rechnung, config/tarife) bleiben bewusst stehen — wie die
+    // Versand-Einstellungen, sonst waere die App danach unbrauchbar.
+    ['data/rechnungen', []]
   ];
   for (const [pfad, wert] of leeren) {
     const r = await window._fb.fbSave(pfad, wert);
@@ -6237,7 +6341,7 @@ function openWidgetBuilder() {
         <div class="wb-type-grid">
           ${TYPES.map(t=>`<button class="wb-type-btn ${selType===t.id?'selected':''}" data-type="${t.id}">${t.label}</button>`).join('')}
         </div>
-        <div class="wb-field"><label>Titel</label><input type="text" id="wb-title" placeholder="z.B. Aktive Kinder" value=""></div>
+        <div class="wb-field"><label>Titel</label><input type="text" id="wb-title" value=""></div>
         <div class="wb-field"><label>Farbe</label><div class="wb-color-row">${WIDGET_COLORS.map(c=>`<button class="wb-color-btn ${c===selColor?'selected':''}" data-color="${c}" style="background:${c}"></button>`).join('')}</div></div>
         ${showGruppe?`<div class="wb-field"><label>Gruppe (optional)</label><select id="wb-gruppe"><option value="">Alle Gruppen</option>${Object.entries(ANGEBOTE).map(([id,g])=>`<option value="${id}">${g.label}</option>`).join('')}</select></div>`:''}
         ${showStatus?`<div class="wb-field"><label>Status (optional)</label><select id="wb-status"><option value="">Alle Status</option><option value="aktiv">Aktiv</option><option value="warteliste">Warteliste</option><option value="inaktiv">Inaktiv</option></select></div>`:''}
@@ -7889,7 +7993,9 @@ function exportExcel(panelId) {
     anwesenheit: renderAnwesenheit,
     wartelisteplus: renderWartelistePlus,
     erinnerungen: renderErinnerungen,
-    berichte: renderBerichte
+    berichte: renderBerichte,
+    rechnungen: function(){ if (typeof window.renderRechnungen === 'function') window.renderRechnungen(); },
+    hilfe: function(){ if (typeof window.renderHilfe === 'function') window.renderHilfe(); }
   };
   window.renderActiveTool = function(){
     var active = document.querySelector('.tab-content.active');
@@ -8334,7 +8440,13 @@ function exportExcel(panelId) {
     // Die PDF-Stücke selbst werden weiter unten mitgesichert.
     'config/anmeldeVorlagen',
     'config/anmeldeVertrag',
-    'data/anmeldeVersand'
+    'data/anmeldeVersand',
+    // NEU 2026-09-06 (Rechnungen): Zahlungsangaben, Tarife und die
+    // ausgestellten Rechnungen. Letztere sind Buchhaltungsbelege —
+    // sie gehoeren zwingend in die Sicherung.
+    'config/rechnung',
+    'config/tarife',
+    'data/rechnungen'
   ];
 
   // NEU: Das Erzeugen des Backup-Objekts ist vom Herunterladen getrennt,
@@ -8815,6 +8927,1459 @@ function exportExcel(panelId) {
     new MutationObserver(upd).observe(nameEl, { childList:true, characterData:true, subtree:true });
     upd();
   })();
+</script>
+<!-- ================================================================= -->
+<!-- NEU 2026-09-06: Werkzeug "Hilfe"                                  -->
+<!--                                                                    -->
+<!-- Sammelt die Erklaerungen, die vorher ueber die ganze Oberflaeche   -->
+<!-- verteilt waren. Gegliedert nach ABLAEUFEN ("wie nehme ich ein Kind -->
+<!-- auf"), nicht nach Funktionen - die Fragen der Nutzerinnen kommen   -->
+<!-- so und nicht anders.                                              -->
+<!--                                                                    -->
+<!-- Regel fuer kuenftige Aenderungen: Erklaerender Text gehoert HIER   -->
+<!-- hin. In der Oberflaeche bleiben nur Warnungen am Ort der Handlung  -->
+<!-- ("das laesst sich nicht rueckgaengig machen") und kurze            -->
+<!-- Feldhinweise, die man beim Ausfuellen braucht.                     -->
+<!-- ================================================================= -->
+<style>
+  .hf-wrap { display:flex; gap:20px; align-items:flex-start; }
+  .hf-nav { width:230px; flex-shrink:0; position:sticky; top:12px; }
+  .hf-suche { width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:var(--r-xs);
+    font-family:inherit; font-size:13px; background:var(--surface); color:var(--ink); margin-bottom:10px; }
+  .hf-liste { display:flex; flex-direction:column; gap:2px; }
+  .hf-nav-btn { text-align:left; padding:9px 12px; border:none; background:none; border-radius:var(--r-xs);
+    font-family:inherit; font-size:13.5px; color:var(--ink-2); cursor:pointer; line-height:1.35; }
+  .hf-nav-btn:hover { background:var(--brand-tint); color:var(--brand); }
+  .hf-nav-btn.an { background:var(--brand); color:#fff; font-weight:700; }
+  .hf-inhalt { flex:1; min-width:0; }
+  .hf-karte { border:1px solid var(--line); border-radius:var(--r-sm); padding:20px 22px; background:var(--surface); }
+  .hf-karte h3 { margin:0 0 4px; font-size:19px; }
+  .hf-rolle { display:inline-block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
+    color:var(--ink-3); background:var(--bg); border-radius:999px; padding:3px 10px; margin-bottom:14px; }
+  .hf-karte h4 { margin:20px 0 6px; font-size:14.5px; color:var(--ink); }
+  .hf-karte p, .hf-karte li { font-size:14px; line-height:1.65; color:var(--ink-2); }
+  .hf-karte ol, .hf-karte ul { margin:6px 0 6px 20px; padding:0; }
+  .hf-karte li { margin-bottom:5px; }
+  .hf-karte code { background:var(--bg); padding:1px 5px; border-radius:4px; font-size:12.5px; }
+  /* ── Hinweiskästen, neu gestaltet 2026-09-07 ──────────────────────
+     Vorher: 4 px Farbbalken, volle Farbfläche, und der GANZE Text in der
+     Signalfarbe (`color:#9b2c2a`). Das schrie lauter als alles andere in
+     der App — und im Dunkelmodus stand dunkelrote Schrift auf dunkelrotem
+     Grund, weil der Hex-Wert fest verdrahtet war.
+
+     Jetzt trägt die Farbe nur noch das, was sie bedeuten soll: eine
+     schmale Kante und ein kleines Label. Die Fläche bleibt ruhig, der
+     Fliesstext hat normale Lesefarbe. Das ist dieselbe Sprache wie der
+     Rest der App — 1 px Linien, kleine Radien, Grossbuchstaben-Label
+     wie bei `.tagline`. */
+  .hf-merk, .hf-warn {
+    margin:16px 0; padding:11px 14px;
+    border:1px solid var(--line); border-left-width:2px;
+    border-radius:var(--r);
+    font-size:13.5px; line-height:1.65; color:var(--ink-2);
+  }
+  .hf-merk::before, .hf-warn::before {
+    display:block; margin-bottom:3px;
+    font-size:10px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+  }
+  .hf-merk b, .hf-warn b { color:var(--ink); font-weight:700; }
+  .hf-merk { background:var(--brand-tint); border-left-color:var(--brand); }
+  .hf-merk::before { content:'Gut zu wissen'; color:var(--brand); }
+  .hf-warn { background:var(--danger-wash); border-left-color:var(--danger); }
+  .hf-warn::before { content:'Achtung'; color:var(--danger); }
+  /* Aufzählung im Kasten: hängender Einzug statt „•" mitten im Fliesstext */
+  /* `.hf-karte ul` ist spezifischer als `.hf-punkte` — deshalb hier
+     ebenfalls über die Karte adressieren, sonst bleibt der alte Einzug. */
+  .hf-karte .hf-punkte { list-style:none; margin:7px 0 0; padding:0; }
+  .hf-karte .hf-punkte li { position:relative; padding-left:15px; margin-bottom:5px;
+    font-size:13.5px; line-height:1.6; color:var(--ink-2); }
+  .hf-karte .hf-punkte li::before { content:''; position:absolute; left:0; top:.62em;
+    width:5px; height:1px; background:var(--ink-3); }
+  .hf-treffer { font-size:12.5px; color:var(--ink-3); margin-bottom:10px; }
+  @media(max-width:860px){
+    .hf-wrap { flex-direction:column; }
+    .hf-nav { width:100%; position:static; }
+    .hf-liste { flex-direction:row; flex-wrap:wrap; gap:6px; }
+    .hf-nav-btn { border:1px solid var(--line); border-radius:999px; padding:7px 13px; font-size:12.5px; }
+  }
+</style>
+<script>
+(function(){
+  "use strict";
+  function $(id){ return document.getElementById(id); }
+  function eh(s){ return (typeof escHtml === 'function') ? escHtml(s==null?'':String(s)) : String(s==null?'':s); }
+
+  // Themen nach ABLAUF geordnet. 'rolle' sagt, wen es betrifft — damit
+  // niemand eine Anleitung liest, die fuer ihn gar nicht gilt.
+  var THEMEN = [
+  {
+    id:'start', titel:'Erste Schritte', rolle:'Alle',
+    text:
+      '<p>Die App hat links die <b>Navigation</b> (Heute, Kinder, Dashboard …) und darunter die '
+      + '<b>Werkzeuge</b>. Was du siehst, hängt von deiner Rolle ab.</p>'
+      + '<h4>Die vier Rollen</h4>'
+      + '<ul>'
+      + '<li><b>Leser</b> (Betreuungsteam) — sieht am Handy nur den Tagesbildschirm zum Anwesenheit-Erfassen.</li>'
+      + '<li><b>Bearbeiter</b> — Kinder, Anmeldungen, Anwesenheit, Berichte, Rechnungen.</li>'
+      + '<li><b>Supervisor</b> — zusätzlich löschen und Datensicherung.</li>'
+      + '<li><b>Administrator</b> — zusätzlich Benutzer, Rollen und die Gefahrenzone.</li>'
+      + '</ul>'
+      + '<div class="hf-merk">Du musst dich bei <b>jedem</b> Öffnen neu anmelden. Das ist Absicht: '
+      + 'die Geräte werden geteilt, und sonst arbeitete der Nächste unter deinem Namen.</div>'
+      + '<h4>Passwort ändern</h4>'
+      + '<p>Einstellungen → <b>Mein Konto</b>. Das Betreuungsteam findet den Knopf oben rechts im '
+      + 'Tagesbildschirm. Du brauchst dein aktuelles Passwort — auch wenn du gerade angemeldet bist.</p>'
+  },
+  {
+    id:'anwesenheit-handy', titel:'Anwesenheit erfassen (Handy)', rolle:'Betreuungsteam',
+    text:
+      '<p>Nach dem Anmelden erscheint der <b>Tagesbildschirm</b> mit den Kindern, die heute in deinen '
+      + 'Angeboten erwartet werden.</p>'
+      + '<h4>So erfasst du</h4>'
+      + '<ol>'
+      + '<li>Kind antippen. Jeder Tipp schaltet weiter: <b>offen → da → fehlt → offen</b>.</li>'
+      + '<li>Oben siehst du den Stand, z. B. <code>5 / 8</code>.</li>'
+      + '<li>Am Ende deiner Lektion unten <b>abschliessen</b>.</li>'
+      + '</ol>'
+      + '<h4>Nur die eigene Lektion abschliessen</h4>'
+      + '<p>Betreust du am Morgen die Spielgruppe und der Mittagstisch ist auch aufgelistet, '
+      + 'schliesst du <b>nur den Morgen</b> ab. Bei mehreren offenen Lektionen fragt die App, welche '
+      + 'du meinst — vorausgewählt ist, was zeitlich schon vorbei ist. Die übrigen bleiben offen '
+      + 'für die Kollegin, die sie betreut.</p>'
+      + '<div class="hf-merk">Beim Abschliessen werden alle noch offenen Kinder als <b>abwesend</b> '
+      + 'eingetragen. Danach ist die Lektion gesperrt — Korrekturen macht die Leitung.</div>'
+      + '<h4>Zum Startbildschirm hinzufügen</h4>'
+      + '<p>Im Handy-Browser <b>Teilen → Zum Home-Bildschirm</b>. Dann startet ELKI wie eine App, '
+      + 'ohne Browserleiste.</p>'
+      + '<h4>Wenn nichts gespeichert wird</h4>'
+      + '<p>Kommt die Meldung „Nicht gespeichert", war das Netz weg. Nochmals antippen. '
+      + 'Die Anzeige springt in dem Fall auf den letzten sicheren Stand zurück — sie zeigt dir also '
+      + 'nie fälschlich einen Haken.</p>'
+      + '<h4>Wenn du auch in der Verwaltung arbeitest</h4>'
+      + '<p>Hast du zusätzlich eine Rolle mit Verwaltungsrechten, startest du auf dem <b>Handy</b> '
+      + 'hier in der Tagesansicht, am <b>Laptop</b> dagegen in der Verwaltung. Unten in der '
+      + 'Tagesansicht kommst du mit <b>Zur Verwaltung</b> hinüber, zurück mit dem Knopf '
+      + '<b>Zurück zu „Heute"</b> unten rechts.</p>'
+  },
+  {
+    id:'anwesenheit-leitung', titel:'Anwesenheit prüfen und korrigieren', rolle:'Bearbeiter+',
+    text:
+      '<p>Werkzeug <b>Anwesenheit</b>: pro Tag und Angebot erfassen und pro Monat auswerten. '
+      + 'Eingaben werden sofort gespeichert.</p>'
+      + '<h4>„Nicht erfasst" verstehen</h4>'
+      + '<p>Ein vergangener Tag <b>ohne Abschluss</b> erscheint als <b>nicht erfasst</b> — nicht als '
+      + '„alle abwesend". So bleibt unterscheidbar, ob wirklich niemand da war oder ob nur niemand '
+      + 'die App geöffnet hat. Ein Klick macht daraus einen echten Eintrag.</p>'
+      + '<div class="hf-warn">Das ist für die <b>Rechnungen</b> wichtig: Nicht erfasste Tage kosten '
+      + 'nichts. Eine Erfassungslücke ist eine Einnahmelücke — vor einem Abrechnungslauf lohnt der '
+      + 'Blick, ob alle Tage erfasst sind.</div>'
+  },
+  {
+    id:'kind-aufnehmen', titel:'Ein Kind aufnehmen', rolle:'Bearbeiter+',
+    text:
+      '<h4>Weg 1: über eine Anmeldung von der Website</h4>'
+      + '<ol>'
+      + '<li><b>Anmeldungen</b> öffnen. Neue Anmeldungen stehen dort mit „zu prüfen".</li>'
+      + '<li>Bei einem Verdacht auf Doppel-Eintrag erscheint ein Hinweis — bitte prüfen.</li>'
+      + '<li><b>Freigeben</b> öffnet das Kind-Formular, bereits ausgefüllt. Ergänzen und speichern.</li>'
+      + '</ol>'
+      + '<h4>Weg 2: von Hand</h4>'
+      + '<p><b>Kinder</b> → <b>+ Kind hinzufügen</b>. Danach die Angebote (Slots) anklicken, die das '
+      + 'Kind besucht.</p>'
+      + '<h4>Status je Angebot</h4>'
+      + '<p>Ein Kind kann <b>je Angebot</b> einen eigenen Status haben — Montag aktiv, Dienstag '
+      + 'Warteliste. Ist ein Slot voll, schlägt die App <b>Warteliste</b> vor.</p>'
+  },
+  {
+    id:'plaetze', titel:'Plätze, Warteliste und Nachrücken', rolle:'Bearbeiter+',
+    text:
+      '<p>Werkzeug <b>Freie Plätze</b>: alle Slots auf einen Blick — belegt, frei, Warteliste. '
+      + 'So siehst du sofort, wo noch Platz ist.</p>'
+      + '<h4>Nachrücken</h4>'
+      + '<p>Wird ein Platz frei, schlägt die App Kinder von der Warteliste vor. Du entscheidest je '
+      + 'Vorschlag; abgelehnte kommen nicht wieder.</p>'
+      + '<h4>Kapazitäten ändern</h4>'
+      + '<p>Einstellungen → <b>Kapazitäten</b>. Die Zahl ist die Anzahl Plätze je Slot; sie steuert '
+      + 'die Belegungsanzeige und den Wartelisten-Vorschlag.</p>'
+  },
+  {
+    id:'zusage', titel:'Zusage und Vertrag verschicken', rolle:'Bearbeiter+',
+    text:
+      '<p>Einstellungen → <b>Anmelde-Prozess</b>. Dort liegen die Mail-Vorlagen und das '
+      + 'Vertrags-PDF.</p>'
+      + '<ol>'
+      + '<li><b>Vorlagen</b> einmal einrichten — was Eltern bei Zusage bzw. beim Nachrücken erhalten.</li>'
+      + '<li><b>Vertrags-PDF</b> hochladen: ein <b>leeres Formular</b> für alle Angebote, höchstens 4 MB.</li>'
+      + '<li><b>Test-Mail</b> an dich selbst schicken und einmal ganz durchlesen.</li>'
+      + '<li>Danach je Familie versenden.</li>'
+      + '</ol>'
+      + '<div class="hf-warn">Zwei Dinge, die schiefgehen können:'
+      + '<ul class="hf-punkte">'
+      + '<li>Lade <b>kein ausgefülltes</b> Vertrags-PDF hoch — es ginge an alle Familien.</li>'
+      + '<li>Die Texte gehen <b>unverändert</b> an echte Familien. Vor dem ersten Versand einmal '
+      + 'vollständig lesen.</li>'
+      + '</ul></div>'
+  },
+  {
+    id:'rechnungen', titel:'Rechnungen stellen', rolle:'Bearbeiter+',
+    text:
+      '<p>Werkzeug <b>Rechnungen</b>. Verrechnet werden die <b>tatsächlich bezogenen Zeiten</b>: '
+      + 'gezählt wird nur, was als <b>anwesend</b> bestätigt wurde. Abwesenheiten und nicht erfasste '
+      + 'Tage kosten nichts.</p>'
+      + '<h4>Einmal einrichten</h4>'
+      + '<p>Abschnitt <b>Zahlungsangaben und Tarife</b> aufklappen: Vereinsdaten, IBAN und den Betrag '
+      + '<b>pro Anwesenheit</b> je Angebot. Danach einmal <b>Testrechnung erzeugen</b> und den '
+      + 'QR-Code mit der eigenen Banking-App scannen — erst dann ist sicher, dass er funktioniert.</p>'
+      + '<h4>Ein Abrechnungslauf</h4>'
+      + '<ol>'
+      + '<li><b>Zielgruppe</b> wählen (Angebot, Status, Klasse, Wochentage …). Leer = alle.</li>'
+      + '<li><b>Zeitraum</b> setzen, z. B. der letzte Monat.</li>'
+      + '<li><b>Bezogene Zeiten auswerten</b> — die Liste zeigt je Kind die Einheiten und den Betrag.</li>'
+      + '<li>Einzeln <b>PDF</b> oder alles zusammen <b>Alle als ZIP herunterladen</b>.</li>'
+      + '</ol>'
+      + '<div class="hf-merk">Die Rechnung geht an <b>ein Kind</b>, nicht an eine Familie — '
+      + 'Geschwister ergeben zwei Rechnungen. Eine Postadresse gibt es (noch) nicht, die Rechnung '
+      + 'trägt nur den Namen.</div>'
+  },
+  {
+    id:'berichte', titel:'Listen und Auswertungen', rolle:'Bearbeiter+',
+    text:
+      '<p>Werkzeug <b>Berichte</b>: Zeilen filtern, Spalten ankreuzen, als Excel herunterladen. '
+      + 'Das eigentliche Auswerten — Summen, Pivot, Diagramme — machst du in Excel.</p>'
+      + '<p>Typische Fälle: Adressliste für einen Elternbrief, Anwesenheiten eines Angebots, '
+      + 'Wartelisten-Übersicht.</p>'
+  },
+  {
+    id:'termine', titel:'Termine und Aufgaben', rolle:'Bearbeiter+',
+    text:
+      '<h4>Termine</h4>'
+      + '<p>Der Vereinskalender: Anlässe, Ferien und Schliesstage — für das ganze Team sichtbar.</p>'
+      + '<h4>Erinnerungen</h4>'
+      + '<p>Gemeinsame Aufgaben als Board (Offen · In Arbeit · Erledigt) oder als Liste. '
+      + 'Überfällige werden hervorgehoben.</p>'
+      + '<h4>Infoseite</h4>'
+      + '<p>Texte und Hinweise fürs Team, die alle sehen — bearbeiten darf sie der Administrator.</p>'
+  },
+  {
+    id:'konten', titel:'Benutzer anlegen und Rollen vergeben', rolle:'Administrator',
+    text:
+      '<div class="hf-merk">Konten werden <b>nicht mehr in der App</b> angelegt. Sonst müsste die '
+      + 'Registrierung bei Firebase offenstehen — dann könnte sich jede Person im Internet selbst '
+      + 'ein Konto machen.</div>'
+      + '<h4>Neues Konto</h4>'
+      + '<ol>'
+      + '<li>Firebase-Konsole → <b>Authentication → Users → Add user</b>. '
+      + '<b>Echte E-Mail-Adresse</b> verwenden — nur dann kann die Person ihr Passwort selbst '
+      + 'zurücksetzen.</li>'
+      + '<li>Die <b>User UID</b> aus der Liste kopieren.</li>'
+      + '<li>In ELKI unter <b>Rollen &amp; Benutzer</b> das Konto anlegen, die <b>UID einfügen</b>, '
+      + 'Rolle setzen, <b>Speichern</b>.</li>'
+      + '<li>Startpasswort <b>persönlich</b> übergeben, nie per Sammel-Mail.</li>'
+      + '</ol>'
+      + '<div class="hf-warn">Ohne hinterlegte UID wirkt die Rolle <b>nicht</b>. Die Person gilt dann '
+      + 'serverseitig als Leser — auch wenn in der Liste etwas anderes steht. Der Knopf '
+      + '<b>Prüfen</b> meldet solche Fälle.</div>'
+      + '<h4>Handy-App zuteilen</h4>'
+      + '<p>Die <b>Handy-App</b> ist der Tagesbildschirm zum Abhaken der Anwesenheit. Die Rolle '
+      + '<b>Leser</b> bringt sie immer mit. Jede andere Rolle bekommt sie über das Häkchen '
+      + '<b>Handy-App freischalten</b> — gedacht für Leute, die <b>beides</b> machen: morgens '
+      + 'betreuen, nachmittags verwalten.</p>'
+      + '<p>Wo diese Person startet: auf <b>Handy oder Tablet</b> in der Tagesansicht, am '
+      + '<b>Laptop</b> in der Verwaltung. Umgeschaltet wird jederzeit — in der Tagesansicht unten '
+      + 'mit <b>Zur Verwaltung</b>, zurück mit <b>Zurück zu „Heute"</b>.</p>'
+      + '<div class="hf-merk">Die Handy-App ist eine <b>Ansicht</b>, keine Berechtigung. Wer sie '
+      + 'bekommt, darf dadurch nichts, was seine Rolle nicht ohnehin schon erlaubt.</div>'
+      + '<h4>Einsatz-Zuteilung</h4>'
+      + '<p>Bei allen mit Handy-App kannst du festlegen, welche Lektionen jemand dort sieht. Ohne '
+      + 'Zuteilung sieht die Person den ganzen Betriebstag.</p>'
+      + '<h4>Konto sperren statt löschen</h4>'
+      + '<p><b>Sperren</b> entzieht die Berechtigung und ist umkehrbar. Der Firebase-Login bleibt in '
+      + 'beiden Fällen bestehen — endgültig löschen geht nur in der Konsole.</p>'
+  },
+  {
+    id:'sicherung', titel:'Daten sichern und wiederherstellen', rolle:'Supervisor+',
+    text:
+      '<p>Einstellungen → <b>Daten &amp; Sicherung</b>.</p>'
+      + '<h4>Sichern</h4>'
+      + '<p>Lädt den gesamten Datenstand als eine Datei herunter (<code>.json</code>) — Kinder, '
+      + 'Buchungen, Schuljahre, Anwesenheit, Rechnungen und die hochgeladenen Dokumente.</p>'
+      + '<p>Wählst du einmal einen <b>Ordner</b>, legt die App die Sicherung künftig dort ab, ohne '
+      + 'Speichern-Dialog.</p>'
+      + '<h4>Wiederherstellen</h4>'
+      + '<div class="hf-warn">Wiederherstellen <b>überschreibt</b> den aktuellen Stand. Zieh vorher '
+      + 'eine frische Sicherung — sonst ist der Zwischenstand weg.</div>'
+      + '<h4>Wie oft?</h4>'
+      + '<p>Vor jeder grösseren Änderung und sonst etwa monatlich. Das Werkzeug zeigt, wie alt die '
+      + 'letzte Sicherung ist.</p>'
+  },
+  {
+    id:'bereinigen', titel:'Daten aufräumen', rolle:'Administrator',
+    text:
+      '<p>Einstellungen → <b>Daten bereinigen</b>. Löscht gezielt einzelne Bereiche, statt alles.</p>'
+      + '<p>Der häufigste Fall: <b>Anwesenheit vor einem Stichtag</b> — räumt alte Schuljahre weg, '
+      + 'wenn die Anwesenheitsdaten zu gross werden. Der laufende Betrieb bleibt unberührt.</p>'
+      + '<p>Jeder Bereich zeigt zuerst, <b>was genau wegfällt</b>. Zum Bestätigen musst du '
+      + '<code>LOESCHEN</code> eintippen — ein Fehlklick allein reicht nicht.</p>'
+      + '<div class="hf-warn">Zieh vorher eine Sicherung. Das Werkzeug zeigt oben an, wie alt die '
+      + 'letzte ist, und warnt, wenn sie älter als eine Woche ist.</div>'
+  },
+  {
+    id:'wartung', titel:'Update ankündigen', rolle:'Administrator',
+    text:
+      '<p>Einstellungen → <b>Wartungsmeldung</b>. Ein geführter Ablauf in vier Schritten.</p>'
+      + '<ol>'
+      + '<li><b>Ankündigung</b> mit Datum, Uhrzeit und Text.</li>'
+      + '<li>Ab <b>Live schalten</b> sehen alle einen Hinweis mit dem Zeitpunkt.</li>'
+      + '<li>Zum gewählten Zeitpunkt wird daraus <b>nahtlos eine Vollbild-Sperre</b> — niemand kann '
+      + 'mehr etwas ändern. Keine Lücke dazwischen.</li>'
+      + '<li>Die Sperre beendest <b>du</b> von Hand, wenn das Update durch ist.</li>'
+      + '</ol>'
+      + '<p>Lade vor dem Update eine Komplett-Sicherung herunter.</p>'
+  },
+  {
+    id:'probleme', titel:'Wenn etwas nicht geht', rolle:'Alle',
+    text:
+      '<h4>„Keine Berechtigung"</h4>'
+      + '<p>Deine Rolle darf das nicht. Fehlt bei deinem Konto die <b>UID</b>, wirkt die Rolle '
+      + 'serverseitig nicht — der Administrator sieht das unter Rollen &amp; Benutzer → Prüfen.</p>'
+      + '<h4>„Nicht gespeichert"</h4>'
+      + '<p>Meist das Netz. Nochmals versuchen. Die Anzeige springt auf den letzten sicheren Stand '
+      + 'zurück, es geht also nichts still verloren.</p>'
+      + '<h4>Ich sehe ein Werkzeug nicht</h4>'
+      + '<p>Es gehört nicht zu deiner Rolle, oder es wurde dir entzogen. Der Administrator kann '
+      + 'einzelne Werkzeuge gezielt zuteilen.</p>'
+      + '<h4>Passwort vergessen</h4>'
+      + '<p>Bei einer echten E-Mail-Adresse kann der Administrator einen Reset-Link schicken. '
+      + 'Bei alten Konten auf <code>@elki.local</code> geht das <b>nicht</b> — dort hilft nur ein '
+      + 'neues Konto. Deshalb: früh auf eine echte Adresse wechseln.</p>'
+      + '<h4>Etwas gelöscht, das noch gebraucht wird</h4>'
+      + '<p>Über eine Sicherung wiederherstellen. Melde dich beim Administrator, <b>bevor</b> du '
+      + 'weiterarbeitest — je mehr danach passiert, desto mehr geht beim Zurückspielen verloren.</p>'
+      + '<h4>Etwas melden</h4>'
+      + '<p>Einstellungen → <b>Tickets</b>: Probleme und Wünsche direkt ans ELKI-Team.</p>'
+  }
+  ];
+
+  var offen = THEMEN[0].id;
+
+  function textRoh(th){
+    var s = th.titel + ' ' + th.rolle + ' ' + th.text;
+    return s.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').toLowerCase();
+  }
+
+  function zeichnen(){
+    var box = $('hf-inhalt-wrap'); if (!box) return;
+    var suche = ($('hf-suche') ? $('hf-suche').value : '').trim().toLowerCase();
+    var passend = suche
+      ? THEMEN.filter(function(t){ return textRoh(t).indexOf(suche) !== -1; })
+      : THEMEN;
+    if (passend.length && passend.map(function(t){ return t.id; }).indexOf(offen) === -1) {
+      offen = passend[0].id;
+    }
+
+    var nav = $('hf-liste');
+    nav.innerHTML = passend.length
+      ? passend.map(function(t){
+          return '<button type="button" class="hf-nav-btn' + (t.id === offen ? ' an' : '') + '" '
+            + 'data-hf="' + eh(t.id) + '">' + eh(t.titel) + '</button>';
+        }).join('')
+      : '<div class="hf-treffer">Nichts gefunden.</div>';
+
+    var th = THEMEN.filter(function(t){ return t.id === offen; })[0];
+    box.innerHTML = (suche && passend.length
+        ? '<div class="hf-treffer">' + passend.length + ' Thema/Themen zu „' + eh(suche) + '"</div>' : '')
+      + (th
+          ? '<div class="hf-karte"><h3>' + eh(th.titel) + '</h3>'
+            + '<span class="hf-rolle">' + eh(th.rolle) + '</span>' + th.text + '</div>'
+          : '<div class="hf-karte"><p>Kein Thema gefunden. Suchbegriff anpassen.</p></div>');
+
+    nav.querySelectorAll('[data-hf]').forEach(function(b){
+      b.addEventListener('click', function(){ offen = b.dataset.hf; zeichnen(); });
+    });
+  }
+
+  function aufbauen(){
+    var ziel = $('hf-inhalt'); if (!ziel) return;
+    if (!$('hf-liste')) {
+      ziel.innerHTML =
+        '<div class="hf-wrap">'
+        + '<div class="hf-nav">'
+        +   '<input type="search" class="hf-suche" id="hf-suche" placeholder="Suche">'
+        +   '<div class="hf-liste" id="hf-liste"></div>'
+        + '</div>'
+        + '<div class="hf-inhalt" id="hf-inhalt-wrap"></div>'
+        + '</div>';
+      $('hf-suche').addEventListener('input', zeichnen);
+    }
+    zeichnen();
+  }
+  window.renderHilfe = aufbauen;
+  // Von aussen ein Thema oeffnen (fuer Verweise aus der Oberflaeche)
+  window.elkiHilfeOeffnen = function(id){
+    if (id) offen = id;
+    if (typeof switchTab === 'function') switchTab('hilfe');
+    setTimeout(aufbauen, 60);
+  };
+})();
+</script>
+<!-- ================================================================= -->
+<!-- NEU 2026-09-06: Werkzeug "Rechnungen" (Seitenleiste)              -->
+<!--                                                                    -->
+<!-- Abrechnung NACH BEZOGENER ZEIT: gezaehlt wird ausschliesslich, was -->
+<!-- in der Leser-App als 'present' bestaetigt wurde. 'absent' und gar  -->
+<!-- nicht erfasste Tage kosten nichts. Beide Zahlen werden angezeigt,  -->
+<!-- damit sichtbar ist, was NICHT verrechnet wurde.                    -->
+<!--                                                                    -->
+<!-- Liegt bewusst in der Seitenleiste statt in den Einstellungen:      -->
+<!-- Rechnungen sind Tagesgeschaeft, keine Konfiguration.               -->
+<!--                                                                    -->
+<!-- PDF und ZIP werden ERST BEI BEDARF nachgeladen (jsPDF ~360 KB,     -->
+<!-- JSZip ~95 KB, beide mit SRI). Die Leser-App auf dem Handy soll das -->
+<!-- nicht bei jedem Seitenaufruf mitschleppen.                         -->
+<!--                                                                    -->
+<!-- Der QR-Inhalt folgt den Schweizer Implementation Guidelines:       -->
+<!-- 31 Zeilen, feste Reihenfolge, Abschluss "EPD". Nichts umsortieren. -->
+<!-- ================================================================= -->
+<style>
+  .rg-box { border:1px solid var(--line); border-radius:var(--r-sm); padding:14px; margin-bottom:14px; background:var(--surface); }
+  .rg-box > h3 { margin:0 0 4px; font-size:14px; }
+  .rg-box > p.hilfe-text { margin:0 0 10px; }
+  .rg-klapp { cursor:pointer; user-select:none; display:flex; align-items:center; gap:7px; }
+  .rg-klapp::before { content:'▸'; font-size:12px; transition:transform .15s; }
+  .rg-box.offen .rg-klapp::before { transform:rotate(90deg); }
+  .rg-body { display:none; margin-top:12px; }
+  .rg-box.offen .rg-body { display:block; }
+  .rg-feld { display:flex; flex-direction:column; gap:3px; }
+  .rg-feld label { font-size:12px; font-weight:600; color:var(--ink-2); }
+  .rg-feld input, .rg-feld select { padding:7px 9px; border:1px solid var(--line); border-radius:var(--r-xs);
+    font-family:inherit; font-size:13px; background:var(--surface); color:var(--ink); }
+  .rg-gitter { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px 12px; }
+  .rg-tage { display:flex; gap:6px; flex-wrap:wrap; margin-top:4px; }
+  .rg-tag { padding:5px 11px; border:1px solid var(--line); border-radius:999px; font-size:12px; cursor:pointer; background:var(--surface); }
+  .rg-tag.an { background:var(--brand); color:#fff; border-color:var(--brand); }
+  .rg-tabelle { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
+  .rg-tabelle th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.04em;
+    color:var(--ink-3); border-bottom:1px solid var(--line); padding:6px 8px; }
+  .rg-tabelle td { padding:6px 8px; border-bottom:1px solid var(--line-2); vertical-align:top; }
+  .rg-tabelle td.zahl, .rg-tabelle th.zahl { text-align:right; white-space:nowrap; }
+  .rg-nichtverrechnet { color:var(--ink-3); font-size:11.5px; }
+  .rg-warn { padding:10px 13px; border-radius:var(--r); font-size:12.5px;
+    margin:10px 0; line-height:1.55; color:var(--ink-2);
+    background:var(--danger-wash); border:1px solid var(--line);
+    border-left:2px solid var(--danger); }
+  .rg-warn b { color:var(--ink); font-weight:700; }
+  .rg-ok { background:var(--ok-wash); border-left-color:var(--ok); }
+  .rg-leiste { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:12px; }
+</style>
+<script>
+(function(){
+  "use strict";
+  function $(id){ return document.getElementById(id); }
+  function fb(){ return window._fb; }
+  function darf(){ return typeof canEdit === 'function' && canEdit(); }
+  function eh(s){ return (typeof escHtml === 'function') ? escHtml(s==null?'':String(s)) : String(s==null?'':s); }
+  function toast(t,a){ if (typeof showToast === 'function') showToast(t, a || 'info'); }
+
+  var PFAD_KONF='config/rechnung', PFAD_TARIF='config/tarife', PFAD_RECH='data/rechnungen';
+  var konf=null, tarife=null, letzterLauf=null;
+  var F = { angebot:'', status:'', klasse:'', lehrperson:'', jahrgang:'', tage:[] };
+
+  // ---- Fremd-Bibliotheken erst bei Bedarf, mit Pruefsumme -----------
+  var LIBS = {
+    pdf: { url:'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+           sri:'sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==',
+           da:function(){ return !!(window.jspdf && window.jspdf.jsPDF); } },
+    zip: { url:'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+           sri:'sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==',
+           da:function(){ return typeof JSZip === 'function'; } }
+  };
+  function ladeLib(name){
+    var L = LIBS[name];
+    if (L.da()) return Promise.resolve();
+    return new Promise(function(ok, nein){
+      var s = document.createElement('script');
+      s.src = L.url; s.integrity = L.sri; s.crossOrigin = 'anonymous'; s.referrerPolicy = 'no-referrer';
+      s.onload  = function(){ L.da() ? ok() : nein(new Error(name + ' geladen, aber nicht nutzbar')); };
+      // Greift auch, wenn die Pruefsumme nicht passt - dann blockt der Browser.
+      s.onerror = function(){ nein(new Error(name + ' konnte nicht geladen werden (kein Netz oder Pruefsumme passt nicht)')); };
+      document.head.appendChild(s);
+    });
+  }
+
+  // ---- Zahlen / Datum ----------------------------------------------
+  function chf(n){ return (Math.round(n*100)/100).toFixed(2); }
+  function heute(){ return new Date().toISOString().slice(0,10); }
+  function monatsAnfang(v){ var d=new Date(); d.setMonth(d.getMonth()-(v||0)); d.setDate(1); return d.toISOString().slice(0,10); }
+  function monatsEnde(v){ var d=new Date(); d.setMonth(d.getMonth()-(v||0)+1); d.setDate(0); return d.toISOString().slice(0,10); }
+  function deDatum(iso){ if(!iso) return ''; var t=String(iso).split('-'); return t[2]+'.'+t[1]+'.'+t[0]; }
+
+  // ---- IBAN / Referenz (unveraendert, gegen die Norm geprueft) ------
+  function ibanRein(s){ return String(s||'').replace(/\s+/g,'').toUpperCase(); }
+  function ibanGueltig(s){
+    var i = ibanRein(s);
+    if (!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{10,30}$/.test(i)) return false;
+    var um = i.slice(4) + i.slice(0,4), z = '';
+    for (var k=0;k<um.length;k++){ var c=um.charAt(k); z += /[0-9]/.test(c) ? c : String(c.charCodeAt(0)-55); }
+    var rest = 0;
+    for (var j=0;j<z.length;j++) rest = (rest*10 + parseInt(z.charAt(j),10)) % 97;
+    return rest === 1;
+  }
+  function istQrIban(s){ var i=ibanRein(s); if(i.length<9) return false;
+    var iid=parseInt(i.slice(4,9),10); return iid>=30000 && iid<=31999; }
+  var M10 = [[0,9,4,6,8,2,7,1,3,5],[9,4,6,8,2,7,1,3,5,0],[4,6,8,2,7,1,3,5,0,9],
+             [6,8,2,7,1,3,5,0,9,4],[8,2,7,1,3,5,0,9,4,6],[2,7,1,3,5,0,9,4,6,8],
+             [7,1,3,5,0,9,4,6,8,2],[1,3,5,0,9,4,6,8,2,7],[3,5,0,9,4,6,8,2,7,1],
+             [5,0,9,4,6,8,2,7,1,3]];
+  function pruefziffer(z){ var u=0; for(var i=0;i<z.length;i++) u=M10[u][parseInt(z.charAt(i),10)]; return String((10-u)%10); }
+  function qrReferenz(nr){ var b=String(nr||'').replace(/\D/g,''); while(b.length<26) b='0'+b; b=b.slice(-26); return b+pruefziffer(b); }
+  function refHuebsch(r){ return String(r).replace(/(.{5})/g,'$1 ').trim(); }
+  function ibanHuebsch(s){ return ibanRein(s).replace(/(.{4})/g,'$1 ').trim(); }
+
+  // ---- QR-Nutzlast: 31 Zeilen, feste Reihenfolge --------------------
+  function qrNutzlast(r){
+    var qrIban = istQrIban(konf.iban), z = [];
+    z.push('SPC'); z.push('0200'); z.push('1'); z.push(ibanRein(konf.iban));
+    z.push('S'); z.push((konf.name||'').slice(0,70)); z.push((konf.strasse||'').slice(0,70));
+    z.push((konf.nr||'').slice(0,16)); z.push((konf.plz||'').slice(0,16));
+    z.push((konf.ort||'').slice(0,35)); z.push('CH');
+    for (var i=0;i<7;i++) z.push('');            // Endgueltiger Empfaenger: leer
+    z.push(chf(r.betrag)); z.push('CHF');
+    for (var j=0;j<7;j++) z.push('');            // Zahlungspflichtiger: keine Adresse vorhanden
+    z.push(qrIban ? 'QRR' : 'NON');
+    z.push(qrIban ? qrReferenz(r.nr) : '');
+    z.push(('Rechnung ' + r.nr + ' ' + r.zeitraum).slice(0,140));
+    z.push('EPD');
+    return z.join('\n');
+  }
+  function qrModule(text){
+    if (typeof qrcode !== 'function') return null;
+    if (qrcode.stringToBytesFuncs && qrcode.stringToBytesFuncs['UTF-8']) {
+      qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
+    }
+    var q = qrcode(0,'M'); q.addData(text,'Byte'); q.make();
+    return q;
+  }
+
+  // ---- Zielgruppe filtern (gleiche Logik wie bei den Berichten) -----
+  function jahrgang(geb){ return geb ? String(geb).slice(0,4) : ''; }
+  function passtZurZielgruppe(k){
+    if (!k) return false;
+    var s = (typeof slotsOf === 'function') ? slotsOf(k) : (k.slots || []);
+    if (F.angebot && typeof getGruppenIdsFromSlots === 'function'
+        && getGruppenIdsFromSlots(s).indexOf(F.angebot) === -1) return false;
+    if (F.status && typeof kindMatchesStatus === 'function'
+        && !kindMatchesStatus(k, F.status, F.angebot || null)) return false;
+    var b = (typeof bookingOf === 'function') ? bookingOf(k) : k;
+    if (F.klasse && (b.klasse || '') !== F.klasse) return false;
+    if (F.lehrperson && (b.lehrperson || '') !== F.lehrperson) return false;
+    if (F.jahrgang && jahrgang(k.geburtsdatum) !== F.jahrgang) return false;
+    if (F.tage.length && typeof getTageFromSlots === 'function') {
+      var tage = getTageFromSlots(s);
+      if (!F.tage.some(function(t){ return tage.indexOf(t) !== -1; })) return false;
+    }
+    return true;
+  }
+
+  function gruppeVonSlot(slotId){
+    var g = (typeof ANGEBOTE !== 'undefined') ? ANGEBOTE : {};
+    for (var k in g) if ((g[k].slots||[]).some(function(s){ return s.id === slotId; })) return k;
+    return null;
+  }
+
+  // ---- Auswertung ---------------------------------------------------
+  // Zaehlt anwesend UND abwesend. Verrechnet wird nur 'present';
+  // 'absent' wird trotzdem gezeigt, damit man sieht, was wegfaellt.
+  function auswerten(von, bis){
+    return fb().fbGetRaw('data/anwesenheit').then(function(d){
+      var anw = (d && d.value) || {}, proKind = {};
+      Object.keys(anw).forEach(function(tag){
+        if (tag < von || tag > bis) return;
+        var slots = anw[tag] || {};
+        Object.keys(slots).forEach(function(slotId){
+          var gr = gruppeVonSlot(slotId); if (!gr) return;
+          var imSlot = slots[slotId] || {};
+          Object.keys(imSlot).forEach(function(kid){
+            var w = imSlot[kid];
+            if (w !== 'present' && w !== 'absent') return;
+            if (!proKind[kid]) proKind[kid] = {};
+            if (!proKind[kid][gr]) proKind[kid][gr] = { da:0, weg:0 };
+            if (w === 'present') proKind[kid][gr].da++; else proKind[kid][gr].weg++;
+          });
+        });
+      });
+
+      var alle = (typeof kinder !== 'undefined') ? kinder : [];
+      var zeilen = [], ausgefiltert = 0;
+      Object.keys(proKind).forEach(function(kid){
+        var k = alle.filter(function(x){ return String(x.id) === String(kid); })[0];
+        // Kind nicht mehr in der Liste -> nur zeigen, wenn kein Filter aktiv ist;
+        // sonst koennte es unbemerkt in eine gefilterte Abrechnung rutschen.
+        if (!k) { if (filterAktiv()) { ausgefiltert++; return; } }
+        else if (!passtZurZielgruppe(k)) { ausgefiltert++; return; }
+
+        var pos = [], summe = 0, wegGesamt = 0;
+        Object.keys(proKind[kid]).forEach(function(gr){
+          var z = proKind[kid][gr];
+          var preis = Number((tarife && tarife[gr]) || 0);
+          wegGesamt += z.weg;
+          if (!z.da) return;                       // nur Abwesenheiten -> keine Position
+          summe += z.da * preis;
+          pos.push({ gruppe:gr,
+            label:((typeof ANGEBOTE!=='undefined' && ANGEBOTE[gr]) ? ANGEBOTE[gr].label : gr),
+            anzahl:z.da, abwesend:z.weg, preis:preis, betrag:z.da*preis });
+        });
+        if (!pos.length) return;                   // nichts bezogen -> keine Rechnung
+        pos.sort(function(a,b){ return a.label.localeCompare(b.label); });
+        zeilen.push({ kindId:kid,
+          name: k ? ((k.vorname||'')+' '+(k.nachname||'')).trim() : ('Unbekannt ('+kid+')'),
+          fehlt: !k, positionen:pos, betrag:summe, abwesend:wegGesamt });
+      });
+      zeilen.sort(function(a,b){ return a.name.localeCompare(b.name,'de'); });
+      return { von:von, bis:bis, zeilen:zeilen, ausgefiltert:ausgefiltert };
+    });
+  }
+  function filterAktiv(){
+    return !!(F.angebot || F.status || F.klasse || F.lehrperson || F.jahrgang || F.tage.length);
+  }
+
+  // ---- PDF ----------------------------------------------------------
+  // Zahlteil nach Norm: 105 mm hoch am Blattende, Empfangsschein 62 mm,
+  // QR 46x46 mm, Schweizerkreuz 7x7 mm. Alles in mm gezeichnet - der QR
+  // wird als Rechtecke gesetzt und bleibt damit im Druck scharf.
+  function pdfBauen(r){
+    var jsPDF = window.jspdf.jsPDF;
+    var d = new jsPDF({ unit:'mm', format:'a4' });
+    var links = 20, oben = 25;
+
+    d.setFont('helvetica','normal'); d.setFontSize(8); d.setTextColor(60);
+    d.text([konf.name, (konf.strasse||'')+' '+(konf.nr||''), (konf.plz||'')+' '+(konf.ort||'')]
+             .filter(Boolean).join(' · '), links, oben);
+
+    d.setTextColor(0); d.setFontSize(11); d.setFont('helvetica','bold');
+    d.text(r.name, links, oben + 22);
+
+    d.setFontSize(15); d.text('Rechnung ' + r.nr, links, oben + 42);
+    d.setFont('helvetica','normal'); d.setFontSize(10);
+    d.text('Datum: ' + deDatum(r.datum) + '    Zeitraum: ' + r.zeitraum, links, oben + 49);
+
+    // Positionen
+    var y = oben + 62;
+    d.setFontSize(9); d.setFont('helvetica','bold');
+    d.text('Angebot', links, y);
+    d.text('Bezogen', 118, y, {align:'right'});
+    d.text('Ansatz', 145, y, {align:'right'});
+    d.text('Betrag', 190, y, {align:'right'});
+    d.setLineWidth(0.4); d.line(links, y+1.5, 190, y+1.5);
+    d.setFont('helvetica','normal'); d.setFontSize(10);
+    y += 7;
+    r.positionen.forEach(function(p){
+      d.text(String(p.label), links, y);
+      d.text(String(p.anzahl), 118, y, {align:'right'});
+      d.text(chf(p.preis), 145, y, {align:'right'});
+      d.text(chf(p.betrag), 190, y, {align:'right'});
+      if (p.abwesend) {
+        d.setFontSize(8); d.setTextColor(120);
+        d.text('davon ' + p.abwesend + ' abwesend - nicht verrechnet', links + 3, y + 4);
+        d.setFontSize(10); d.setTextColor(0);
+        y += 4;
+      }
+      y += 7;
+    });
+    d.setLineWidth(0.4); d.line(links, y-3, 190, y-3);
+    d.setFont('helvetica','bold');
+    d.text('Total CHF', links, y+2); d.text(chf(r.betrag), 190, y+2, {align:'right'});
+    d.setFont('helvetica','normal'); d.setFontSize(9);
+    d.text('Verrechnet werden ausschliesslich bezogene Zeiten. Zahlbar innert 30 Tagen. Besten Dank.', links, y+12);
+
+    zahlteilZeichnen(d, r);
+
+    // Testrechnung unuebersehbar kennzeichnen. Sie traegt echte
+    // Zahlungsangaben (nur so ist der Scan-Test aussagekraeftig) - darum
+    // muss auf einen Blick klar sein, dass sie NICHT bezahlt werden soll.
+    if (r.test) {
+      d.setTextColor(210, 60, 60); d.setFont('helvetica','bold'); d.setFontSize(12);
+      d.text('TESTRECHNUNG – bitte nicht bezahlen', links, oben + 35);
+      // Schraeges Wasserzeichen. Sollte eine kuenftige jsPDF-Fassung den
+      // Winkel nicht unterstuetzen, faellt nur die Drehung weg - der
+      // Schriftzug bleibt.
+      d.setTextColor(232, 200, 200); d.setFontSize(58);
+      try { d.text('MUSTER', 105, 150, { align:'center', angle:38 }); }
+      catch(e){ try { d.text('MUSTER', 60, 150); } catch(e2){} }
+      d.setTextColor(0); d.setFontSize(10); d.setFont('helvetica','normal');
+    }
+    return d;
+  }
+
+  function zahlteilZeichnen(d, r){
+    var Y = 192;                       // 297 - 105
+    var qrIban = istQrIban(konf.iban);
+    var ref = qrIban ? refHuebsch(qrReferenz(r.nr)) : '';
+    var empf = [konf.name, (konf.strasse||'')+' '+(konf.nr||''), (konf.plz||'')+' '+(konf.ort||'')].filter(function(x){ return String(x).trim(); });
+
+    d.setDrawColor(0); d.setLineWidth(0.2);
+    if (d.setLineDashPattern) d.setLineDashPattern([1,1], 0);
+    d.line(0, Y, 210, Y); d.line(62, Y, 62, 297);
+    if (d.setLineDashPattern) d.setLineDashPattern([], 0);
+
+    // ---- Empfangsschein (0..62) ----
+    var x = 5, y = Y + 7;
+    d.setFont('helvetica','bold'); d.setFontSize(11); d.text('Empfangsschein', x, y);
+    y += 7;
+    d.setFontSize(6); d.text('Konto / Zahlbar an', x, y); y += 3;
+    d.setFont('helvetica','normal'); d.setFontSize(8);
+    d.text(ibanHuebsch(konf.iban), x, y); y += 3;
+    empf.forEach(function(l){ d.text(String(l), x, y); y += 3; });
+    if (ref) { y += 2; d.setFont('helvetica','bold'); d.setFontSize(6); d.text('Referenz', x, y); y += 3;
+      d.setFont('helvetica','normal'); d.setFontSize(8); d.text(ref, x, y); y += 3; }
+    y += 2; d.setFont('helvetica','bold'); d.setFontSize(6); d.text('Zahlbar durch', x, y); y += 3;
+    d.setFont('helvetica','normal'); d.setFontSize(8); d.text(r.name, x, y);
+    d.setFont('helvetica','bold'); d.setFontSize(6);
+    d.text('Währung', x, Y + 68); d.text('Betrag', x + 14, Y + 68);
+    d.setFont('helvetica','normal'); d.setFontSize(8);
+    d.text('CHF', x, Y + 72); d.text(chf(r.betrag), x + 14, Y + 72);
+    d.setFont('helvetica','bold'); d.setFontSize(6);
+    d.text('Annahmestelle', 57, Y + 82, {align:'right'});
+
+    // ---- Zahlteil (62..210) ----
+    var zx = 67; y = Y + 7;
+    d.setFont('helvetica','bold'); d.setFontSize(11); d.text('Zahlteil', zx, y);
+
+    var qx = zx, qy = Y + 12, qs = 46;
+    var q = qrModule(qrNutzlast(r));
+    if (q) {
+      var n = q.getModuleCount(), m = qs / n;
+      d.setFillColor(0,0,0);
+      for (var rr=0; rr<n; rr++) for (var cc=0; cc<n; cc++)
+        if (q.isDark(rr,cc)) d.rect(qx + cc*m, qy + rr*m, m, m, 'F');
+      // Schweizerkreuz: 7x7 mm mittig, mit weissem Rand freigestellt
+      var cxm = qx + qs/2, cym = qy + qs/2;
+      d.setFillColor(255,255,255); d.rect(cxm-3.7, cym-3.7, 7.4, 7.4, 'F');
+      d.setFillColor(0,0,0);       d.rect(cxm-3.5, cym-3.5, 7, 7, 'F');
+      d.setFillColor(255,255,255);
+      d.rect(cxm-0.7, cym-2.3, 1.4, 4.6, 'F');
+      d.rect(cxm-2.3, cym-0.7, 4.6, 1.4, 'F');
+    } else {
+      d.setFontSize(8); d.setTextColor(150,0,0);
+      d.text('QR-Code konnte nicht erzeugt werden', qx, qy + 20); d.setTextColor(0);
+    }
+
+    d.setFont('helvetica','bold'); d.setFontSize(8);
+    d.text('Währung', zx, Y + 66); d.text('Betrag', zx + 16, Y + 66);
+    d.setFont('helvetica','normal'); d.setFontSize(10);
+    d.text('CHF', zx, Y + 71); d.text(chf(r.betrag), zx + 16, Y + 71);
+
+    var rx = 118; y = Y + 7;
+    d.setFont('helvetica','bold'); d.setFontSize(8); d.text('Konto / Zahlbar an', rx, y); y += 4;
+    d.setFont('helvetica','normal'); d.setFontSize(10);
+    d.text(ibanHuebsch(konf.iban), rx, y); y += 4;
+    empf.forEach(function(l){ d.text(String(l), rx, y); y += 4; });
+    if (ref) { y += 2; d.setFont('helvetica','bold'); d.setFontSize(8); d.text('Referenz', rx, y); y += 4;
+      d.setFont('helvetica','normal'); d.setFontSize(10); d.text(ref, rx, y); y += 4; }
+    y += 2; d.setFont('helvetica','bold'); d.setFontSize(8); d.text('Zusätzliche Informationen', rx, y); y += 4;
+    d.setFont('helvetica','normal'); d.setFontSize(10);
+    d.text('Rechnung ' + r.nr + ' · ' + r.zeitraum, rx, y); y += 6;
+    d.setFont('helvetica','bold'); d.setFontSize(8); d.text('Zahlbar durch', rx, y); y += 4;
+    d.setFont('helvetica','normal'); d.setFontSize(10); d.text(r.name, rx, y);
+  }
+
+  function dateiname(r){
+    return 'Rechnung_' + r.nr + '_' + String(r.name).replace(/[^A-Za-zÀ-ÿ0-9]+/g,'_').replace(/^_|_$/g,'') + '.pdf';
+  }
+  function herunterladen(blob, name){
+    var u = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = u; a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(u); a.remove(); }, 1500);
+  }
+
+  // ---- Rechnungen ausstellen ---------------------------------------
+  // Nummern werden hier vergeben und EINMAL am Ende gespeichert. So kann
+  // ein Abbruch mittendrin keine Luecke im Nummernkreis hinterlassen.
+  function ausstellen(zeilen, lauf){
+    var nr = parseInt(konf.naechsteNr || 1, 10) || 1;
+    return zeilen.map(function(z){
+      var r = { nr:String(nr++), datum:heute(),
+                zeitraum: deDatum(lauf.von) + '-' + deDatum(lauf.bis),
+                kindId:z.kindId, name:z.name, positionen:z.positionen, betrag:z.betrag };
+      return r;
+    });
+  }
+  function verbuchen(rechnungen){
+    return fb().fbGetRaw(PFAD_RECH).catch(function(){ return null; }).then(function(d){
+      var liste = (d && d.value) || [];
+      if (!Array.isArray(liste)) liste = [];
+      rechnungen.forEach(function(r){
+        liste.push({ nr:r.nr, datum:r.datum, kindId:r.kindId, name:r.name,
+                     zeitraum:r.zeitraum, betrag:r.betrag });
+      });
+      if (liste.length > 500) liste = liste.slice(-500);
+      konf.naechsteNr = parseInt(rechnungen[rechnungen.length-1].nr, 10) + 1;
+      return Promise.all([ fb().fbSave(PFAD_RECH, liste), fb().fbSave(PFAD_KONF, konf) ]);
+    }).then(function(r){
+      if (r[0] === false || r[1] === false) throw new Error('Speichern wurde abgelehnt');
+      return true;
+    });
+  }
+
+  function bereitPruefen(){
+    if (!darf()) { toast('Keine Berechtigung','error'); return false; }
+    if (!konf.iban || !ibanGueltig(konf.iban)) { toast('Bitte zuerst eine gültige IBAN hinterlegen','error'); return false; }
+    if (!konf.name || !konf.ort) { toast('Bitte Name und Ort des Vereins hinterlegen','error'); return false; }
+    return true;
+  }
+
+  // ---- Testrechnung ------------------------------------------------
+  // Zweck: Gestaltung ansehen UND den QR-Code einmal mit der eigenen
+  // Banking-App scannen. Das ist der einzige Weg, den Zahlteil wirklich
+  // zu pruefen - gegen die Norm kann ich pruefen, gegen eine echte App nicht.
+  //
+  // Bewusst NICHT: Rechnungsnummer verbrauchen, in data/rechnungen
+  // verbuchen oder Firestore anfassen. Eine Testrechnung darf im
+  // Nummernkreis keine Luecke hinterlassen.
+  function testRechnung(btn){
+    if (!darf()) { toast('Keine Berechtigung','error'); return; }
+    // Mit echten Angaben ist der Scan-Test aussagekraeftig. Fehlen sie,
+    // zeigen wir wenigstens die Gestaltung - mit sichtbaren Beispielwerten.
+    var echt = !!(konf.iban && ibanGueltig(konf.iban) && konf.name && konf.ort);
+    var kSicher = konf;
+    if (!echt) {
+      konf = { name:'Musterverein ELKI', strasse:'Musterstrasse', nr:'1',
+               plz:'7000', ort:'Chur', iban:'CH9300762011623852957', naechsteNr:0 };
+    }
+    // Positionen aus den echten Tarifen, sonst Beispielansaetze
+    var gruppen = (typeof ANGEBOTE !== 'undefined') ? ANGEBOTE : {};
+    var schluessel = Object.keys(gruppen).slice(0,2);
+    var pos = schluessel.map(function(g, i){
+      var preis = Number((tarife && tarife[g]) || (i === 0 ? 15 : 12));
+      var anzahl = (i === 0) ? 3 : 1;
+      return { gruppe:g, label:gruppen[g] ? gruppen[g].label : g,
+               anzahl:anzahl, abwesend:(i === 0 ? 1 : 0), preis:preis, betrag:anzahl*preis };
+    });
+    if (!pos.length) pos = [{ label:'Beispiel-Angebot', anzahl:3, abwesend:1, preis:15, betrag:45 }];
+    var r = { nr:'MUSTER', datum:heute(), zeitraum: deDatum(monatsAnfang(1)) + '-' + deDatum(monatsEnde(1)),
+              kindId:'0', name:'Muster Kind', positionen:pos,
+              betrag: pos.reduce(function(s,p){ return s+p.betrag; },0), test:true };
+
+    var alt = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = 'erstellt …'; }
+    ladeLib('pdf').then(function(){
+      herunterladen(pdfBauen(r).output('blob'), 'Testrechnung_MUSTER.pdf');
+      toast(echt
+        ? 'Testrechnung erstellt – bitte den QR-Code einmal mit der Banking-App scannen'
+        : 'Testrechnung mit BEISPIEL-Angaben erstellt (noch keine gültige IBAN hinterlegt)',
+        echt ? 'success' : 'info');
+    }).catch(function(e){
+      toast('Testrechnung nicht erstellt: ' + ((e&&e.message)||e), 'error');
+    }).then(function(){
+      konf = kSicher;                       // Beispielwerte nie stehen lassen
+      if (btn) { btn.disabled = false; btn.textContent = alt || 'Testrechnung erzeugen'; }
+    });
+  }
+
+  function einzelnePdf(zeile, lauf, btn){
+    if (!bereitPruefen()) return;
+    var alt = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = 'erstellt …'; }
+    ladeLib('pdf').then(function(){
+      var r = ausstellen([zeile], lauf)[0];
+      var doc = pdfBauen(r);
+      return verbuchen([r]).then(function(){
+        herunterladen(doc.output('blob'), dateiname(r));
+        toast('Rechnung ' + r.nr + ' für ' + r.name + ' (CHF ' + chf(r.betrag) + ')','success');
+        auffrischen();
+      });
+    }).catch(function(e){
+      toast('Rechnung nicht erstellt: ' + ((e&&e.message)||e), 'error');
+    }).then(function(){ if (btn) { btn.disabled = false; btn.textContent = alt || 'PDF'; } });
+  }
+
+  function allePdfZip(lauf, btn){
+    if (!bereitPruefen()) return;
+    if (!lauf.zeilen.length) { toast('Nichts zu verrechnen','info'); return; }
+    var alt = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; }
+    var schritt = function(t){ if (btn) btn.textContent = t; };
+    schritt('lädt …');
+    Promise.all([ ladeLib('pdf'), ladeLib('zip') ]).then(function(){
+      var rechnungen = ausstellen(lauf.zeilen, lauf);
+      var zip = new JSZip();
+      rechnungen.forEach(function(r, i){
+        schritt('erstellt ' + (i+1) + '/' + rechnungen.length + ' …');
+        zip.file(dateiname(r), pdfBauen(r).output('arraybuffer'));
+      });
+      schritt('packt …');
+      return zip.generateAsync({ type:'blob' }).then(function(blob){
+        // Erst verbuchen, dann herunterladen: waere das Speichern
+        // fehlgeschlagen, gaebe es sonst PDFs mit Nummern, die niemand kennt.
+        return verbuchen(rechnungen).then(function(){
+          herunterladen(blob, 'Rechnungen_' + lauf.von + '_bis_' + lauf.bis + '.zip');
+          toast(rechnungen.length + ' Rechnung(en) als ZIP erstellt', 'success');
+          auffrischen();
+        });
+      });
+    }).catch(function(e){
+      toast('ZIP nicht erstellt: ' + ((e&&e.message)||e), 'error');
+    }).then(function(){ if (btn) { btn.disabled = false; btn.textContent = alt || 'Alle als ZIP'; } });
+  }
+
+  // ---- Oberflaeche --------------------------------------------------
+  function laden(){
+    return Promise.all([
+      fb().fbGetRaw(PFAD_KONF).catch(function(){ return null; }),
+      fb().fbGetRaw(PFAD_TARIF).catch(function(){ return null; })
+    ]).then(function(r){
+      konf = (r[0] && r[0].value) || { name:'', strasse:'', nr:'', plz:'', ort:'', iban:'', naechsteNr:1 };
+      tarife = (r[1] && r[1].value) || {};
+    });
+  }
+
+  function feld(id, label, wert, platz, typ){
+    return '<div class="rg-feld"><label for="'+id+'">'+eh(label)+'</label>'
+      + '<input type="'+(typ||'text')+'" id="'+id+'" value="'+eh(wert==null?'':wert)+'"'
+      + (platz ? ' placeholder="'+eh(platz)+'"' : '') + '></div>';
+  }
+  function auswahl(id, label, werte, gewaehlt, alle){
+    return '<div class="rg-feld"><label for="'+id+'">'+eh(label)+'</label><select id="'+id+'">'
+      + '<option value="">'+eh(alle||'Alle')+'</option>'
+      + werte.map(function(w){
+          var v = (typeof w === 'string') ? w : w.v, t = (typeof w === 'string') ? w : w.t;
+          return '<option value="'+eh(v)+'"'+(gewaehlt===v?' selected':'')+'>'+eh(t)+'</option>';
+        }).join('')
+      + '</select></div>';
+  }
+
+  function zeichnen(){
+    var box = $('rg-inhalt'); if (!box) return;
+    if (!darf()) { box.innerHTML = '<div class="rg-warn">Keine Berechtigung.</div>'; return; }
+    if (!fb()) { box.innerHTML = '<div class="rg-warn">Keine Verbindung zur Datenbank.</div>'; return; }
+
+    var alle = (typeof kinder !== 'undefined') ? kinder : [];
+    var gruppen = (typeof ANGEBOTE !== 'undefined') ? ANGEBOTE : {};
+    var klassen = [], lehrer = [], jahre = [];
+    alle.forEach(function(k){
+      var b = (typeof bookingOf === 'function') ? bookingOf(k) : k;
+      if (b.klasse && klassen.indexOf(b.klasse) === -1) klassen.push(b.klasse);
+      if (b.lehrperson && lehrer.indexOf(b.lehrperson) === -1) lehrer.push(b.lehrperson);
+      var j = jahrgang(k.geburtsdatum); if (j && jahre.indexOf(j) === -1) jahre.push(j);
+    });
+    klassen.sort(); lehrer.sort(); jahre.sort();
+    var TAGE = (typeof DAYS !== 'undefined') ? DAYS : ['Mo','Di','Mi','Do','Fr'];
+
+    box.innerHTML =
+      // --- Zielgruppe ---
+      '<div class="rg-box offen"><h3>1. Zielgruppe</h3>'
+      + '<p class="hilfe-text">Wer soll eine Rechnung bekommen? Leer = alle, die im Zeitraum etwas bezogen haben.</p>'
+      + '<div class="rg-gitter">'
+      +   auswahl('rg-f-angebot','Angebot', Object.keys(gruppen).map(function(g){ return {v:g,t:gruppen[g].label}; }), F.angebot)
+      +   auswahl('rg-f-status','Status', [{v:'aktiv',t:'Aktiv'},{v:'warteliste',t:'Warteliste'},{v:'inaktiv',t:'Inaktiv'}], F.status)
+      +   auswahl('rg-f-klasse','Klasse', klassen, F.klasse)
+      +   auswahl('rg-f-lehrperson','Lehrperson', lehrer, F.lehrperson)
+      +   auswahl('rg-f-jahrgang','Jahrgang', jahre, F.jahrgang)
+      + '</div>'
+      + '<div class="rg-feld" style="margin-top:10px"><label>Wochentage</label><div class="rg-tage">'
+      +   TAGE.map(function(t){ return '<button type="button" class="rg-tag'+(F.tage.indexOf(t)!==-1?' an':'')+'" data-tag="'+t+'">'+eh(t)+'</button>'; }).join('')
+      + '</div></div></div>'
+
+      // --- Zeitraum ---
+      + '<div class="rg-box offen"><h3>2. Zeitraum</h3>'
+      + '<div class="rg-gitter">'
+      +   feld('rg-von','Von', monatsAnfang(1), '', 'date')
+      +   feld('rg-bis','Bis', monatsEnde(1), '', 'date')
+      + '</div>'
+      + '<div class="rg-leiste"><button type="button" class="btn btn-primary btn-small" id="rg-auswerten">Bezogene Zeiten auswerten</button></div>'
+      + '</div>'
+
+      // --- Ergebnis ---
+      + '<div id="rg-ergebnis"></div>'
+
+      // --- Einstellungen des Werkzeugs (eingeklappt) ---
+      + '<div class="rg-box" id="rg-konf-box"><h3 class="rg-klapp" id="rg-konf-klapp">Zahlungsangaben und Tarife</h3>'
+      + '<div class="rg-body">'
+      +   '<p class="hilfe-text">Einmal einrichten. Der QR-Zahlteil wird daraus gebaut.</p>'
+      +   '<div class="rg-gitter">'
+      +     feld('rg-name','Verein / Empfänger', konf.name)
+      +     feld('rg-iban','IBAN', konf.iban, 'CH.. .... .... .... .... .')
+      +     feld('rg-strasse','Strasse', konf.strasse)
+      +     feld('rg-nr','Nr.', konf.nr)
+      +     feld('rg-plz','PLZ', konf.plz)
+      +     feld('rg-ort','Ort', konf.ort)
+      +   '</div><div id="rg-iban-hinweis"></div>'
+      +   '<h4 style="margin:14px 0 4px;font-size:13px">Tarife je bezogener Anwesenheit</h4>'
+      +   '<div class="rg-gitter">'
+      +     Object.keys(gruppen).map(function(g){
+              return feld('rg-tarif-'+g, gruppen[g].label, (tarife[g]!=null?tarife[g]:''), '0.00');
+            }).join('')
+      +   '</div>'
+      +   '<div class="rg-leiste">'
+      +     '<button type="button" class="btn btn-primary btn-small" id="rg-speichern">Speichern</button>'
+      +     '<button type="button" class="btn btn-secondary btn-small" id="rg-test">Testrechnung erzeugen</button>'
+      +   '</div>'
+      +   '<p class="hilfe-text" style="margin-top:8px">Die Testrechnung zeigt die Gestaltung und trägt '
+      +     'einen <b>echten QR-Code aus deinen Angaben</b> — bitte einmal mit der eigenen Banking-App scannen. '
+      +     'Sie ist als <b>MUSTER</b> gekennzeichnet, verbraucht <b>keine Rechnungsnummer</b> und wird '
+      +     '<b>nicht verbucht</b>.</p>'
+      + '</div></div>';
+
+    // Ereignisse
+    ['angebot','status','klasse','lehrperson','jahrgang'].forEach(function(f){
+      var el = $('rg-f-'+f);
+      if (el) el.addEventListener('change', function(){ F[f] = el.value; leeren(); });
+    });
+    box.querySelectorAll('[data-tag]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var t = b.dataset.tag, i = F.tage.indexOf(t);
+        if (i === -1) F.tage.push(t); else F.tage.splice(i,1);
+        b.classList.toggle('an'); leeren();
+      });
+    });
+    $('rg-auswerten').addEventListener('click', auswerteLauf);
+    $('rg-speichern').addEventListener('click', speichern);
+    $('rg-test').addEventListener('click', function(){ testRechnung($('rg-test')); });
+    $('rg-konf-klapp').addEventListener('click', function(){ $('rg-konf-box').classList.toggle('offen'); });
+    var ib = $('rg-iban');
+    if (ib) { ib.addEventListener('input', ibanPruefen); ibanPruefen(); }
+    // Ohne Zahlungsangaben ist nichts möglich -> Abschnitt gleich offen zeigen
+    if (!konf.iban || !konf.name) $('rg-konf-box').classList.add('offen');
+  }
+
+  function leeren(){ var e = $('rg-ergebnis'); if (e) e.innerHTML = ''; letzterLauf = null; }
+
+  function ibanPruefen(){
+    var el = $('rg-iban-hinweis'), v = $('rg-iban') ? $('rg-iban').value : '';
+    if (!el) return;
+    if (!String(v).trim()) { el.innerHTML = ''; return; }
+    el.innerHTML = ibanGueltig(v)
+      ? '<div class="rg-warn rg-ok">IBAN gültig' + (istQrIban(v)
+          ? ' — QR-IBAN erkannt, es wird eine QR-Referenz erzeugt.'
+          : ' — normale IBAN, die Rechnungsnummer steht als Mitteilung im Code.') + '</div>'
+      : '<div class="rg-warn">Diese IBAN ist <b>nicht gültig</b> (Prüfziffer stimmt nicht). '
+        + 'Bitte nachsehen — sonst lässt sich die Rechnung nicht bezahlen.</div>';
+  }
+
+  function speichern(){
+    if (!darf()) { toast('Keine Berechtigung','error'); return; }
+    var iban = $('rg-iban').value.trim();
+    if (iban && !ibanGueltig(iban)) { toast('IBAN ungültig — bitte zuerst korrigieren','error'); return; }
+    konf = { name:$('rg-name').value.trim(), strasse:$('rg-strasse').value.trim(),
+             nr:$('rg-nr').value.trim(), plz:$('rg-plz').value.trim(), ort:$('rg-ort').value.trim(),
+             iban:ibanRein(iban), naechsteNr:(konf && konf.naechsteNr) || 1 };
+    var neu = {};
+    Object.keys((typeof ANGEBOTE!=='undefined')?ANGEBOTE:{}).forEach(function(g){
+      var el = $('rg-tarif-'+g);
+      var v = el ? parseFloat(String(el.value).replace(',','.')) : NaN;
+      if (!isNaN(v)) neu[g] = v;
+    });
+    tarife = neu;
+    Promise.all([ fb().fbSave(PFAD_KONF, konf), fb().fbSave(PFAD_TARIF, tarife) ]).then(function(r){
+      if (r[0] === false || r[1] === false) throw new Error('abgelehnt');
+      toast('Zahlungsangaben und Tarife gespeichert','success');
+    }).catch(function(e){ toast('Nicht gespeichert: ' + ((e&&e.message)||e),'error'); });
+  }
+
+  function auswerteLauf(){
+    var von = $('rg-von').value, bis = $('rg-bis').value, el = $('rg-ergebnis');
+    if (!von || !bis || von > bis) { el.innerHTML = '<div class="rg-warn">Bitte einen gültigen Zeitraum wählen.</div>'; return; }
+    if (!Object.keys(tarife||{}).length) {
+      el.innerHTML = '<div class="rg-warn">Es sind noch keine Tarife hinterlegt — siehe „Zahlungsangaben und Tarife" unten.</div>'; return; }
+    el.innerHTML = '<p class="hilfe-text">Wird ausgewertet …</p>';
+    auswerten(von, bis).then(function(lauf){
+      letzterLauf = lauf;
+      if (!lauf.zeilen.length) {
+        el.innerHTML = '<div class="rg-warn">Im Zeitraum ' + eh(deDatum(von)) + ' bis ' + eh(deDatum(bis))
+          + ' wurde in dieser Zielgruppe nichts bezogen — es gibt nichts zu verrechnen.'
+          + (lauf.ausgefiltert ? ' (' + lauf.ausgefiltert + ' Kind(er) durch den Filter ausgeschlossen)' : '') + '</div>';
+        return;
+      }
+      var gesamt = lauf.zeilen.reduce(function(s,z){ return s+z.betrag; },0);
+      var wegGesamt = lauf.zeilen.reduce(function(s,z){ return s+z.abwesend; },0);
+      el.innerHTML =
+        '<div class="rg-box offen"><h3>3. Ergebnis</h3>'
+        + '<table class="rg-tabelle"><thead><tr><th>Kind</th><th>Bezogen</th>'
+        +   '<th class="zahl">Betrag</th><th class="zahl">PDF</th></tr></thead><tbody>'
+        + lauf.zeilen.map(function(z,i){
+            return '<tr><td>' + eh(z.name)
+              + (z.fehlt ? ' <span style="color:var(--warn);font-weight:700">(nicht mehr in der Liste)</span>' : '')
+              + '</td><td>' + z.positionen.map(function(p){ return eh(p.label)+': '+p.anzahl+'×'; }).join(' · ')
+              + (z.abwesend ? '<div class="rg-nichtverrechnet">' + z.abwesend + '× abwesend – nicht verrechnet</div>' : '')
+              + '</td><td class="zahl">CHF ' + chf(z.betrag) + '</td>'
+              + '<td class="zahl"><button type="button" class="btn btn-secondary btn-small" data-rg="'+i+'">PDF</button></td></tr>';
+          }).join('')
+        + '</tbody><tfoot><tr><td colspan="2" style="font-weight:700;padding-top:8px">Gesamt ('
+        + lauf.zeilen.length + ' Rechnung(en))</td><td class="zahl" style="font-weight:700;padding-top:8px">CHF '
+        + chf(gesamt) + '</td><td></td></tr></tfoot></table>'
+        + (wegGesamt ? '<p class="rg-nichtverrechnet" style="margin-top:8px">Insgesamt ' + wegGesamt
+            + '× abwesend — diese Zeiten kosten nichts und erscheinen nur als Hinweis auf der Rechnung.</p>' : '')
+        + (lauf.ausgefiltert ? '<p class="rg-nichtverrechnet">' + lauf.ausgefiltert
+            + ' Kind(er) durch die Zielgruppe ausgeschlossen.</p>' : '')
+        + '<div class="rg-leiste">'
+        +   '<button type="button" class="btn btn-primary btn-small" id="rg-zip">Alle als ZIP herunterladen</button>'
+        +   '<span class="hilfe-text">erzeugt ' + lauf.zeilen.length + ' PDF-Datei(en) mit fortlaufender Nummer</span>'
+        + '</div></div>';
+      el.querySelectorAll('[data-rg]').forEach(function(b){
+        b.addEventListener('click', function(){ einzelnePdf(lauf.zeilen[parseInt(b.dataset.rg,10)], lauf, b); });
+      });
+      $('rg-zip').addEventListener('click', function(){ allePdfZip(lauf, $('rg-zip')); });
+    }).catch(function(e){
+      el.innerHTML = '<div class="rg-warn">Auswertung fehlgeschlagen: ' + eh((e&&e.message)||e) + '</div>';
+    });
+  }
+
+  function auffrischen(){
+    if (!$('rg-inhalt')) return;
+    laden().then(zeichnen).catch(function(e){
+      var b = $('rg-inhalt');
+      if (b) b.innerHTML = '<div class="rg-warn">Angaben nicht lesbar: ' + eh((e&&e.message)||e) + '</div>';
+    });
+  }
+  window.renderRechnungen = auffrischen;
+  window.elkiRechnungenAuffrischen = auffrischen;   // Altname, falls noch verdrahtet
+
+  window.elkiRechnungPruefhilfe = {
+    ibanGueltig:ibanGueltig, istQrIban:istQrIban, qrReferenz:qrReferenz, pruefziffer:pruefziffer,
+    nutzlast:function(r,k){ var a=konf; if(k) konf=k; var s=qrNutzlast(r); konf=a; return s; },
+    setzeKonf:function(k){ konf=k; }, setzeTarife:function(t){ tarife=t; },
+    setzeFilter:function(f){ F = Object.assign({angebot:'',status:'',klasse:'',lehrperson:'',jahrgang:'',tage:[]}, f||{}); },
+    auswerten:auswerten, pdfBauen:function(r){ return pdfBauen(r); }, ladeLib:ladeLib,
+    dateiname:dateiname, testRechnung:testRechnung, holeKonf:function(){ return konf; }
+  };
+})();
+</script>
+<!-- ================================================================= -->
+<!-- NEU 2026-09-01: Daten bereinigen (nur Admin)                       -->
+<!--                                                                    -->
+<!-- Zweck: einzelne Bereiche gezielt leeren, statt nur "alles" wie in  -->
+<!-- der Gefahrenzone. Wichtigster Fall: alte Anwesenheit wegraeumen,   -->
+<!-- bevor data/anwesenheit an die 1-MB-Grenze stoesst.                 -->
+<!--                                                                    -->
+<!-- Schutz an VIER Stellen, weil das echte Kinderdaten trifft:         -->
+<!--  1. Nur Admin (Oberflaeche) – serverseitig entscheidet das         -->
+<!--     Regelwerk, siehe ELKI Serverseitige Absicherung                -->
+<!--  2. Vorschau: erst zaehlen, was wegfaellt – nie blind loeschen     -->
+<!--  3. Backup-Alter sichtbar; ohne frische Sicherung deutliche Warnung -->
+<!--  4. Tippbestaetigung ("LOESCHEN") statt nur OK – ein Fehlklick     -->
+<!--     reicht nicht aus                                               -->
+<!-- Ergebnis wird ausgewertet und gemeldet (kein stiller Fehlschlag).  -->
+<!-- ================================================================= -->
+<style>
+  .ber-zeile { border:1px solid var(--line); border-radius:var(--r-sm); padding:11px 13px; margin-bottom:9px; background:var(--surface); }
+  .ber-kopf { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .ber-titel { font-weight:700; font-size:14px; color:var(--ink); }
+  .ber-zahl { font-size:12px; color:var(--ink-2); font-weight:700; margin-left:auto; white-space:nowrap; }
+  .ber-sub { font-size:12px; color:var(--ink-3); margin-top:3px; line-height:1.5; }
+  .ber-aktion { margin-top:9px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .ber-datum { padding:5px 8px; border:1px solid var(--line); border-radius:var(--r-xs); font-family:inherit; font-size:13px; }
+  /* Statusmeldung, 2026-09-07 beruhigt: schmale Kante statt Balken,
+     Fliesstext in Lesefarbe. Die Hex-Werte (#9b2c2a, #1E6B3A) waren im
+     Dunkelmodus praktisch unlesbar — jetzt durchgehend Variablen. */
+  .ber-warn { padding:10px 13px; border-radius:var(--r); font-size:12.5px;
+    margin-bottom:11px; line-height:1.55; color:var(--ink-2);
+    border:1px solid var(--line); border-left-width:2px; }
+  .ber-warn b { color:var(--ink); font-weight:700; }
+  .ber-warn.rot   { background:var(--danger-wash); border-left-color:var(--danger); }
+  .ber-warn.gruen { background:var(--ok-wash);     border-left-color:var(--ok); }
+</style>
+<script>
+(function(){
+  "use strict";
+  function $(id){ return document.getElementById(id); }
+  function fb(){ return window._fb; }
+  function admin(){ return typeof isAdminRole === 'function' && isAdminRole(); }
+  function eh(s){ return (typeof escHtml === 'function') ? escHtml(s==null?'':String(s)) : String(s==null?'':s); }
+  function toast(t,a){ if (typeof showToast === 'function') showToast(t, a || 'info'); }
+
+  // Bereiche. zaehlen() -> Promise({n, info}); loeschen() -> Promise(true/false)
+  // n === 0 blendet den Loeschen-Knopf aus (nichts zu tun).
+  var BEREICHE = [
+    {
+      id:'anw-alt', titel:'Anwesenheit vor einem Stichtag',
+      sub:'Raeumt alte Tage weg. Der beste Weg, wenn die Anwesenheitsdaten zu gross werden — '
+        + 'der laufende Betrieb bleibt unberuehrt.',
+      datum:true,
+      zaehlen:function(stichtag){
+        return fb().fbGetRaw('data/anwesenheit').then(function(d){
+          var v = (d && d.value) || {};
+          var tage = Object.keys(v).filter(function(t){ return t < stichtag; });
+          return { n: tage.length, info: tage.length + ' Tag(e) vor ' + stichtag };
+        });
+      },
+      loeschen:function(stichtag){
+        return fb().fbGetRaw('data/anwesenheit').then(function(d){
+          var v = (d && d.value) || {};
+          var tage = Object.keys(v).filter(function(t){ return t < stichtag; });
+          // feldgenau je Tag loeschen – so bleibt alles Neuere unangetastet,
+          // auch wenn gerade jemand erfasst.
+          return tage.reduce(function(kette, t){
+            return kette.then(function(){ return fb().fbSetPath('data/anwesenheit', ['value', t], null); });
+          }, Promise.resolve()).then(function(){ return tage.length; });
+        });
+      }
+    },
+    {
+      id:'anw-alle', titel:'Anwesenheit komplett',
+      sub:'Alle Anwesenheiten, Tagesabschluesse und Abschluss-Meldungen. Die Kinder selbst bleiben.',
+      zaehlen:function(){
+        return Promise.all([
+          fb().fbGetRaw('data/anwesenheit').catch(function(){ return null; }),
+          fb().fbGetRaw('data/anwAbschluss').catch(function(){ return null; })
+        ]).then(function(r){
+          var tage = Object.keys((r[0] && r[0].value) || {}).length;
+          var abs  = Object.keys((r[1] && r[1].value) || {}).length;
+          return { n: tage + abs, info: tage + ' Tag(e) erfasst, ' + abs + ' abgeschlossen' };
+        });
+      },
+      loeschen:function(){
+        return Promise.all([
+          fb().fbSave('data/anwesenheit', {}),
+          fb().fbSave('data/anwAbschluss', {}),
+          fb().fbSave('data/abschlussMeldungen', [])
+        ]).then(function(){ return true; });
+      }
+    },
+    {
+      id:'dokumente', titel:'Dokumente an den Kindern',
+      sub:'Alle hinterlegten PDFs und Bilder. Die Kinder und ihre Stammdaten bleiben — '
+        + 'nur die Anhaenge fallen weg.',
+      brauchtKinder:true,
+      zaehlen:function(){
+        var n = (typeof kinder !== 'undefined' ? kinder : []).reduce(function(s,k){ return s + ((k.files||[]).length); }, 0);
+        return Promise.resolve({ n:n, info: n + ' Dokument(e) an ' +
+          (typeof kinder !== 'undefined' ? kinder : []).filter(function(k){ return (k.files||[]).length; }).length + ' Kind(ern) '});
+      },
+      loeschen:function(){
+        var weg = 0, kette = Promise.resolve();
+        kinder.forEach(function(k){
+          (k.files || []).forEach(function(f){
+            if (!f || !f.id || f.url) return;
+            var n = f.chunks || 1;
+            for (var i=0;i<n;i++){
+              (function(pfad){
+                kette = kette.then(function(){
+                  return fb().fbDeleteDoc(pfad).then(function(){ weg++; }, function(){});
+                });
+              })('data/datei_' + f.id + '_' + i);
+            }
+          });
+        });
+        return kette.then(function(){
+          kinder.forEach(function(k){ k.files = []; });
+          return saveData();          // prueft kinderGeladen selbst
+        }).then(function(ok){
+          if (typeof renderKinderTable === 'function') renderKinderTable();
+          return ok !== false;
+        });
+      }
+    },
+    {
+      id:'anmeldungen', titel:'Offene Anmeldungen',
+      sub:'Noch nicht freigegebene Anmeldungen aus dem Formular auf der Website.',
+      zaehlen:function(){
+        return fb().fbListCollection('anmeldungen').then(function(l){
+          return { n:(l||[]).length, info:(l||[]).length + ' offene Anmeldung(en)' };
+        });
+      },
+      loeschen:function(){
+        return fb().fbListCollection('anmeldungen').then(function(l){
+          return (l||[]).reduce(function(kette,a){
+            return kette.then(function(){ return fb().fbDeleteAnmeldung(a._id).catch(function(){}); });
+          }, Promise.resolve());
+        }).then(function(){
+          if (typeof loadAnmeldungen === 'function') loadAnmeldungen();
+          return true;
+        });
+      }
+    },
+    {
+      id:'erinnerungen', titel:'Erinnerungen / Aufgaben-Board',
+      sub:'Alle Karten des Teams — offen, in Arbeit und erledigt.',
+      zaehlen:function(){
+        return fb().fbGetRaw('data/erinnerungen').then(function(d){
+          var a = (d && d.value) || []; var n = Array.isArray(a) ? a.length : 0;
+          return { n:n, info:n + ' Eintrag/Eintraege' };
+        });
+      },
+      loeschen:function(){ return fb().fbSave('data/erinnerungen', []).then(function(){ return true; }); }
+    },
+    {
+      id:'tickets', titel:'Tickets',
+      sub:'Alle Meldungen ans ELKI-Team, auch die erledigten. Der Zaehler beginnt wieder bei 1.',
+      zaehlen:function(){
+        return fb().fbGetRaw('data/tickets').then(function(d){
+          var a = (d && d.value) || []; var n = Array.isArray(a) ? a.length : 0;
+          return { n:n, info:n + ' Ticket(s)' };
+        });
+      },
+      loeschen:function(){
+        return Promise.all([ fb().fbSave('data/tickets', []), fb().fbSave('config/ticketCounter', 0) ])
+          .then(function(){ if (typeof renderTicketList === 'function') renderTicketList(); return true; });
+      }
+    },
+    {
+      id:'nachruecken', titel:'Nachrueck-Vorschlaege',
+      sub:'Vorschlaege und bereits getroffene Entscheidungen zum Nachruecken von der Warteliste.',
+      zaehlen:function(){
+        return fb().fbGetRaw('data/nachruecken').then(function(d){
+          var v = (d && d.value) || {}; var n = ((v.offen||[]).length) + ((v.zurueck||[]).length);
+          return { n:n, info:(v.offen||[]).length + ' offen, ' + (v.zurueck||[]).length + ' entschieden' };
+        });
+      },
+      loeschen:function(){
+        return fb().fbSave('data/nachruecken', { offen:[], zurueck:[] }).then(function(){
+          if (typeof pruefeNachruecken === 'function') pruefeNachruecken(); return true;
+        });
+      }
+    },
+    {
+      id:'rechnungen', titel:'Ausgestellte Rechnungen',
+      sub:'Die Liste der erzeugten Rechnungen (Nummer, Kind, Betrag). ACHTUNG: '
+        + 'Das sind Buchhaltungsbelege — vor dem Loeschen die Sicherung pruefen. '
+        + 'Zahlungsangaben und Tarife bleiben erhalten.',
+      zaehlen:function(){
+        return fb().fbGetRaw('data/rechnungen').then(function(d){
+          var a = (d && d.value) || []; var n = Array.isArray(a) ? a.length : 0;
+          return { n:n, info:n + ' Rechnung(en)' };
+        });
+      },
+      loeschen:function(){ return fb().fbSave('data/rechnungen', []).then(function(){
+        if (typeof elkiRechnungenAuffrischen === 'function') elkiRechnungenAuffrischen();
+        return true; }); }
+    },
+    {
+      id:'protokoll', titel:'Aktivitaetsprotokoll',
+      sub:'Wer hat wann was geaendert. ACHTUNG: Das ist die Nachvollziehbarkeit — '
+        + 'nur leeren, wenn es dafuer einen Grund gibt.',
+      zaehlen:function(){
+        return Promise.all([
+          fb().fbListCollection('aktivitaet').catch(function(){ return []; }),
+          fb().fbGetRaw('data/aktivitaet').catch(function(){ return null; })
+        ]).then(function(r){
+          var neu = (r[0]||[]).length;
+          var alt = ((r[1] && r[1].value) || []).length;
+          return { n:neu+alt, info:neu + ' Eintrag/Eintraege (+' + alt + ' aus der alten Ablage)' };
+        });
+      },
+      loeschen:function(){
+        return fb().fbListCollection('aktivitaet').catch(function(){ return []; }).then(function(l){
+          return (l||[]).reduce(function(kette,e){
+            return kette.then(function(){ return fb().fbDeleteDoc('aktivitaet/' + e._id).catch(function(){}); });
+          }, Promise.resolve());
+        }).then(function(){ return fb().fbSave('data/aktivitaet', []); }).then(function(){
+          if (typeof renderAuditList === 'function') renderAuditList();
+          return true;
+        });
+      }
+    }
+  ];
+
+  function heuteMinusJahr(){
+    var d = new Date(); d.setFullYear(d.getFullYear() - 1);
+    return d.toISOString().slice(0,10);
+  }
+
+  // Backup-Alter sichtbar machen. Loeschen ohne frische Sicherung ist der
+  // Weg, auf dem Daten wirklich verlorengehen.
+  function backupHinweis(){
+    var el = $('ber-backup-hinweis'); if (!el) return;
+    fb().fbGetRaw('config/lastBackup').then(function(d){
+      var iso = d && d.value;
+      if (!iso) { el.innerHTML = '<div class="ber-warn rot">Es ist <b>keine Sicherung</b> vermerkt. '
+        + 'Vor dem Loeschen unbedingt eine erstellen: Einstellungen &rarr; Daten &amp; Sicherung.</div>'; return; }
+      var tage = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+      var alt = tage > 7;
+      el.innerHTML = '<div class="ber-warn ' + (alt ? 'rot' : 'gruen') + '">Letzte Sicherung: <b>'
+        + eh(new Date(iso).toLocaleDateString('de-CH')) + '</b> (' + tage + ' Tag(e) her).'
+        + (alt ? ' <b>Das ist alt</b> — bitte vorher eine neue erstellen.' : '') + '</div>';
+    }).catch(function(){
+      el.innerHTML = '<div class="ber-warn rot">Sicherungsstand nicht lesbar.</div>';
+    });
+  }
+
+  function zeichnen(){
+    var box = $('ber-liste'); if (!box) return;
+    if (!admin()){ box.innerHTML = ''; return; }
+    if (!fb()){ box.innerHTML = '<div class="ber-warn rot">Keine Verbindung zur Datenbank.</div>'; return; }
+
+    box.innerHTML = BEREICHE.map(function(b){
+      return '<div class="ber-zeile" id="ber-' + b.id + '">'
+        + '<div class="ber-kopf"><span class="ber-titel">' + eh(b.titel) + '</span>'
+        +   '<span class="ber-zahl" id="berz-' + b.id + '">wird gezaehlt &hellip;</span></div>'
+        + '<div class="ber-sub">' + eh(b.sub) + '</div>'
+        + '<div class="ber-aktion" id="bera-' + b.id + '">'
+        +   (b.datum ? '<label style="font-size:12px;color:var(--ink-3)">Alles vor '
+        +       '<input type="date" class="ber-datum" id="berd-' + b.id + '" value="' + heuteMinusJahr() + '"></label>' : '')
+        +   '<button type="button" class="btn btn-danger btn-small" data-ber="' + b.id + '" disabled>Loeschen</button>'
+        + '</div></div>';
+    }).join('');
+
+    BEREICHE.forEach(function(b){ zaehlen(b); });
+
+    box.querySelectorAll('[data-ber]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var b = BEREICHE.filter(function(x){ return x.id === btn.dataset.ber; })[0];
+        if (b) ausfuehren(b, btn);
+      });
+    });
+  }
+
+  function stichtagVon(b){
+    var el = $('berd-' + b.id);
+    return el && el.value ? el.value : heuteMinusJahr();
+  }
+
+  function zaehlen(b){
+    var el = $('berz-' + b.id), btn = document.querySelector('[data-ber="' + b.id + '"]');
+    if (!el) return;
+    Promise.resolve()
+      .then(function(){ return b.zaehlen(b.datum ? stichtagVon(b) : undefined); })
+      .then(function(r){
+        el.textContent = r.info;
+        if (btn) btn.disabled = !r.n;
+        if (btn && !r.n) btn.textContent = 'Nichts zu loeschen';
+      })
+      .catch(function(e){
+        el.textContent = 'nicht lesbar';
+        if (btn) btn.disabled = true;
+      });
+  }
+
+  function ausfuehren(b, btn){
+    if (!admin()) { toast('Keine Berechtigung', 'error'); return; }
+    // Dieselbe Sperre wie in der Gefahrenzone: nie schreiben, solange die
+    // Daten nicht nachweislich geladen sind (Vorfall 2026-08-18).
+    if (b.brauchtKinder && typeof kinderGeladen !== 'undefined' && !kinderGeladen) {
+      toast('Gesperrt: Die Daten wurden nicht geladen', 'error'); return;
+    }
+    var stichtag = b.datum ? stichtagVon(b) : undefined;
+
+    Promise.resolve().then(function(){ return b.zaehlen(stichtag); }).then(function(r){
+      if (!r.n) { toast('Nichts zu loeschen', 'info'); return; }
+      if (!confirm('„' + b.titel + '" loeschen?\n\n' + r.info
+        + '\n\nDas laesst sich nur ueber eine Sicherung rueckgaengig machen.')) return;
+      // Tippbestaetigung: ein Fehlklick allein soll nicht reichen.
+      var wort = prompt('Zum Bestaetigen bitte LOESCHEN eintippen:', '');
+      if (wort === null) return;
+      if (String(wort).trim().toUpperCase() !== 'LOESCHEN') { toast('Abgebrochen', 'info'); return; }
+
+      if (btn) { btn.disabled = true; btn.textContent = 'Loescht …'; }
+      return Promise.resolve().then(function(){ return b.loeschen(stichtag); }).then(function(erg){
+        if (erg === false) throw new Error('Der Schreibvorgang wurde abgelehnt');
+        // Erfolgsmeldung landet ueber showToast automatisch im Protokoll.
+        toast('Bereinigt: ' + b.titel + (typeof erg === 'number' ? ' (' + erg + ')' : ''), 'success');
+        if (typeof nachLoeschenAuffrischen === 'function') nachLoeschenAuffrischen();
+        auffrischen();
+      });
+    }).catch(function(e){
+      toast('Nicht (vollstaendig) geloescht: ' + ((e && e.message) || e), 'error');
+      auffrischen();
+    });
+  }
+
+  function auffrischen(){
+    if (!$('ber-liste')) return;
+    backupHinweis();
+    zeichnen();
+  }
+  window.elkiBereinigenAuffrischen = auffrischen;
+})();
 </script>
 <script>
 (function(){
@@ -9691,6 +11256,30 @@ function exportExcel(panelId) {
   .la-slot-kopf { display:flex; align-items:baseline; gap:9px; margin-bottom:9px; flex-wrap:wrap; }
   .la-slot-name { font-size:15px; font-weight:800; color:var(--ink); }
   .la-slot-zeit { font-size:12px; color:var(--ink-3); font-weight:600; }
+  /* NEU 2026-09-06: abgeschlossene Lektion sichtbar machen. Sie bleibt
+     lesbar (die Leitung soll sehen, was erfasst wurde), wirkt aber ruhig
+     und traegt ein Kennzeichen. */
+  .la-slot-zu { font-size:11px; font-weight:800; letter-spacing:.03em; text-transform:uppercase;
+    color:#1E6B3A; background:var(--ok-bg,#E8F5EC); border-radius:999px; padding:2px 9px; }
+  .la-slot.zu .la-kind { opacity:.62; }
+
+  /* Auswahl-Dialog beim Abschliessen */
+  .la-dlg-huelle { position:fixed; inset:0; z-index:60; background:rgba(20,33,56,.45);
+    display:flex; align-items:flex-end; justify-content:center; padding:0; }
+  .la-dlg { background:var(--surface); width:100%; max-width:560px; border-radius:18px 18px 0 0;
+    padding:20px 18px calc(env(safe-area-inset-bottom) + 18px); max-height:86vh; overflow-y:auto; }
+  .la-dlg-titel { font-size:18px; font-weight:800; color:var(--ink); margin-bottom:4px; }
+  .la-dlg-sub { font-size:13px; color:var(--ink-3); line-height:1.5; margin-bottom:14px; }
+  .la-dlg-zeile { display:flex; gap:12px; align-items:flex-start; padding:13px 12px; margin-bottom:8px;
+    border:1px solid var(--line); border-radius:12px; cursor:pointer; }
+  .la-dlg-zeile input { width:22px; height:22px; flex-shrink:0; margin-top:1px; accent-color:var(--brand); }
+  .la-dlg-txt { font-size:14px; color:var(--ink); line-height:1.45; }
+  .la-dlg-info { display:block; font-size:12px; color:var(--ink-3); margin-top:2px; }
+  .la-dlg-knoepfe { display:flex; gap:10px; margin-top:14px; }
+  .la-dlg-knoepfe .la-btn, .la-dlg-knoepfe .la-btn-2 { flex:1; }
+  .la-btn-2 { padding:14px; border-radius:12px; border:1px solid var(--line); background:var(--surface);
+    color:var(--ink); font-family:inherit; font-size:15px; font-weight:700; cursor:pointer; }
+  @media(min-width:620px){ .la-dlg-huelle { align-items:center; } .la-dlg { border-radius:18px; } }
 
   /* Grosse Trefferfläche – wird mit dem Daumen bedient */
   .la-kind { display:flex; align-items:center; gap:13px; width:100%; text-align:left;
@@ -9740,10 +11329,12 @@ function exportExcel(panelId) {
   body.la-ausflug #la-zurueck-btn { display:block; }
 
   /* Werkzeug „Anwesenheit" – Abschluss-Status und abgeleitete Absenzen */
-  .anw-hinweis { font-size:12.5px; font-weight:700; border-radius:var(--r-sm);
-    padding:10px 13px; margin-bottom:14px; line-height:1.5; }
-  .anw-hinweis.ok   { background:var(--ok-bg);   border:1px solid var(--ok);   color:var(--ok); }
-  .anw-hinweis.warn { background:var(--warn-bg); border:1px solid #e9d09a;     color:var(--warn); }
+  .anw-hinweis { font-size:12.5px; border-radius:var(--r); color:var(--ink-2);
+    padding:10px 13px; margin-bottom:14px; line-height:1.55;
+    border:1px solid var(--line); border-left-width:2px; }
+  .anw-hinweis b { color:var(--ink); font-weight:700; }
+  .anw-hinweis.ok   { background:var(--ok-wash);   border-left-color:var(--ok); }
+  .anw-hinweis.warn { background:var(--warn-wash); border-left-color:var(--warn); }
   .anw-abgeleitet { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.05em;
     background:var(--warn-bg); color:var(--warn); border-radius:999px; padding:2px 8px; margin-left:8px; }
 </style>
@@ -9785,9 +11376,14 @@ function exportExcel(panelId) {
   // WICHTIG: getRole() liefert ohne Anmeldung ebenfalls 'viewer' (least
   // privilege). Ohne die Prüfung auf currentUser würde die Leser-App schon
   // über dem Login-Fenster erscheinen und im Hintergrund Daten abfragen.
+  //
+  // Seit 2026-09-07 entscheidet nicht mehr die Rolle allein, sondern
+  // `darfHandyApp()`: Rolle Leser immer, andere Rollen nur bei Zuteilung.
+  // Der Name `istLeser` bleibt — er steht an ~30 Stellen und meint hier
+  // „sieht die Handy-App", nicht „hat Leser-Rechte".
   function istLeser(){
     return typeof currentUser !== 'undefined' && !!currentUser
-        && typeof getRole === 'function' && getRole() === 'viewer';
+        && typeof darfHandyApp === 'function' && darfHandyApp(currentUser);
   }
   function heuteIso(){
     var d = new Date();
@@ -9800,9 +11396,58 @@ function exportExcel(panelId) {
     // Bestätigungen der jeweils anderen (das ist das „live" im Wunsch).
     try { anw = (await window._fb.fbLoad(PFAD_ANW, {})) || {}; } catch(e){ if(!anw) anw = {}; }
     try { abschluss = (await window._fb.fbLoad(PFAD_ABS, {})) || {}; } catch(e){ if(!abschluss) abschluss = {}; }
+    groesseWarnen();   // einmal je Sitzung, siehe Kommentar dort
   }
   function sichern(){
     if (window._fb && window._fb.fbSave) window._fb.fbSave(PFAD_ANW, anw);
+  }
+
+  // NEU 2026-08-26: EIN Kind speichern, ohne das uebrige Dokument anzufassen.
+  //
+  // Vorher schrieb jedes Antippen den ganzen Stand zurueck — inklusive der
+  // bis zu 25 s alten Daten. Tippten zwei Betreuerinnen kurz nacheinander,
+  // ueberschrieb die zweite die Bestaetigung der ersten, ohne dass es
+  // jemandem auffiel. Jetzt wird nur das eine Feld geaendert; Firestore
+  // fuehrt die Aenderungen der Geraete serverseitig zusammen.
+  //
+  // Zweite Neuerung: Der Schreibvorgang wird AUSGEWERTET. Vorher meldete die
+  // Anzeige Erfolg, auch wenn nichts ankam (Handy, schwaches WLAN).
+  // vorher = Stand VOR dem Antippen, damit sich der Fehlerfall in BEIDE
+  // Richtungen zuruecknehmen laesst (auch ein fehlgeschlagenes Loeschen).
+  function feldSichern(datum, slotId, kindId, wert, vorher){
+    var f = window._fb;
+    if (!(f && f.fbSetPath)) { sichern(); return; }   // Rueckfall: alter Weg
+    f.fbSetPath(PFAD_ANW, ['value', String(datum), String(slotId), String(kindId)], wert || null)
+      .catch(function(e){
+        // Die Anzeige darf nicht luegen: exakt den vorherigen Stand herstellen.
+        try {
+          if (!anw[datum]) anw[datum] = {};
+          if (!anw[datum][slotId]) anw[datum][slotId] = {};
+          if (vorher) anw[datum][slotId][kindId] = vorher;
+          else delete anw[datum][slotId][kindId];
+        } catch(_){}
+        showToast('Nicht gespeichert – bitte nochmals antippen'
+          + ((e && e.message) ? ' (' + e.message + ')' : ''), 'error');
+        zeichnen();
+      });
+  }
+
+  // Groesse im Blick behalten — dieselbe Grenze wie im Werkzeug der Leitung.
+  // Sie stand bisher NUR dort, obwohl die Leser-App am meisten schreibt:
+  // Waere das Dokument vollgelaufen, haetten die Schreibvorgaenge still
+  // versagt. Bewusst selten geprueft (einmal je Sitzung), nicht bei jedem
+  // Antippen — das Berechnen kostet auf dem Handy sonst unnoetig Zeit.
+  var LA_WARN_AB = 800 * 1024, laGewarnt = false;
+  function groesseWarnen(){
+    if (laGewarnt) return;
+    try {
+      var kb = JSON.stringify(anw || {}).length;
+      if (kb > LA_WARN_AB) {
+        laGewarnt = true;
+        showToast('Die Anwesenheitsdaten sind fast voll ('
+          + Math.round(kb/1024) + ' KB von 1024 KB). Bitte der Leitung melden.', 'error');
+      }
+    } catch(e){}
   }
 
   // Slots des heutigen Wochentags – gefiltert auf den Einsatz dieser Person.
@@ -9828,8 +11473,10 @@ function exportExcel(panelId) {
       return s.day === tag && aktiveKinderImSlot(s.id).length > 0;
     });
   }
+  // `anw` ist bis zum ersten `laden()` null. Zeichnen darf daran nicht
+  // sterben — eine fehlende Anwesenheit ist schlicht "noch offen".
   function statusVon(datum, slotId, kindId){
-    var d = anw[datum] || {}, s = d[slotId] || {};
+    var d = (anw || {})[datum] || {}, s = d[slotId] || {};
     return s[kindId] || '';
   }
 
@@ -9842,7 +11489,11 @@ function exportExcel(panelId) {
   // Deshalb darf ein Abschluss jetzt eine Slot-Liste tragen:
   //   { am, von }                → ganzer Tag (bisheriges Verhalten, Altdaten)
   //   { am, von, slots:[...] }   → nur diese Lektionen sind erledigt
-  function abschlussVon(datum){ return abschluss[datum] || null; }
+  // Bis 'laden()' durch ist, sind anw/abschluss null. Vor 2026-09-06 fiel
+  // das nicht auf, weil nur zeichnen() nach dem Laden zugriff — die Sperre
+  // je Lektion fragt nun oefter und frueher. Hier abfangen statt an jeder
+  // Aufrufstelle.
+  function abschlussVon(datum){ return (abschluss && abschluss[datum]) || null; }
   function istZu(datum){
     var rec = abschlussVon(datum);
     if (!rec) return false;
@@ -9850,6 +11501,38 @@ function exportExcel(panelId) {
     var meine = slotsHeute().map(function(s){ return s.id; });
     if (!meine.length) return true;
     return meine.every(function(id){ return rec.slots.indexOf(id) !== -1; });
+  }
+
+  // NEU 2026-09-06: Sperre je LEKTION statt je Tag.
+  //
+  // Vorher pruefte das Antippen nur istZu(datum) — also "ist ALLES zu".
+  // Wer morgens die Spielgruppe abschloss, sperrte damit gar nichts:
+  // solange der Mittagstisch offen war, liessen sich die Morgen-Eintraege
+  // weiter aendern. Umgekehrt konnte man den Morgen nicht abschliessen,
+  // ohne den Mittag mitzunehmen. Beides gehoert zusammen.
+  function istSlotZu(datum, slotId){
+    var rec = abschlussVon(datum);
+    if (!rec) return false;
+    if (!Array.isArray(rec.slots)) return true;          // ganzer Tag zu
+    return rec.slots.indexOf(slotId) !== -1;
+  }
+
+  // Welche meiner Lektionen sind heute noch offen?
+  function offeneSlots(datum){
+    return slotsHeute().filter(function(s){ return !istSlotZu(datum, s.id); });
+  }
+
+  // Ist die Lektion zeitlich schon vorbei? Steuert nur die Vorauswahl im
+  // Abschluss-Dialog — bewusst kein hartes Kriterium, die Person entscheidet.
+  // Faellt das Auslesen der Zeit aus, bleibt die Lektion UNangekreuzt
+  // (lieber einmal zu wenig vorschlagen als etwas verfrueht schliessen).
+  function lektionVorbei(zeit){
+    var teile = String(zeit || '').split(/[–—-]/);
+    if (teile.length < 2) return false;
+    var m = teile[1].trim().match(/^(\d{1,2}):(\d{2})$/);
+    if (!m) return false;
+    var ende = new Date(); ende.setHours(parseInt(m[1],10), parseInt(m[2],10), 0, 0);
+    return new Date() >= ende;
   }
 
   function zeichnen(){
@@ -9878,6 +11561,8 @@ function exportExcel(panelId) {
     var html = slots.map(function(s){
       var kinderHier = aktiveKinderImSlot(s.id);
       if (!kinderHier.length) return '';
+      // NEU 2026-09-06: Der Zustand haengt an der LEKTION, nicht am Tag.
+      var slotZu = istSlotZu(datum, s.id);
       var zeilen = kinderHier.map(function(k){
         gesamt++;
         var st = statusVon(datum, s.id, k.id);
@@ -9886,7 +11571,7 @@ function exportExcel(panelId) {
         var txt = st === 'present' ? 'da'
                 : st === 'absent'  ? 'fehlt'
                 : st === 'excused' ? 'entschuldigt'
-                : (zu ? 'fehlt' : 'offen');
+                : (slotZu ? 'fehlt' : 'offen');
         var haken = st === 'present' ? '✓' : (st ? '–' : '');
         var notiz = (k.notiz || '').trim();
         return '<button type="button" class="la-kind' + klasse + '"'
@@ -9898,9 +11583,10 @@ function exportExcel(panelId) {
           + '<span class="la-status">' + txt + '</span>'
           + '</button>';
       }).join('');
-      return '<div class="la-slot"><div class="la-slot-kopf">'
+      return '<div class="la-slot' + (slotZu ? ' zu' : '') + '"><div class="la-slot-kopf">'
         + '<span class="la-slot-name">' + escHtml(s.gruppe.shortLabel) + '</span>'
         + '<span class="la-slot-zeit">' + escHtml(s.label + ' · ' + s.zeit) + '</span>'
+        + (slotZu ? '<span class="la-slot-zu">abgeschlossen</span>' : '')
         + '</div>' + zeilen + '</div>';
     }).join('');
 
@@ -9929,11 +11615,21 @@ function exportExcel(panelId) {
       fuss.innerHTML = '<div class="la-abgeschlossen">✓ ' + teil + wer + '</div>'
         + '<div class="la-fuss-hinweis">Korrekturen macht die Leitung im Werkzeug „Anwesenheit".</div>';
     } else if (gesamt) {
+      // NEU 2026-09-06: Der Knopf benennt, WAS er abschliesst. Bei mehreren
+      // offenen Lektionen fragt er nach — vorher nahm er stillschweigend
+      // alle mit, auch den Mittagstisch, der noch gar nicht stattfand.
+      var nochOffen = offeneSlots(datum);
       var offen = gesamt - da;
-      fuss.innerHTML = '<button type="button" class="la-btn" id="la-abschluss">Tag abschliessen</button>'
+      var beschriftung = nochOffen.length === 1
+        ? escHtml((nochOffen[0].gruppe ? nochOffen[0].gruppe.shortLabel + ' ' : '') + nochOffen[0].label) + ' abschliessen'
+        : 'Lektion abschliessen …';
+      fuss.innerHTML = '<button type="button" class="la-btn" id="la-abschluss">' + beschriftung + '</button>'
         + '<div class="la-fuss-hinweis">' + (offen
             ? offen + ' noch nicht bestätigt – diese werden als <b>abwesend</b> eingetragen.'
-            : 'Alle bestätigt.') + '</div>';
+            : 'Alle bestätigt.')
+        + (nochOffen.length > 1
+            ? '<br>Du wählst aus, welche der ' + nochOffen.length + ' Lektionen du abschliesst.'
+            : '') + '</div>';
       var ab = $('la-abschluss');
       if (ab) ab.addEventListener('click', abschliessen);
     } else {
@@ -9942,9 +11638,15 @@ function exportExcel(panelId) {
 
     // Zusätzlich zugeteilte Werkzeuge wären hier unerreichbar – die
     // Leser-App ersetzt die Verwaltungsoberfläche komplett. Darum ein
-    // Umschalter, aber nur wenn es wirklich etwas zu sehen gibt.
-    if (typeof window.elkiHatExtraWerkzeuge === 'function'
-        && typeof currentUser !== 'undefined' && window.elkiHatExtraWerkzeuge(currentUser)) {
+    // Umschalter, aber nur wenn es wirklich etwas zu sehen gibt:
+    //  - Rolle **Leser** mit zusätzlich zugeteilten Werkzeugen (ADR-22), oder
+    //  - jede **andere** Rolle, die die Handy-App zugeteilt bekommen hat.
+    //    Die hat immer eine Verwaltung — ohne Umschalter wäre sie hier
+    //    gefangen, und zwar ohne jeden Hinweis darauf.
+    var hatVerwaltung = (typeof getRole === 'function' && getRole() !== 'viewer')
+      || (typeof window.elkiHatExtraWerkzeuge === 'function'
+          && typeof currentUser !== 'undefined' && window.elkiHatExtraWerkzeuge(currentUser));
+    if (hatVerwaltung) {
       fuss.insertAdjacentHTML('beforeend',
         '<button type="button" class="la-wechsel" id="la-wechsel">Zur Verwaltung →</button>');
       var w = $('la-wechsel');
@@ -9980,68 +11682,145 @@ function exportExcel(panelId) {
   // Antippen: offen → da → fehlt → offen
   function umschalten(slotId, kindId){
     var datum = heuteIso();
-    if (istZu(datum)) { showToast('Der Tag ist abgeschlossen – Änderungen macht die Leitung', 'error'); return; }
+    // Sperre je Lektion: ein abgeschlossener Morgen bleibt zu, auch wenn
+    // der Mittagstisch noch offen ist.
+    if (istSlotZu(datum, slotId)) {
+      showToast('Diese Lektion ist abgeschlossen – Änderungen macht die Leitung', 'error'); return;
+    }
     if (!anw[datum]) anw[datum] = {};
     if (!anw[datum][slotId]) anw[datum][slotId] = {};
     var jetzt = anw[datum][slotId][kindId] || '';
     var neu = jetzt === 'present' ? 'absent' : (jetzt === 'absent' ? '' : 'present');
     if (neu) anw[datum][slotId][kindId] = neu;
     else delete anw[datum][slotId][kindId];
-    sichern();
+    feldSichern(datum, slotId, kindId, neu, jetzt);   // feldgenau statt Gesamtdokument
     zeichnen();
   }
 
   // Tag abschliessen: alle Nicht-Bestätigten ausdrücklich als abwesend
   // speichern, damit Admin/Supervisor sie bearbeiten können.
+  // NEU 2026-09-06: Es wird gewaehlt, WELCHE Lektionen abgeschlossen werden.
+  //
+  // Vorher schloss der Knopf immer alles ab, was die Person sah. Wer
+  // morgens die Spielgruppe betreute und auch den Mittagstisch sah, musste
+  // den Mittag mitschliessen — obwohl der noch gar nicht stattgefunden hat.
+  // Die Teil-Abschluss-Mechanik (rec.slots, ADR-20) gab es bereits, sie war
+  // nur an die Einsatz-Zuteilung gekoppelt statt an eine Wahl.
   function abschliessen(){
     var datum = heuteIso();
-    var slots = slotsHeute();
+    var offeneL = offeneSlots(datum);
+    if (!offeneL.length) { showToast('Heute ist bereits alles abgeschlossen', 'info'); return; }
+    if (offeneL.length === 1) { abschlussAusfuehren(datum, [offeneL[0].id]); return; }
+    abschlussDialog(datum, offeneL);
+  }
+
+  // Auswahl-Dialog. Vorausgewaehlt sind die Lektionen, die zeitlich vorbei
+  // sind — der haeufige Fall ("Morgen fertig, Mittag laeuft noch") stimmt
+  // damit ohne Zutun, ohne die Entscheidung vorwegzunehmen.
+  function abschlussDialog(datum, offeneL){
+    var alt = $('la-abschluss-dialog'); if (alt) alt.remove();
+    var d = document.createElement('div');
+    d.id = 'la-abschluss-dialog'; d.className = 'la-dlg-huelle';
+    d.innerHTML =
+      '<div class="la-dlg" role="dialog" aria-modal="true" aria-labelledby="la-dlg-titel">'
+      + '<div class="la-dlg-titel" id="la-dlg-titel">Was möchtest du abschliessen?</div>'
+      + '<div class="la-dlg-sub">Nur die gewählten Lektionen werden abgeschlossen. '
+      +   'Die übrigen bleiben offen für die Kollegin, die sie betreut.</div>'
+      + offeneL.map(function(s){
+          var n = aktiveKinderImSlot(s.id).filter(function(k){ return !statusVon(datum, s.id, k.id); }).length;
+          var vorbei = lektionVorbei(s.zeit);
+          return '<label class="la-dlg-zeile">'
+            + '<input type="checkbox" data-slot="' + escAttr(s.id) + '"' + (vorbei ? ' checked' : '') + '>'
+            + '<span class="la-dlg-txt"><b>' + escHtml(s.gruppe ? s.gruppe.shortLabel : s.id) + '</b> '
+            +   escHtml(s.label + ' · ' + s.zeit)
+            +   '<span class="la-dlg-info">' + (n ? n + ' noch nicht bestätigt → werden als abwesend eingetragen'
+                                                  : 'alle bestätigt') + '</span></span></label>';
+        }).join('')
+      + '<div class="la-dlg-knoepfe">'
+      +   '<button type="button" class="la-btn-2" id="la-dlg-ab">Abbrechen</button>'
+      +   '<button type="button" class="la-btn" id="la-dlg-ok">Abschliessen</button>'
+      + '</div></div>';
+    document.body.appendChild(d);
+    var zu = function(){ d.remove(); };
+    d.addEventListener('click', function(e){ if (e.target === d) zu(); });
+    $('la-dlg-ab').addEventListener('click', zu);
+    $('la-dlg-ok').addEventListener('click', function(){
+      var gewaehlt = [].slice.call(d.querySelectorAll('input[data-slot]:checked'))
+                       .map(function(i){ return i.dataset.slot; });
+      if (!gewaehlt.length) { showToast('Bitte mindestens eine Lektion wählen', 'error'); return; }
+      zu(); abschlussAusfuehren(datum, gewaehlt);
+    });
+  }
+
+  function abschlussAusfuehren(datum, gewaehlteIds){
+    var slots = slotsHeute().filter(function(s){ return gewaehlteIds.indexOf(s.id) !== -1; });
     var offen = 0;
     slots.forEach(function(s){
       aktiveKinderImSlot(s.id).forEach(function(k){
         if (!statusVon(datum, s.id, k.id)) offen++;
       });
     });
-    // Nur zugeteilt? Dann darf der Abschluss auch nur die eigenen
-    // Lektionen betreffen – sonst sperrt man die Kollegin aus.
-    var eingeschraenkt = (typeof window.elkiEinsatzSlots === 'function' && typeof currentUser !== 'undefined')
-      ? !!window.elkiEinsatzSlots(currentUser) : false;
-    var frage = eingeschraenkt
-      ? 'Deine Lektionen abschliessen?\n\n' + offen + ' noch nicht bestätigte Kind(er) werden als '
-        + 'abwesend eingetragen.\n\nDie übrigen Angebote des Tages bleiben offen – die schliesst, '
-        + 'wer dafür zuständig ist.'
-      : 'Tag abschliessen?\n\n' + offen + ' noch nicht bestätigte Kind(er) werden als abwesend '
-        + 'eingetragen.\n\nDanach kann nur noch die Leitung ändern.';
-    if (!confirm(frage)) return;
+    var namen = slots.map(function(s){ return (s.gruppe ? s.gruppe.shortLabel + ' ' : '') + s.label; }).join(', ');
+    if (!confirm(namen + ' abschliessen?\n\n' + offen + ' noch nicht bestätigte Kind(er) werden als '
+      + 'abwesend eingetragen.\n\nDanach kann nur noch die Leitung ändern.')) return;
 
+    // NEU 2026-08-26: Nur die TATSAECHLICH gesetzten Kinder sammeln
+    // ("delta"). Frueher wurde danach der ganze Stand zurueckgeschrieben —
+    // damit konnte der Abschluss die Bestaetigungen einer Kollegin
+    // ueberschreiben, die in den letzten 25 s getippt hatte.
+    var delta = {};
     slots.forEach(function(s){
       aktiveKinderImSlot(s.id).forEach(function(k){
         if (statusVon(datum, s.id, k.id)) return;
         if (!anw[datum]) anw[datum] = {};
         if (!anw[datum][s.id]) anw[datum][s.id] = {};
         anw[datum][s.id][k.id] = 'absent';
+        if (!delta[s.id]) delta[s.id] = {};
+        delta[s.id][String(k.id)] = 'absent';
       });
     });
     var rec = { am: new Date().toISOString(),
                 von: (typeof currentUser !== 'undefined' && currentUser && currentUser.name) || '' };
-    if (eingeschraenkt) {
-      // Bereits abgeschlossene Lektionen anderer Betreuerinnen erhalten:
-      // vereinigen statt überschreiben.
-      var bisher = abschluss[datum];
-      var vorhanden = (bisher && Array.isArray(bisher.slots)) ? bisher.slots : [];
-      var meine = slots.map(function(s){ return s.id; });
-      var vereint = vorhanden.slice();
-      meine.forEach(function(id){ if (vereint.indexOf(id) === -1) vereint.push(id); });
-      // Deckt die Vereinigung den ganzen Tag ab, ist es ein voller Abschluss.
-      var alleHeute = getAllSlots()
-        .filter(function(s){ return s.day === (typeof heuteTodayKey === 'function' ? heuteTodayKey() : null); })
-        .map(function(s){ return s.id; });
-      var komplett = alleHeute.every(function(id){ return vereint.indexOf(id) !== -1; });
-      if (!komplett) rec.slots = vereint;
-    }
+    // Bereits abgeschlossene Lektionen erhalten: vereinigen statt
+    // überschreiben. NEU 2026-09-06: gilt jetzt IMMER, nicht mehr nur für
+    // zugeteilte Betreuerinnen — sonst schlösse eine Person ohne Zuteilung
+    // weiterhin den ganzen Tag mit, obwohl sie nur eine Lektion gewählt hat.
+    var bisher = abschluss[datum];
+    var vorhanden = (bisher && Array.isArray(bisher.slots)) ? bisher.slots : [];
+    var meine = slots.map(function(s){ return s.id; });
+    var vereint = vorhanden.slice();
+    meine.forEach(function(id){ if (vereint.indexOf(id) === -1) vereint.push(id); });
+    // Deckt die Vereinigung den ganzen Tag ab, ist es ein voller Abschluss
+    // (dann ohne slots-Feld — so bleibt die bisherige Bedeutung erhalten).
+    var alleHeute = getAllSlots()
+      .filter(function(s){ return s.day === (typeof heuteTodayKey === 'function' ? heuteTodayKey() : null); })
+      .map(function(s){ return s.id; });
+    var komplett = alleHeute.length > 0 && alleHeute.every(function(id){ return vereint.indexOf(id) !== -1; });
+    if (!komplett) rec.slots = vereint;
     abschluss[datum] = rec;
-    sichern();
-    if (window._fb && window._fb.fbSave) window._fb.fbSave(PFAD_ABS, abschluss);
+
+    // NEU 2026-08-26: beide Schreibvorgaenge ZUSAMMENFUEHREND statt
+    // ueberschreibend — und mit Auswertung des Ergebnisses.
+    // Frueher: fbSave(ganzes Dokument) ohne Erfolgspruefung. Ein
+    // fehlgeschlagener Abschluss sah dadurch aus wie ein gelungener.
+    var f = window._fb;
+    if (f && f.fbMerge) {
+      var schreibt = [];
+      if (Object.keys(delta).length) {
+        var nurHeute = {}; nurHeute[datum] = delta;
+        schreibt.push(f.fbMerge(PFAD_ANW, { value: nurHeute }));
+      }
+      var absHeute = {}; absHeute[datum] = rec;
+      schreibt.push(f.fbMerge(PFAD_ABS, { value: absHeute }));
+      Promise.all(schreibt).catch(function(e){
+        showToast('Der Tagesabschluss konnte NICHT gespeichert werden'
+          + ((e && e.message) ? ' (' + e.message + ')' : '') + ' – bitte nochmals versuchen.', 'error');
+      });
+    } else {                                   // Rueckfall: alter Weg
+      sichern();
+      if (f && f.fbSave) f.fbSave(PFAD_ABS, abschluss);
+    }
+    groesseWarnen();
 
     // Leitung benachrichtigen. Bewusst OHNE await und in try/catch: Der
     // Abschluss ist bereits gespeichert und darf nicht daran scheitern,
@@ -10065,7 +11844,9 @@ function exportExcel(panelId) {
     } catch(e){ console.warn('Meldung an die Leitung fehlgeschlagen', e); }
 
     zeichnen();
-    showToast('Tag abgeschlossen — die Leitung wurde benachrichtigt', 'success');
+    var nochOffen = offeneSlots(datum).length;
+    showToast(namen + ' abgeschlossen — die Leitung wurde benachrichtigt'
+      + (nochOffen ? ' · ' + nochOffen + ' Lektion(en) noch offen' : ''), 'success');
   }
 
   async function aktualisieren(){
@@ -10075,18 +11856,63 @@ function exportExcel(panelId) {
     finally { laeuft = false; }
   }
   // Von aussen anstossbar (z.B. nach einem Datenwechsel) – und prüfbar.
+  // Prüfzugang für den Teil-Abschluss (2026-09-06). Nur Lesen und Rechnen —
+  // kein Ersatz für den echten Bedienweg, aber damit lässt sich die Sperre
+  // je Lektion nachweisen, ohne echte Anwesenheiten anzufassen.
+  window.elkiLeserPruefhilfe = {
+    istZu: istZu, istSlotZu: istSlotZu, offeneSlots: offeneSlots,
+    lektionVorbei: lektionVorbei, abschlussDialog: abschlussDialog,
+    setzeAbschluss: function(datum, rec){ if (!abschluss) abschluss = {}; abschluss[datum] = rec; },
+    holeAbschluss: function(datum){ return abschluss[datum]; },
+    slotsHeute: slotsHeute
+  };
   window.leserAppAktualisieren = aktualisieren;
   // Nur neu zeichnen, OHNE zu lesen. Wird nach `loadData()` gebraucht:
   // Die Anwesenheitsdaten liegen dann schon vor, es fehlten nur die
   // Kinder. Ein zweiter Lesevorgang wäre reine Wartezeit.
-  window.leserAppZeichnen = function(){ if (istLeser()) zeichnen(); };
+  // Zeichnet NUR, wenn die Anwesenheitsdaten schon vorliegen. Ohne diese
+  // Bedingung warf es beim Laptop-Start: Dort ist `ausflug` von Anfang an
+  // true, `modusSetzen()` ruft `aktualisieren()` deshalb NIE, und `anw`
+  // bleibt `null` — der Aufruf hier lief trotzdem, weil er nur `istLeser()`
+  // prueft. Wer spaeter in die Tagesansicht wechselt, loest ueber
+  // `modusSetzen()` -> `aktualisieren()` ohnehin ein Laden samt Zeichnen aus.
+  window.leserAppZeichnen = function(){ if (istLeser() && anw) zeichnen(); };
+
+  // Wo startet jemand, der BEIDES hat (seit 2026-09-07)?
+  //
+  // - Rolle **Leser**: immer in der Tagesansicht — unverändert.
+  // - Andere Rolle mit zugeteilter Handy-App: auf **Handy/Tablet** in der
+  //   Tagesansicht, am **Laptop** in der Verwaltung. Am Laptop sitzt man zum
+  //   Verwalten; dort ungefragt im Abhak-Bildschirm zu landen wäre eine
+  //   Zumutung für einen Admin, der die App nur fürs Handy wollte.
+  //
+  // Umschalten geht in BEIDE Richtungen und auf jedem Gerät — die Startwahl
+  // ist eine Bequemlichkeit, keine Einschränkung.
+  var startGesetzt = false;
+  function startAnsichtSetzen(){
+    if (startGesetzt || !istLeser()) return;
+    startGesetzt = true;
+    var rolle = (typeof getRole === 'function') ? getRole() : 'viewer';
+    if (rolle === 'viewer') return;                 // Leser: Tagesansicht
+    // Unbekanntes Gerät gilt als Laptop: lieber die gewohnte Verwaltung
+    // zeigen als jemanden unerwartet in der Tagesansicht zu parken.
+    if ((window.elkiGeraet || 'laptop') === 'laptop') ausflug = true;
+  }
 
   function modusSetzen(){
+    startAnsichtSetzen();
     var an = istLeser() && !ausflug;
     // Der Ausflug endet spätestens beim Rollenwechsel oder Abmelden –
     // sonst startete der nächste Leser am selben Gerät in der Verwaltung.
-    if (!istLeser()) { ausflug = false; document.body.classList.remove('la-ausflug'); }
+    // `startGesetzt` muss mit zurück, sonst behielte der Nächste am selben
+    // Gerät die Startansicht des Vorherigen.
+    if (!istLeser()) { ausflug = false; startGesetzt = false; }
     document.body.classList.toggle('leser-modus', an);
+    // Rückweg-Knopf: sichtbar, sobald jemand mit Handy-App in der Verwaltung
+    // ist — auch wenn er dort gestartet ist und nie umgeschaltet hat. Vorher
+    // hing das allein an zurVerwaltung(); wer dort startet, käme sonst nicht
+    // in die Tagesansicht zurück.
+    document.body.classList.toggle('la-ausflug', istLeser() && ausflug);
     if (an) {
       aktualisieren();
       if (!timer) timer = setInterval(aktualisieren, 25000);   // „live": alle 25 s abgleichen
@@ -10518,10 +12344,14 @@ function exportExcel(panelId) {
   .rv-werkzeug-herkunft { color:var(--ink-3); font-size:11px; }
   .rv-werkzeug.abweichend .rv-werkzeug-herkunft { color:#B0710C; font-weight:700; }
 
-  .rv-einsatz-info { font-size:12px; padding:10px 12px; border-radius:var(--r-sm);
-                     background:var(--brand-tint-2); color:var(--ink-2); line-height:1.5;
-                     border:1px solid var(--line); margin-top:12px; }
-  .rv-einsatz-info.warn { background:#FDF1E1; border-color:#F0D9B4; color:#8A5A08; }
+  .rv-einsatz-info { font-size:12px; padding:10px 13px; border-radius:var(--r);
+                     background:var(--surface-2); color:var(--ink-2); line-height:1.55;
+                     border:1px solid var(--line); border-left:2px solid var(--line);
+                     margin-top:12px; }
+  .rv-einsatz-info b { color:var(--ink); font-weight:700; }
+  /* Vorher #FDF1E1 / #F0D9B4 / #8A5A08 fest verdrahtet — im Dunkelmodus ein
+     hell leuchtender Kasten mitten in dunkler Oberflaeche. */
+  .rv-einsatz-info.warn { background:var(--warn-wash); border-left-color:var(--warn); }
 
   /* ── Aktionen ── */
   .rv-aktionen { display:flex; gap:9px; flex-wrap:wrap; }
@@ -10572,7 +12402,7 @@ function exportExcel(panelId) {
   <div class="rv-inhalt">
     <div class="rv-liste">
       <div class="rv-suche-wrap">
-        <input type="search" class="rv-suche" id="rv-suche" placeholder="Suchen (Name, Benutzername, Rolle)…">
+        <input type="search" class="rv-suche" id="rv-suche" placeholder="Suche">
       </div>
       <div class="rv-liste-body" id="rv-liste-body"></div>
     </div>
@@ -10679,11 +12509,17 @@ function exportExcel(panelId) {
 
   // Welche Slots darf diese Person sehen? null = alle (kein Filter).
   //
-  // Bewusst NUR fuer die Rolle Leser wirksam: Eine Zuteilung ist eine
-  // Arbeitshilfe ("du kontrollierst Mittwochvormittag"), keine Schranke.
-  // Wer die Verwaltung bedient, muss den ganzen Betrieb sehen koennen.
+  // Wirkt NUR in der Handy-App: Eine Zuteilung ist eine Arbeitshilfe
+  // ("du kontrollierst Mittwochvormittag"), keine Schranke. Wer die
+  // Verwaltung bedient, muss dort den ganzen Betrieb sehen koennen.
+  //
+  // Seit 2026-09-07 haengt das an `darfHandyApp()` statt an der Rolle:
+  // Ein Bearbeiter mit zugeteilter Handy-App soll in der Tagesansicht
+  // genauso nur seine Lektionen sehen wie ein Leser — sonst waere die
+  // Zuteilung fuer genau die Leute wirkungslos, die beides machen.
+  // Die Verwaltungsoberflaeche bleibt davon unberuehrt.
   function einsatzSlots(u){
-    if (!u || u.role !== 'viewer') return null;
+    if (!u || typeof darfHandyApp !== 'function' || !darfHandyApp(u)) return null;
     var e = u.einsatz;
     if (!e || e.modus !== 'auswahl') return null;
     return Array.isArray(e.slots) ? e.slots : [];
@@ -10742,6 +12578,10 @@ function exportExcel(panelId) {
       var zusatz = [];
       if (u.aktiv === false) zusatz.push('gesperrt');
       if (!u.uid) zusatz.push('ohne UID');
+      // Handy-App nur dort anzeigen, wo sie NICHT aus der Rolle folgt: Bei
+      // einem Leser waere das Rauschen (er hat sie immer), bei einem
+      // Bearbeiter ist es die Information, die man sonst nirgends sieht.
+      if (u.role !== 'viewer' && typeof darfHandyApp === 'function' && darfHandyApp(u)) zusatz.push('Handy-App');
       var e = einsatzSlots(u);
       if (e) zusatz.push(e.length ? e.length + ' Lektion' + (e.length === 1 ? '' : 'en') : 'nichts zugeteilt');
       // Eigene Werkzeug-Regeln sind sonst nur im Detail sichtbar und
@@ -10770,7 +12610,8 @@ function exportExcel(panelId) {
   function einsatzHtml(u){
     var e = u.einsatz || { modus:'alle', slots:[] };
     var gewaehlteSlots = e.slots || [];
-    var istLeser = u.role === 'viewer';
+    var rolleLeser = u.role === 'viewer';
+    var hatApp = (typeof darfHandyApp === 'function') ? darfHandyApp(u) : rolleLeser;
 
     var gruppen = '';
     if (typeof ANGEBOTE === 'object') {
@@ -10792,18 +12633,26 @@ function exportExcel(panelId) {
       }).join('');
     }
 
-    return '<div class="rv-block"><h4>Einsatz &mdash; welche Lektionen sieht diese Person?</h4>'
-      + '<p class="rv-block-sub hilfe-text">Gilt fuer die <b>Leser-App</b> auf dem Handy: Wer nur mittwochs '
+    return '<div class="rv-block"><h4>Handy-App &mdash; Tagesansicht zum Abhaken</h4>'
+      + '<p class="rv-block-sub hilfe-text">Der Bildschirm, auf dem die Anwesenheit angetippt wird.</p>'
+      + '<div class="rv-karte">'
+      + '<label class="rv-slot"><input type="checkbox" id="rv-f-handyapp"'
+      +   (hatApp ? ' checked' : '') + (rolleLeser ? ' disabled' : '') + '>'
+      +   '<span class="rv-slot-txt"><b>Handy-App freischalten</b></span></label>'
+      + '</div></div>'
+
+      + '<div class="rv-block"><h4>Einsatz &mdash; welche Lektionen sieht diese Person?</h4>'
+      + '<p class="rv-block-sub hilfe-text">Gilt fuer die <b>Handy-App</b>: Wer nur mittwochs '
       + 'da ist, kontrolliert auch nur die Mittwoch-Lektionen und sieht die anderen gar nicht. '
-      + (istLeser ? '' : '<b>Hinweis:</b> Diese Rolle sieht immer den ganzen Betrieb &mdash; '
-          + 'die Zuteilung wirkt nur bei der Rolle <b>Leser</b>. Sie bleibt gespeichert, '
-          + 'falls die Rolle spaeter wechselt.')
+      + (hatApp ? '' : '<b>Hinweis:</b> Diese Person hat die Handy-App nicht &mdash; die '
+          + 'Zuteilung wirkt darum zurzeit nirgends. Sie bleibt gespeichert, falls die '
+          + 'Handy-App spaeter freigeschaltet wird.')
       + '</p><div class="rv-karte">'
       + '<div class="rv-modus">'
       +   '<label><input type="radio" name="rv-modus" value="alle"' + (e.modus !== 'auswahl' ? ' checked' : '') + '>'
-      +     '<span><b>Ganzer Betrieb</b><span>Sieht alle Angebote des jeweiligen Tages.</span></span></label>'
+      +     '<span><b>Ganzer Betrieb</b></span></label>'
       +   '<label><input type="radio" name="rv-modus" value="auswahl"' + (e.modus === 'auswahl' ? ' checked' : '') + '>'
-      +     '<span><b>Nur zugeteilte Lektionen</b><span>Sieht ausschliesslich das, was unten angekreuzt ist.</span></span></label>'
+      +     '<span><b>Nur zugeteilte Lektionen</b></span></label>'
       + '</div>'
       + '<div id="rv-auswahl-wrap"' + (e.modus === 'auswahl' ? '' : ' style="display:none"') + '>'
       +   '<div class="rv-schnell"><span class="rv-schnell-titel">Wochentag</span>'
@@ -10821,7 +12670,7 @@ function exportExcel(panelId) {
     var ids = [].slice.call(document.querySelectorAll('.rv-slot-cb:checked')).map(function(c){ return c.value; });
     if (!ids.length) {
       info.className = 'rv-einsatz-info warn';
-      info.innerHTML = '<b>Nichts zugeteilt.</b> Diese Person oeffnet die Leser-App und sieht eine '
+      info.innerHTML = '<b>Nichts zugeteilt.</b> Diese Person oeffnet die Handy-App und sieht eine '
         + 'leere Liste &mdash; auch an Tagen, an denen Betrieb ist. Entweder Lektionen ankreuzen '
         + 'oder oben auf &bdquo;Ganzer Betrieb&ldquo; stellen.';
       return;
@@ -10934,9 +12783,11 @@ function exportExcel(panelId) {
         + '<input type="checkbox" class="rv-tool-cb" value="' + eh(it.tab) + '"'
         +   ' data-rolle="' + (vonRolle ? '1' : '0') + '"' + (an ? ' checked' : '') + '>'
         + '<span class="rv-werkzeug-txt"><b>' + eh(it.label) + '</b>'
-        + '<span class="rv-werkzeug-herkunft">' + (abweichend
-            ? (an ? 'zusätzlich zugeteilt' : 'entzogen')
-            : (vonRolle ? 'über die Rolle' : 'nicht in der Rolle')) + '</span></span>'
+        // Herkunft nur nennen, wenn sie vom Normalfall ABWEICHT. „ueber die
+        // Rolle" stand vorher unter jedem der 14 Kaestchen und sagte nichts.
+        + (abweichend ? '<span class="rv-werkzeug-herkunft">'
+            + (an ? 'zusätzlich zugeteilt' : 'entzogen') + '</span>' : '')
+        + '</span>'
         + '</label>';
     }).join('');
 
@@ -10970,18 +12821,39 @@ function exportExcel(panelId) {
       if (c.checked && !vonRolle) extra.push(c.value);
       if (!c.checked && vonRolle) entzogen.push(c.value);
       var label = c.closest('.rv-werkzeug');
-      if (label) label.classList.toggle('abweichend', c.checked !== vonRolle);
+      if (label) {
+        var abw = c.checked !== vonRolle;
+        label.classList.toggle('abweichend', abw);
+        // Merkmal live mitfuehren. Seit es nur noch bei Abweichung steht,
+        // muss es beim Antippen erscheinen und verschwinden — sonst sieht
+        // man die Abweichung erst nach dem naechsten Neuzeichnen.
+        var txt = label.querySelector('.rv-werkzeug-txt');
+        var alt = label.querySelector('.rv-werkzeug-herkunft');
+        if (abw) {
+          if (!alt && txt) {
+            alt = document.createElement('span');
+            alt.className = 'rv-werkzeug-herkunft';
+            txt.appendChild(alt);
+          }
+          if (alt) alt.textContent = c.checked ? 'zusätzlich zugeteilt' : 'entzogen';
+        } else if (alt) {
+          alt.remove();
+        }
+      }
     });
     var name = function(tab){
       var it = (typeof SIDEBAR_ITEMS !== 'undefined') ? SIDEBAR_ITEMS.filter(function(x){ return x.tab === tab; })[0] : null;
       return it ? it.label : tab;
     };
+    // Ohne Abweichung gibt es nichts zu melden: Der Kasten bleibt leer und
+    // unsichtbar, statt den Normalfall zu erklaeren (2026-09-07).
     if (!extra.length && !entzogen.length) {
       info.className = 'rv-einsatz-info';
-      info.innerHTML = 'Genau das, was die Rolle mitbringt — keine persönliche Regel gespeichert. '
-        + 'Ändert sich die Rolle später, ändern sich die Werkzeuge automatisch mit.';
+      info.innerHTML = '';
+      info.style.display = 'none';
       return;
     }
+    info.style.display = '';
     var txt = [];
     if (extra.length)    txt.push('<b>Zusätzlich:</b> ' + extra.map(name).map(eh).join(', '));
     if (entzogen.length) txt.push('<b>Entzogen:</b> '   + entzogen.map(name).map(eh).join(', '));
@@ -11033,6 +12905,15 @@ function exportExcel(panelId) {
     var rolleEl = $('rv-f-rolle');
     if (rolleEl && !rolleEl.disabled) {
       rolleEl.addEventListener('change', function(){
+        // Handy-App-Kaestchen mitziehen (2026-09-07). Steht bewusst VOR dem
+        // fruehen return unten: Sonst bliebe das Kaestchen gesperrt, wenn der
+        // Werkzeug-Block gerade fehlt — und wer einen Leser zum Bearbeiter
+        // macht, koennte die App im selben Arbeitsgang nicht mehr abwaehlen.
+        var ha = $('rv-f-handyapp');
+        if (ha) {
+          if (rolleEl.value === 'viewer') { ha.checked = true; ha.disabled = true; }
+          else { ha.disabled = false; }   // Haekchen bleibt, ist jetzt aber aenderbar
+        }
         var block = document.querySelector('.rv-werkzeuge');
         if (!block) return;
         var vorschau = Object.assign({}, u, { role: rolleEl.value });
@@ -11084,10 +12965,10 @@ function exportExcel(panelId) {
       + '<p class="rv-block-sub hilfe-text">Nur fuer euch intern &mdash; die App verschickt von hier aus nichts.</p>'
       + '<div class="rv-karte"><div class="rv-felder">'
       +   feld('rv-f-name', 'Name', 'text', u.name || '')
-      +   feld('rv-f-mail', 'E-Mail (Kontakt)', 'email', u.mail || '', 'Fuer den Passwort-Reset muss dies die Anmelde-Adresse sein.')
+      +   feld('rv-f-mail', 'E-Mail (Kontakt)', 'email', u.mail || '')
       +   feld('rv-f-tel', 'Telefon', 'tel', u.telefon || '')
       +   '<div class="rv-feld rv-voll"><label for="rv-f-notiz">Notiz</label>'
-      +     '<textarea id="rv-f-notiz" placeholder="z. B. Vertretung, nur waehrend der Schulzeit ...">' + eh(u.notiz || '') + '</textarea></div>'
+      +     '<textarea id="rv-f-notiz">' + eh(u.notiz || '') + '</textarea></div>'
       + '</div></div></div>'
 
       + '<div class="rv-block"><h4>Rolle</h4>'
@@ -11101,14 +12982,11 @@ function exportExcel(panelId) {
             return '<option value="' + r + '"' + (u.role === r ? ' selected' : '') + '>' + ROLLEN[r] + '</option>';
           }).join('')
       + '</select>'
-      + (istAdminKonto ? '<div class="rv-feld-hinweis">Das Administrator-Konto laesst sich nicht '
-          + 'herabstufen &mdash; sonst koennte sich der Verein selbst aussperren.</div>' : '')
       + '</div>'
       + '<div class="rv-feld"><label for="rv-f-uid">Firebase-UID</label>'
-      +   '<input type="text" id="rv-f-uid" value="' + eh(u.uid || '') + '" placeholder="Firebase-Konsole &rarr; Authentication &rarr; Users">'
-      +   '<div class="rv-feld-hinweis">' + (u.uid
-            ? 'Hinterlegt. Rolle und Sperre wirken serverseitig.'
-            : '<b>Fehlt.</b> Bis die UID eingetragen ist, gilt diese Person fuer die Firestore-Regeln als Leser.') + '</div>'
+      +   '<input type="text" id="rv-f-uid" value="' + eh(u.uid || '') + '">'
+      +   (u.uid ? '' : '<div class="rv-feld-hinweis"><b>Fehlt</b> &mdash; ohne UID gilt diese '
+            + 'Person serverseitig als Leser.</div>')
       + '</div>'
       + '</div></div></div>'
 
@@ -11120,12 +12998,8 @@ function exportExcel(panelId) {
       + '<div class="rv-karte">'
       + '<div class="rv-felder"><div class="rv-feld rv-voll">'
       +   '<label>Anmelde-Adresse</label><input type="text" value="' + eh(u.email || '') + '" disabled>'
-      +   '<div class="rv-feld-hinweis">' + (interneAdresse
-          ? '<b>Interne Adresse.</b> Dorthin kann keine Mail zugestellt werden &mdash; ein '
-            + 'Passwort-Reset ist fuer dieses Konto <b>nicht moeglich</b>. Die Person kann das '
-            + 'selbst aendern: anmelden &rarr; Einstellungen &rarr; &bdquo;Mein Konto&ldquo; &rarr; '
-            + 'echte Adresse hinterlegen. Danach funktioniert der Reset.'
-          : 'Echte Adresse &mdash; Passwort-Reset per Mail ist moeglich.') + '</div>'
+      +   (interneAdresse ? '<div class="rv-feld-hinweis"><b>Interne Adresse</b> &mdash; '
+          + 'Passwort-Reset nicht moeglich.</div>' : '')
       + '</div></div>'
       + '<div class="rv-aktionen" style="margin-top:14px">'
       +   '<button type="button" class="btn btn-secondary" id="rv-btn-reset"' + (interneAdresse ? ' disabled' : '') + '>'
@@ -11133,11 +13007,6 @@ function exportExcel(panelId) {
       +   '<button type="button" class="btn btn-secondary" id="rv-btn-sperre">'
       +     (u.aktiv === false ? 'Konto entsperren' : 'Konto sperren') + '</button>'
       +   (istAdminKonto ? '' : '<button type="button" class="btn btn-danger" id="rv-btn-loeschen">Konto entfernen</button>')
-      + '</div>'
-      + '<div class="rv-feld-hinweis" style="margin-top:10px">'
-      +   '<b>Sperren</b> entzieht die Berechtigung (das Rollen-Dokument wird geloescht) und blockiert '
-      +   'die Anmeldung in der App. Der Firebase-Login selbst bleibt bestehen &mdash; endgueltig '
-      +   'loeschen geht nur in der Firebase-Konsole.'
       + '</div>'
       + '</div></div>'
 
@@ -11179,15 +13048,24 @@ function exportExcel(panelId) {
     var modus = modusEl ? modusEl.value : 'alle';
     var slots = [].slice.call(document.querySelectorAll('.rv-slot-cb:checked')).map(function(c){ return c.value; });
 
+    // Handy-App (seit 2026-09-07). Bei der Rolle Leser ist das Haekchen
+    // gesetzt UND deaktiviert — `checked` liefert dort zuverlaessig true,
+    // und das entspricht der Bedeutung: Ein Leser hat die App immer.
+    var handyAppEl = $('rv-f-handyapp');
+    var handyApp = !!(handyAppEl && handyAppEl.checked);
+
     // Sich selbst die Rolle zu entziehen sperrt einen sofort aus.
     if (typeof currentUser !== 'undefined' && currentUser && currentUser.id === u.id && neueRolle !== u.role) {
       if (!confirm('Das ist Ihr eigenes Konto.\n\nWenn Sie sich selbst die Rolle "'
         + (ROLLEN[neueRolle] || neueRolle) + '" geben, verlieren Sie sofort die Verwaltungsrechte '
         + 'und kommen nicht mehr in diese Ansicht.\n\nTrotzdem aendern?')) return;
     }
-    if (neueRolle === 'viewer' && modus === 'auswahl' && !slots.length) {
+    // Gilt seit 2026-09-07 fuer JEDEN mit Handy-App, nicht mehr nur fuer die
+    // Rolle Leser: Ein Bearbeiter mit App und leerer Zuteilung saehe genau
+    // dieselbe leere Liste — die Warnung waere sonst fuer ihn verschwunden.
+    if (handyApp && modus === 'auswahl' && !slots.length) {
       if (!confirm('Es ist keine Lektion zugeteilt.\n\n@' + u.username
-        + ' wuerde die Leser-App oeffnen und eine leere Liste sehen — an jedem Tag.\n\nTrotzdem speichern?')) return;
+        + ' wuerde die Handy-App oeffnen und eine leere Liste sehen — an jedem Tag.\n\nTrotzdem speichern?')) return;
     }
 
     var werkzeuge = aktuelleToolRegeln();
@@ -11203,7 +13081,7 @@ function exportExcel(panelId) {
     // weil die Leser-App die Verwaltungsoberflaeche ersetzt. Deshalb gibt
     // es dort einen Umschalter — das gehoert gesagt, sonst wirkt es kaputt.
     if (neueRolle === 'viewer' && werkzeuge.extra.length) {
-      if (!confirm('@' + u.username + ' hat die Rolle Leser und bekommt darum die Leser-App '
+      if (!confirm('@' + u.username + ' hat die Rolle Leser und bekommt darum die Handy-App '
         + 'auf dem Handy.\n\nDamit die zusätzlich zugeteilten Werkzeuge erreichbar sind, '
         + 'erscheint dort neu ein Knopf „Zur Verwaltung".\n\nSo speichern?')) return;
     }
@@ -11215,6 +13093,7 @@ function exportExcel(panelId) {
     u.notiz = ($('rv-f-notiz').value || '').trim();
     u.uid = uid; u.role = neueRolle;
     u.einsatz = { modus: modus, slots: slots };
+    u.handyApp = handyApp;
     u.tools = werkzeuge;
     u.geaendert = new Date().toISOString();
 
@@ -11236,9 +13115,13 @@ function exportExcel(panelId) {
     // nachziehen — sonst zeigt die Seitenleiste noch den alten Stand und
     // man haelt die Zuteilung faelschlich fuer wirkungslos.
     if (typeof currentUser !== 'undefined' && currentUser && currentUser.id === u.id) {
-      currentUser.tools   = u.tools;
-      currentUser.einsatz = u.einsatz;
-      currentUser.role    = u.role;
+      currentUser.tools    = u.tools;
+      currentUser.einsatz  = u.einsatz;
+      currentUser.role     = u.role;
+      // Ohne diese Zeile behaelt man die Handy-App bis zum naechsten
+      // Anmelden — oder verliert sie erst dann. `applyRolePermissions()`
+      // unten liest `darfHandyApp(currentUser)`, also muss der Wert stehen.
+      currentUser.handyApp = u.handyApp;
       if (typeof applyRolePermissions === 'function') { try { applyRolePermissions(); } catch(e){} }
     }
 
@@ -11421,7 +13304,7 @@ function exportExcel(panelId) {
       ['Einzelne Kinder loeschen',         1,1,0,0],
       ['Rundmail an Eltern',               1,1,0,0],
       ['Sichern & wiederherstellen',       1,1,0,0],
-      ['Anwesenheit erfassen (Leser-App)', 0,0,0,1],
+      ['Anwesenheit erfassen (Handy-App)', 0,0,0,1],
       ['Benutzer & Rollen verwalten',      1,0,0,0],
       ['Gefahrenzone (alles loeschen)',    1,0,0,0]
     ];
@@ -11510,7 +13393,7 @@ function exportExcel(panelId) {
     var leerZugeteilt = benutzer.filter(function(u){ var e = einsatzSlots(u); return e && !e.length; });
     if (leerZugeteilt.length) befunde.push(['bad', 'Leser ohne zugeteilte Lektion',
       leerZugeteilt.map(function(u){ return '@' + u.username; }).join(', ')
-      + ' sieht in der Leser-App eine leere Liste - an jedem Tag.']);
+      + ' sieht in der Handy-App eine leere Liste - an jedem Tag.']);
 
     var gesehen = {}, doppelt = [];
     benutzer.forEach(function(u){
@@ -11551,21 +13434,28 @@ function exportExcel(panelId) {
       gesperrt.map(function(u){ return '@' + u.username; }).join(', ')
       + '. Der Firebase-Login besteht weiter - endgueltig entfernen geht nur in der Konsole.']);
 
-    // Abdeckung: ist jeder Betriebstag von mindestens einem Leser abgedeckt?
-    var leser = benutzer.filter(function(u){ return u.role === 'viewer' && u.aktiv !== false; });
-    if (leser.length) {
+    // Abdeckung: ist jeder Betriebstag von jemandem mit Handy-App abgedeckt?
+    //
+    // Seit 2026-09-07 zaehlt hier nicht mehr die Rolle, sondern wer die App
+    // wirklich hat. Sonst haette diese Pruefung einen Tag als "unbesetzt"
+    // gemeldet, den ein Bearbeiter mit Handy-App laengst abdeckt — und der
+    // Admin haette einen Leser gesucht, den er gar nicht braucht.
+    var erfasser = benutzer.filter(function(u){
+      return u.aktiv !== false && typeof darfHandyApp === 'function' && darfHandyApp(u);
+    });
+    if (erfasser.length) {
       var offen = TAGE.filter(function(t){
         var slotsAmTag = alleSlots().filter(function(s){ return s.day === t; });
         if (!slotsAmTag.length) return false;
-        return !leser.some(function(u){
+        return !erfasser.some(function(u){
           var e = einsatzSlots(u);
           if (!e) return true;   // sieht alles
           return slotsAmTag.some(function(s){ return e.indexOf(s.id) !== -1; });
         });
       });
       if (offen.length) befunde.push(['warn',
-        'Kein Leser fuer: ' + offen.map(function(t){ return TAG_LANG[t]; }).join(', '),
-        'An diesen Tagen findet Betrieb statt, aber niemand mit der Rolle Leser ist zustaendig - '
+        'Niemand mit Handy-App fuer: ' + offen.map(function(t){ return TAG_LANG[t]; }).join(', '),
+        'An diesen Tagen findet Betrieb statt, aber niemand mit der Handy-App ist zustaendig - '
         + 'die Anwesenheit wird dann niemand erfassen.']);
     }
 
@@ -11785,7 +13675,7 @@ function exportExcel(panelId) {
 <style>
   /* ---- Kachel-Einstieg im Einstellungsfenster ---- */
   .ez-kacheln { display:grid; grid-template-columns:repeat(auto-fill,minmax(215px,1fr)); gap:10px; }
-  .ez-kachel { display:flex; align-items:flex-start; gap:11px; padding:14px; cursor:pointer; text-align:left;
+  .ez-kachel { display:flex; align-items:center; gap:11px; padding:14px; cursor:pointer; text-align:left;
     border:1px solid var(--line); border-radius:var(--r-sm); background:var(--surface); font-family:inherit;
     transition:border-color .15s, box-shadow .15s, transform .15s; }
   .ez-kachel:hover { border-color:var(--brand); box-shadow:0 3px 12px rgba(20,33,56,.09); transform:translateY(-1px); }
@@ -11795,8 +13685,7 @@ function exportExcel(panelId) {
   .ez-kachel.gefahr .ez-kachel-symbol { background:var(--danger-bg); color:var(--danger); }
   .ez-kachel.gefahr:hover { border-color:var(--danger); }
   .ez-kachel-txt { min-width:0; }
-  .ez-kachel-titel { font-size:13.5px; font-weight:700; color:var(--ink); margin-bottom:2px; }
-  .ez-kachel-sub { font-size:11.5px; color:var(--ink-3); line-height:1.45; }
+  .ez-kachel-titel { font-size:13.5px; font-weight:700; color:var(--ink); }
 
   /* ---- Vollbild-Seite (gleiche Bauart wie die Rollenverwaltung) ---- */
   #ez-lager { display:none; }
@@ -11875,6 +13764,8 @@ function exportExcel(panelId) {
       nurAdmin:true, karten:['card-audit'], frisch:['renderAuditList'] },
     { id:'reifegrad', titel:'Reifegrad der Bereiche', sub:'Live, Testing oder Entwicklung je Bereich',
       nurAdmin:true, karten:['card-tool-stages'], frisch:['renderToolStageConfig'] },
+    { id:'bereinigen', titel:'Daten bereinigen', sub:'Einzelne Bereiche gezielt löschen', gefahr:true,
+      nurAdmin:true, karten:['card-bereinigen'], frisch:['elkiBereinigenAuffrischen'] },
     { id:'gefahr', titel:'Gefahrenzone', sub:'Kinder oder alles löschen', gefahr:true,
       nurAdmin:true, karten:['card-danger'] }
   ];
@@ -11964,8 +13855,12 @@ function exportExcel(panelId) {
     return '<button type="button" class="ez-kachel' + (b.gefahr ? ' gefahr' : '') + '" data-ez="' + b.id + '">'
       + '<span class="ez-kachel-symbol"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
       +   'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (SYMBOLE[b.id] || '') + '</svg></span>'
-      + '<span class="ez-kachel-txt"><span class="ez-kachel-titel">' + b.titel + '</span>'
-      + '<span class="ez-kachel-sub">' + b.sub + '</span></span>'
+      // Untertitel entfernt (2026-09-07, Alessio): „nur das Fettgeschriebene
+      // soll stehen bleiben". Die Kachel nennt jetzt nur noch ihr Ziel; was
+      // dahinter steckt, erklaert das Werkzeug „Hilfe".
+      // `sub:` bleibt in BEREICHE stehen — es beschreibt den Bereich fuer
+      // kuenftige Verwendung (Suche, Kurzinfo) und kostet nichts.
+      + '<span class="ez-kachel-txt"><span class="ez-kachel-titel">' + b.titel + '</span></span>'
       + '</button>';
   }
 
@@ -12294,10 +14189,10 @@ function exportExcel(panelId) {
     color:var(--ink-3); margin-bottom:8px; }
 
   /* Kurzinfo für Supervisor in der Inbox */
-  .abm-info { border:1px solid var(--line); border-left:4px solid var(--ok);
-    border-radius:var(--r-sm); background:var(--surface); padding:10px 13px; margin-bottom:8px;
-    font-size:13px; color:var(--ink-2); line-height:1.5; }
-  .abm-info.zurueck { border-left-color:var(--danger); }
+  .abm-info { border:1px solid var(--line); border-left:2px solid var(--ok);
+    border-radius:var(--r); background:var(--ok-wash); padding:10px 13px; margin-bottom:8px;
+    font-size:13px; color:var(--ink-2); line-height:1.55; }
+  .abm-info.zurueck { border-left-color:var(--danger); background:var(--danger-wash); }
   .abm-info b { color:var(--ink); }
 </style>
 
@@ -12712,8 +14607,13 @@ function exportExcel(panelId) {
   .ap-nav-mitte { flex:1; text-align:center; font-size:12px; color:var(--ink-3); }
   .ap-anleitung { font-size:13px; margin:0 0 10px 18px; padding:0; }
   .ap-anleitung li { margin-bottom:3px; }
-  .ap-tipp { margin-top:10px; padding:10px 12px; border-radius:var(--r-sm);
-             background:var(--bg-2); border-left:3px solid var(--ink-3); font-size:12px; }
+  /* `var(--bg-2)` gibt es in der Palette gar nicht — der Grund blieb
+     durchsichtig. Jetzt dieselbe Bauart wie die uebrigen Hinweiskaesten. */
+  .ap-tipp { margin-top:10px; padding:10px 13px; border-radius:var(--r);
+             background:var(--surface-2); border:1px solid var(--line);
+             border-left:2px solid var(--ink-3); font-size:12px;
+             color:var(--ink-2); line-height:1.55; }
+  .ap-tipp b { color:var(--ink); font-weight:700; }
   .ap-check { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; cursor:pointer; }
   .ap-check input { width:16px; height:16px; }
 
