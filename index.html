@@ -3798,14 +3798,64 @@ async function doLogout() {
 function registerAuthEvents() {
 
   // ── Login ────────────────────────────────────────────────
-  // NEU 2026-08-26 (Anmeldemaske haerten)
+  // NEU 2026-08-26 (Anmeldemaske haerten), verschaerft 2026-09-08.
   const LOGIN_FEHLERTEXT   = 'Benutzername oder Passwort falsch.';
   const LOGIN_MAX_VERSUCHE = 5;
-  const LOGIN_SPERRE_SEK   = 30;
-  let   loginFehlversuche  = 0;
+  const LOGIN_STUFEN_SEK   = [30, 60, 120, 300];   // Wartezeit je Sperrrunde
+  const LOGIN_VERGESSEN_MS = 15 * 60 * 1000;       // so lange wirkt ein Fehlversuch nach
+  const LOGIN_SPEICHER     = 'elki-login-sperre';
   let   loginLaeuft        = false;
+  let   loginTicker        = null;
+  let   loginErsatz        = null;                 // Rueckfall ohne localStorage
+
+  // Der Zaehler liegt im localStorage, NICHT nur im Arbeitsspeicher.
+  //
+  // WARUM: Vorher war loginFehlversuche eine gewoehnliche Variable. Ein
+  // Neuladen (F5) setzte sie auf 0 — die Sperre war damit ausgerechnet fuer
+  // den Fall wirkungslos, fuer den sie gedacht ist: das Tablet, das im
+  // Betreuungsraum offen herumliegt. Wer dort probiert, laedt neu und hat
+  // wieder fuenf Versuche.
+  //
+  // Gespeichert wird NUR { n, runden, bis, ts } — kein Benutzername, kein
+  // Passwort, nichts Personenbezogenes. Schluessel nach App-Konvention.
+  function loginStand(){
+    try {
+      const roh = localStorage.getItem(LOGIN_SPEICHER);
+      if (roh) {
+        const st = JSON.parse(roh);
+        if (st && typeof st.n === 'number') return st;
+      }
+    } catch(e){ /* privater Modus, Speicher voll, Cookies aus — nie werfen */ }
+    return loginErsatz || { n:0, runden:0, bis:0, ts:0 };
+  }
+  function loginStandSetzen(st){
+    loginErsatz = st;                              // gilt auch ohne Speicher
+    try { localStorage.setItem(LOGIN_SPEICHER, JSON.stringify(st)); } catch(e){}
+  }
+  function loginStandLoeschen(){
+    loginErsatz = null;
+    try { localStorage.removeItem(LOGIN_SPEICHER); } catch(e){}
+  }
+
+  // Verbleibende Sperrsekunden; 0 = frei. Raeumt dabei veraltete Staende weg.
+  function loginSperrRest(){
+    const st = loginStand();
+    const jetzt = Date.now();
+    if (st.bis && st.bis > jetzt) return Math.ceil((st.bis - jetzt) / 1000);
+    // Lange nichts passiert? Dann faengt die Zaehlung wieder bei null an —
+    // sonst schlaegt ein Vertipper von heute Morgen am Abend noch durch.
+    if (st.ts && (jetzt - st.ts) > LOGIN_VERGESSEN_MS) loginStandLoeschen();
+    return 0;
+  }
 
   async function tryLogin() {
+    // Die Sperre wird HIER geprueft, nicht nur am Knopf.
+    //
+    // WARUM: Vorher sperrte loginSperren() allein den Knopf. Die Enter-Taste
+    // im Passwortfeld ruft tryLogin() aber direkt auf und lief waehrend der
+    // Sperre munter weiter — sie war mit einem Tastendruck zu umgehen.
+    if (loginSperrRest() > 0) { loginCountdown(); return; }
+
     const eingabe  = document.getElementById('login-username').value.trim().toLowerCase();
     const pw       = document.getElementById('login-password').value;
     const errEl    = document.getElementById('login-error');
@@ -3829,59 +3879,88 @@ function registerAuthEvents() {
     if (btn) { btn.disabled = true; btn.dataset.txt = btn.textContent; btn.textContent = 'Anmelden …'; }
     try {
       await window._fb.signInWithEmailAndPassword(window._fb.auth, email, pw);
-      loginFehlversuche = 0;
+      loginStandLoeschen();                        // sauber angemeldet = Zaehler weg
       // doLoginUI wird automatisch via onAuthStateChanged aufgerufen
     } catch(e) {
       // Bewusst IMMER dieselbe Meldung: Sie verraet nicht, ob es das Konto
       // gibt. Firebase unterscheidet intern zwischen "kein Konto" und
       // "falsches Passwort" — diese Unterscheidung darf nicht nach aussen.
-      loginFehlversuche++;
+      const st = loginStand();
+      st.n  = (st.n || 0) + 1;
+      st.ts = Date.now();
       errEl.textContent = LOGIN_FEHLERTEXT;
       errEl.style.display = 'block';
       const pwEl = document.getElementById('login-password');
       pwEl.value = '';
-      if (loginFehlversuche >= LOGIN_MAX_VERSUCHE) loginSperren();
-      else pwEl.focus();
+      if (st.n >= LOGIN_MAX_VERSUCHE) {
+        // Jede weitere Runde wartet laenger: 30 s, 1 min, 2 min, 5 min. Ohne
+        // Steigerung bliebe die Rate bei 5 Versuchen je 30 s — das laesst
+        // sich beliebig lange durchhalten.
+        const stufe = Math.min(st.runden || 0, LOGIN_STUFEN_SEK.length - 1);
+        st.bis    = Date.now() + LOGIN_STUFEN_SEK[stufe] * 1000;
+        st.runden = (st.runden || 0) + 1;
+        st.n      = 0;
+        loginStandSetzen(st);
+        loginCountdown();
+      } else {
+        loginStandSetzen(st);
+        pwEl.focus();
+      }
     } finally {
       loginLaeuft = false;
       if (btn && !btn.dataset.gesperrt) { btn.disabled = false; btn.textContent = btn.dataset.txt || 'Anmelden'; }
     }
   }
 
-  // Kurze Wartezeit nach mehreren Fehlversuchen.
+  // Wartezeit anzeigen und herunterzaehlen.
   //
   // EHRLICH EINGEORDNET: Das ist Reibung, keine Sicherheit. Wer wirklich
   // Passwoerter durchprobieren will, umgeht diese Maske und spricht die
   // Firebase-Schnittstelle direkt an — dagegen hilft nur Firebase selbst
   // (eingebaute Sperre nach zu vielen Fehlversuchen) und ein gutes Passwort.
-  // Was es SEHR WOHL bringt: Es bremst Versuche direkt am Geraet, etwa wenn
-  // ein Tablet im Betreuungsraum offen herumliegt.
-  function loginSperren(){
-    const btn = document.getElementById('login-btn');
+  // Auch der localStorage laesst sich leeren. Was es SEHR WOHL bringt: Es
+  // bremst Versuche direkt am Geraet — jetzt auch ueber ein Neuladen hinweg.
+  function loginCountdown(){
+    const btn   = document.getElementById('login-btn');
     const errEl = document.getElementById('login-error');
-    let rest = LOGIN_SPERRE_SEK;
-    if (btn) { btn.disabled = true; btn.dataset.gesperrt = '1'; }
+    if (loginTicker) { clearInterval(loginTicker); loginTicker = null; }
     const ticken = () => {
-      errEl.textContent = 'Zu viele Fehlversuche. Bitte ' + rest + ' Sekunden warten.';
-      errEl.style.display = 'block';
-      if (rest <= 0) {
-        clearInterval(t);
-        loginFehlversuche = 0;
-        errEl.textContent = LOGIN_FEHLERTEXT;
-        errEl.style.display = 'none';
-        if (btn) { btn.disabled = false; delete btn.dataset.gesperrt; btn.textContent = btn.dataset.txt || 'Anmelden'; }
-        const pwEl = document.getElementById('login-password');
-        if (pwEl) pwEl.focus();
+      const rest = loginSperrRest();
+      if (rest > 0) {
+        if (btn) {
+          if (!btn.dataset.txt) btn.dataset.txt = btn.textContent;
+          btn.disabled = true; btn.dataset.gesperrt = '1';
+        }
+        if (errEl) {
+          errEl.textContent = 'Zu viele Fehlversuche. Bitte ' + loginZeitText(rest) + ' warten.';
+          errEl.style.display = 'block';
+        }
+        return;
       }
-      rest--;
+      if (loginTicker) { clearInterval(loginTicker); loginTicker = null; }
+      if (btn) { btn.disabled = false; delete btn.dataset.gesperrt; btn.textContent = btn.dataset.txt || 'Anmelden'; }
+      if (errEl) { errEl.textContent = LOGIN_FEHLERTEXT; errEl.style.display = 'none'; }
+      const pwEl = document.getElementById('login-password');
+      if (pwEl) pwEl.focus();
     };
     ticken();
-    const t = setInterval(ticken, 1000);
+    loginTicker = setInterval(ticken, 1000);
+  }
+  // Ab einer Minute nicht mehr in Sekunden — niemand zaehlt 300 herunter.
+  function loginZeitText(sek){
+    if (sek < 60) return sek + ' Sekunden';
+    const m = Math.ceil(sek / 60);
+    return m + (m === 1 ? ' Minute' : ' Minuten');
   }
 
   document.getElementById('login-btn').addEventListener('click', tryLogin);
   document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
   document.getElementById('login-username').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('login-password').focus(); });
+
+  // Laeuft aus einer frueheren Sitzung noch eine Sperre? Dann sofort den
+  // Countdown zeigen. Das ist der eigentliche Zweck des localStorage —
+  // ohne diese Zeile waere ein Neuladen weiterhin der Ausweg.
+  if (loginSperrRest() > 0) loginCountdown();
   // WICHTIG: `doLogout` erst beim Klick auflösen, nicht hier festbinden.
   //
   // Mehrere Blöcke umschliessen `doLogout` nachträglich (Leser-Modus
@@ -9047,7 +9126,15 @@ function exportExcel(panelId) {
       + 'du meinst — vorausgewählt ist, was zeitlich schon vorbei ist. Die übrigen bleiben offen '
       + 'für die Kollegin, die sie betreut.</p>'
       + '<div class="hf-merk">Beim Abschliessen werden alle noch offenen Kinder als <b>abwesend</b> '
-      + 'eingetragen. Danach ist die Lektion gesperrt — Korrekturen macht die Leitung.</div>'
+      + 'eingetragen.</div>'
+      + '<h4>Vertippt? Tag wieder öffnen</h4>'
+      + '<p>Unter dem Abschluss steht <b>Wieder öffnen</b>. Damit machst du deine Lektion wieder '
+      + 'bearbeitbar, korrigierst und schliesst neu ab — so oft du willst.</p>'
+      + '<p>Die bereits erfassten Anwesenheiten bleiben dabei stehen, auch die, die beim '
+      + 'Abschliessen als abwesend eingetragen wurden. Ein Kind, das dadurch falsch auf '
+      + '<b>fehlt</b> steht, tippst du einfach neu an.</p>'
+      + '<div class="hf-merk">Nur <b>heute</b> und nur <b>deine</b> Lektionen. Was eine Kollegin '
+      + 'abgeschlossen hat, bleibt zu. Frühere Tage korrigiert die Leitung.</div>'
       + '<h4>Zum Startbildschirm hinzufügen</h4>'
       + '<p>Im Handy-Browser <b>Teilen → Zum Home-Bildschirm</b>. Dann startet ELKI wie eine App, '
       + 'ohne Browserleiste.</p>'
@@ -11313,6 +11400,12 @@ function exportExcel(panelId) {
   .la-fuss-hinweis { font-size:11.5px; color:var(--ink-3); text-align:center; margin-top:8px; line-height:1.45; }
   .la-abgeschlossen { background:var(--ok-bg); border:1px solid var(--ok); color:var(--ok);
     border-radius:10px; padding:11px 13px; font-size:13px; font-weight:700; text-align:center; }
+  /* Wieder-oeffnen-Knopf in der Fusszeile (2026-09-09). Bewusst der
+     ruhigere Knopf: Abschliessen ist die Haupthandlung, Wiederoeffnen die
+     Ausnahme — es soll auffindbar sein, aber nicht einladen. */
+  .la-oeffnen { width:100%; margin-top:10px; font-family:inherit; font-size:14px;
+    font-weight:700; padding:12px; border-radius:12px; cursor:pointer;
+    background:var(--surface); color:var(--ink-2); border:1px solid var(--line); }
   .la-leer { color:var(--ink-3); font-style:italic; font-size:14px; padding:30px 4px; text-align:center; }
   .la-live { font-size:11px; color:var(--ink-3); text-align:center; padding:6px 0 0; }
 
@@ -11556,7 +11649,13 @@ function exportExcel(panelId) {
 
     var zu = istZu(datum);
     var slots = slotsHeute();
-    var gesamt = 0, da = 0;
+    // `unerfasst` = Kinder OHNE jeden Eintrag. Bis 2026-09-09 rechnete die
+    // Fusszeile `gesamt - da` und zaehlte damit auch bereits als abwesend
+    // erfasste Kinder als "noch nicht bestaetigt". Solange ein
+    // abgeschlossener Tag keine Fusszeile hatte, fiel das nicht auf — seit
+    // man wieder oeffnen kann, stuende dort sonst "2 noch nicht bestaetigt,
+    // werden als abwesend eingetragen" fuer Kinder, die es laengst sind.
+    var gesamt = 0, da = 0, unerfasst = 0;
 
     var html = slots.map(function(s){
       var kinderHier = aktiveKinderImSlot(s.id);
@@ -11567,6 +11666,7 @@ function exportExcel(panelId) {
         gesamt++;
         var st = statusVon(datum, s.id, k.id);
         if (st === 'present') da++;
+        if (!st) unerfasst++;
         var klasse = st === 'present' ? ' da' : (st === 'absent' || st === 'excused' ? ' fehlt' : '');
         var txt = st === 'present' ? 'da'
                 : st === 'absent'  ? 'fehlt'
@@ -11608,33 +11708,47 @@ function exportExcel(panelId) {
     if (zEl) zEl.textContent = da + ' / ' + gesamt;
     if (bEl) bEl.style.width = (gesamt ? Math.round(da / gesamt * 100) : 0) + '%';
 
+    // NEU 2026-09-09: Der Knopf "Wieder öffnen" erscheint, sobald ueberhaupt
+    // eine meiner Lektionen zu ist — also auch im GEMISCHTEN Fall (Morgen
+    // zu, Mittag offen). Haenge ich ihn nur an den "alles zu"-Zweig, gaebe
+    // es aus dem gemischten Stand keinen Weg zurueck.
+    var zuJetzt = zuSlots(datum);
+    var oeffnenKnopf = zuJetzt.length
+      ? '<button type="button" class="la-oeffnen" id="la-oeffnen">Wieder öffnen'
+        + (zuJetzt.length > 1 ? ' …' : '') + '</button>'
+      : '';
+
     if (zu) {
       var rec = abschlussVon(datum);
       var wer = rec && rec.von ? ' von ' + escHtml(rec.von) : '';
       var teil = rec && Array.isArray(rec.slots) ? 'Deine Lektionen sind abgeschlossen' : 'Tag abgeschlossen';
       fuss.innerHTML = '<div class="la-abgeschlossen">✓ ' + teil + wer + '</div>'
-        + '<div class="la-fuss-hinweis">Korrekturen macht die Leitung im Werkzeug „Anwesenheit".</div>';
+        + oeffnenKnopf
+        + '<div class="la-fuss-hinweis">Frühere Tage korrigiert die Leitung im Werkzeug „Anwesenheit".</div>';
     } else if (gesamt) {
       // NEU 2026-09-06: Der Knopf benennt, WAS er abschliesst. Bei mehreren
       // offenen Lektionen fragt er nach — vorher nahm er stillschweigend
       // alle mit, auch den Mittagstisch, der noch gar nicht stattfand.
       var nochOffen = offeneSlots(datum);
-      var offen = gesamt - da;
+      var offen = unerfasst;
       var beschriftung = nochOffen.length === 1
         ? escHtml((nochOffen[0].gruppe ? nochOffen[0].gruppe.shortLabel + ' ' : '') + nochOffen[0].label) + ' abschliessen'
         : 'Lektion abschliessen …';
       fuss.innerHTML = '<button type="button" class="la-btn" id="la-abschluss">' + beschriftung + '</button>'
+        + oeffnenKnopf
         + '<div class="la-fuss-hinweis">' + (offen
-            ? offen + ' noch nicht bestätigt – diese werden als <b>abwesend</b> eingetragen.'
-            : 'Alle bestätigt.')
+            ? offen + ' noch nicht angeschaut – diese werden als <b>abwesend</b> eingetragen.'
+            : 'Alle erfasst.')
         + (nochOffen.length > 1
             ? '<br>Du wählst aus, welche der ' + nochOffen.length + ' Lektionen du abschliesst.'
             : '') + '</div>';
       var ab = $('la-abschluss');
       if (ab) ab.addEventListener('click', abschliessen);
     } else {
-      fuss.innerHTML = '';
+      fuss.innerHTML = oeffnenKnopf;
     }
+    var op = $('la-oeffnen');
+    if (op) op.addEventListener('click', wiederOeffnen);
 
     // Zusätzlich zugeteilte Werkzeuge wären hier unerreichbar – die
     // Leser-App ersetzt die Verwaltungsoberfläche komplett. Darum ein
@@ -11847,6 +11961,127 @@ function exportExcel(panelId) {
     var nochOffen = offeneSlots(datum).length;
     showToast(namen + ' abgeschlossen — die Leitung wurde benachrichtigt'
       + (nochOffen ? ' · ' + nochOffen + ' Lektion(en) noch offen' : ''), 'success');
+  }
+
+  // ── Wieder oeffnen (neu 2026-09-09) ───────────────────────────────
+  //
+  // Bis jetzt war ein abgeschlossener Tag fuer die Betreuung endgueltig;
+  // korrigieren konnte nur die Leitung (Meldung zurueckweisen). Im Betrieb
+  // ist das zu schwerfaellig: Wer sich vertippt oder ein Kind vergisst, das
+  // noch kommt, merkt es meist in derselben Minute.
+  //
+  // Auf Alessios Wunsch kann die Betreuung ihre EIGENEN Lektionen jetzt
+  // selbst wieder oeffnen und danach neu abschliessen.
+  //
+  // WICHTIG, was dabei NICHT passiert: Die erfassten Anwesenheiten bleiben
+  // stehen — auch die, die der Abschluss als "abwesend" geschrieben hat.
+  // Genau so verhaelt sich das Zurueckweisen durch die Leitung auch. Ein
+  // Kind, das dadurch faelschlich auf "fehlt" steht, wird neu angetippt.
+  function zuSlots(datum){
+    return slotsHeute().filter(function(s){ return istSlotZu(datum, s.id); });
+  }
+
+  function wiederOeffnen(){
+    var datum = heuteIso();
+    var zuL = zuSlots(datum);
+    if (!zuL.length) { showToast('Heute ist nichts abgeschlossen', 'info'); return; }
+    if (zuL.length === 1) { oeffnenAusfuehren(datum, [zuL[0].id]); return; }
+    oeffnenDialog(datum, zuL);
+  }
+
+  // Auswahl-Dialog. Hier ist bewusst NICHTS vorausgewaehlt: Abschliessen ist
+  // Routine und darf vorschlagen, Wiederoeffnen ist die Ausnahme und soll
+  // ausdruecklich benannt werden.
+  function oeffnenDialog(datum, zuL){
+    var alt = $('la-abschluss-dialog'); if (alt) alt.remove();
+    var d = document.createElement('div');
+    d.id = 'la-abschluss-dialog'; d.className = 'la-dlg-huelle';
+    d.innerHTML =
+      '<div class="la-dlg" role="dialog" aria-modal="true" aria-labelledby="la-dlg-titel">'
+      + '<div class="la-dlg-titel" id="la-dlg-titel">Was möchtest du wieder öffnen?</div>'
+      + '<div class="la-dlg-sub">Die erfassten Anwesenheiten bleiben stehen. '
+      +   'Danach kannst du korrigieren und neu abschliessen.</div>'
+      + zuL.map(function(s){
+          var da = aktiveKinderImSlot(s.id).filter(function(k){ return statusVon(datum, s.id, k.id) === 'present'; }).length;
+          var n  = aktiveKinderImSlot(s.id).length;
+          return '<label class="la-dlg-zeile">'
+            + '<input type="checkbox" data-slot="' + escAttr(s.id) + '">'
+            + '<span class="la-dlg-txt"><b>' + escHtml(s.gruppe ? s.gruppe.shortLabel : s.id) + '</b> '
+            +   escHtml(s.label + ' · ' + s.zeit)
+            +   '<span class="la-dlg-info">' + da + ' von ' + n + ' anwesend</span></span></label>';
+        }).join('')
+      + '<div class="la-dlg-knoepfe">'
+      +   '<button type="button" class="la-btn-2" id="la-dlg-ab">Abbrechen</button>'
+      +   '<button type="button" class="la-btn" id="la-dlg-ok">Wieder öffnen</button>'
+      + '</div></div>';
+    document.body.appendChild(d);
+    var zu = function(){ d.remove(); };
+    d.addEventListener('click', function(e){ if (e.target === d) zu(); });
+    $('la-dlg-ab').addEventListener('click', zu);
+    $('la-dlg-ok').addEventListener('click', function(){
+      var gewaehlt = [].slice.call(d.querySelectorAll('input[data-slot]:checked'))
+                       .map(function(i){ return i.dataset.slot; });
+      if (!gewaehlt.length) { showToast('Bitte mindestens eine Lektion wählen', 'error'); return; }
+      zu(); oeffnenAusfuehren(datum, gewaehlt);
+    });
+  }
+
+  function oeffnenAusfuehren(datum, gewaehlteIds){
+    var slots = slotsHeute().filter(function(s){ return gewaehlteIds.indexOf(s.id) !== -1; });
+    if (!slots.length) return;
+    var namen = slots.map(function(s){ return (s.gruppe ? s.gruppe.shortLabel + ' ' : '') + s.label; }).join(', ');
+    if (!confirm(namen + ' wieder öffnen?\n\nDie bereits erfassten Anwesenheiten bleiben stehen — auch die, '
+      + 'die beim Abschliessen als abwesend eingetragen wurden.\n\n'
+      + 'Danach kannst du korrigieren und neu abschliessen.')) return;
+
+    // Was bleibt zu? Ohne slots-Feld war der GANZE Tag geschlossen — dann
+    // sind alle heutigen Lektionen betroffen, nicht nur die eigenen.
+    var alleHeute = getAllSlots()
+      .filter(function(s){ return s.day === (typeof heuteTodayKey === 'function' ? heuteTodayKey() : null); })
+      .map(function(s){ return s.id; });
+    var bisher = abschluss[datum];
+    var warZu  = (bisher && Array.isArray(bisher.slots)) ? bisher.slots.slice() : alleHeute.slice();
+    var rest   = warZu.filter(function(id){ return gewaehlteIds.indexOf(id) === -1; });
+
+    var f = window._fb;
+    var p;
+    if (!rest.length) {
+      // Nichts mehr zu: der Tageseintrag verschwindet ganz.
+      // fbMerge kann NICHT loeschen — dafuer der feldgenaue Weg.
+      delete abschluss[datum];
+      p = (f && f.fbSetPath) ? f.fbSetPath(PFAD_ABS, ['value', datum], null)
+                             : (f && f.fbSave ? f.fbSave(PFAD_ABS, abschluss) : Promise.resolve());
+    } else {
+      // Teil-Rueckname: Datum, Uhrzeit und Person des urspruenglichen
+      // Abschlusses bleiben stehen, nur die Lektionsliste schrumpft.
+      var rec = { am:  (bisher && bisher.am)  || new Date().toISOString(),
+                  von: (bisher && bisher.von) || '',
+                  slots: rest };
+      abschluss[datum] = rec;
+      p = (f && f.fbSetPath) ? f.fbSetPath(PFAD_ABS, ['value', datum], rec)
+                             : (f && f.fbSave ? f.fbSave(PFAD_ABS, abschluss) : Promise.resolve());
+    }
+
+    Promise.resolve(p).then(function(ok){
+      if (ok === false) throw new Error('Speichern abgelehnt');
+      // Der Leitung Bescheid geben, sonst steht in ihrer Liste weiterhin
+      // "abgeschlossen" fuer einen Tag, der wieder offen ist.
+      try {
+        if (typeof window.elkiAbschlussWiederOffen === 'function') {
+          window.elkiAbschlussWiederOffen(datum, gewaehlteIds,
+            (typeof currentUser !== 'undefined' && currentUser && currentUser.name) || '');
+        }
+      } catch(e){ console.warn('Meldung ueber das Wiederoeffnen fehlgeschlagen', e); }
+      zeichnen();
+      showToast(namen + ' wieder geöffnet — du kannst jetzt korrigieren', 'success');
+    }).catch(function(e){
+      // Anzeige zuruecknehmen: der Stand kommt beim naechsten Abgleich
+      // ohnehin frisch, aber bis dahin darf nichts Falsches dastehen.
+      if (bisher) abschluss[datum] = bisher; else delete abschluss[datum];
+      zeichnen();
+      showToast('Wieder öffnen fehlgeschlagen'
+        + ((e && e.message) ? ' (' + e.message + ')' : '') + ' – bitte nochmals versuchen.', 'error');
+    });
   }
 
   async function aktualisieren(){
@@ -14264,7 +14499,33 @@ function exportExcel(panelId) {
     } catch(e){ console.warn('Abschluss-Meldung nicht gespeichert', e); }
   };
 
-  function offene(){ return (liste || []).filter(function(m){ return !m.gesehen && !m.zurueck; }); }
+  // Das Betreuungsteam hat Lektionen selbst wieder geoeffnet (seit 2026-09-09).
+  //
+  // Die Meldung wird MARKIERT, nicht geloescht: Die Leitung soll sehen, dass
+  // abgeschlossen und wieder geoeffnet wurde. Ohne diesen Vermerk stuende in
+  // ihrer Liste weiterhin "abgeschlossen" fuer einen Tag, der offen ist —
+  // schlimmer als gar keine Meldung, weil es falsche Sicherheit gibt.
+  window.elkiAbschlussWiederOffen = async function(datum, slots, wer){
+    try {
+      await laden(true);
+      var ids = Array.isArray(slots) ? slots : [];
+      var betroffen = (liste || []).filter(function(m){
+        if (m.datum !== datum || m.zurueck || m.offen) return false;
+        if (!Array.isArray(m.slots)) return true;      // Meldung galt dem ganzen Tag
+        return m.slots.some(function(id){ return ids.indexOf(id) !== -1; });
+      });
+      if (!betroffen.length) return;
+      betroffen.forEach(function(m){
+        m.offen = { von: wer || '', am: new Date().toISOString(), slots: ids.slice() };
+      });
+      await sichern();
+      zaehlerSetzen();
+    } catch(e){ console.warn('Wiederoeffnen nicht vermerkt', e); }
+  };
+
+  // Eine vom Team selbst wieder geoeffnete Meldung braucht keine
+  // Aufmerksamkeit mehr — der neue Abschluss meldet sich eigenstaendig.
+  function offene(){ return (liste || []).filter(function(m){ return !m.gesehen && !m.zurueck && !m.offen; }); }
 
   // ---- Zähler in der Seitenleiste ----------------------------------
   function zaehlerSetzen(){
@@ -14301,18 +14562,27 @@ function exportExcel(panelId) {
     box.innerHTML = '<div class="abm-titel">Gemeldete Tagesabschlüsse</div>'
       + eintraege.map(function(m){
           var zurueck = !!m.zurueck;
-          return '<div class="abm-karte' + (zurueck ? ' zurueck' : '') + '" data-abm="' + eh(m.id) + '">'
+          // NEU 2026-09-09: Das Team kann selbst wieder oeffnen. Eine so
+          // erledigte Meldung braucht kein "Zurueckweisen" mehr — der neue
+          // Abschluss kommt als eigene Meldung.
+          var wiederOffen = !!m.offen;
+          var abgehakt = zurueck || wiederOffen;
+          return '<div class="abm-karte' + (abgehakt ? ' zurueck' : '') + '" data-abm="' + eh(m.id) + '">'
             + '<div class="abm-kopf"><span class="abm-tag">' + eh(tagText(m.datum)) + '</span>'
             +   '<span class="abm-von">abgeschlossen von ' + eh(m.von || 'unbekannt') + '</span>'
-            +   (zurueck ? '' : '<span class="abm-neu">neu</span>') + '</div>'
+            +   (abgehakt ? '' : '<span class="abm-neu">neu</span>') + '</div>'
             + '<div class="abm-detail">' + eh(slotText(m.slots))
             +   ' · ' + m.da + ' anwesend, ' + m.fehlt + ' abwesend'
             +   ' · ' + (m.am ? new Date(m.am).toLocaleString('de-CH') : '')
+            +   (wiederOffen ? '<br><b>Vom Betreuungsteam wieder geöffnet</b>'
+                  + (m.offen.von ? ' von ' + eh(m.offen.von) : '')
+                  + (m.offen.slots && m.offen.slots.length ? ' — betrifft: ' + eh(slotText(m.offen.slots)) : '')
+                  + ' · ein neuer Abschluss folgt als eigene Meldung.' : '')
             +   (zurueck ? '<br><b>Zurückgewiesen</b> von ' + eh(m.zurueck.von)
                   + (m.zurueck.grund ? ' — ' + eh(m.zurueck.grund) : '') : '')
             + '</div>'
             + '<div class="abm-aktionen">'
-            +   (zurueck ? '' : '<button type="button" class="btn btn-small btn-outline" data-abm-weisen="' + eh(m.id) + '">Zurückweisen</button>')
+            +   (abgehakt ? '' : '<button type="button" class="btn btn-small btn-outline" data-abm-weisen="' + eh(m.id) + '">Zurückweisen</button>')
             +   '<button type="button" class="btn btn-small btn-outline" data-abm-ok="' + eh(m.id) + '">Erledigt</button>'
             + '</div></div>';
         }).join('');
@@ -14400,10 +14670,13 @@ function exportExcel(panelId) {
     if (!eintraege.length) { box.innerHTML = ''; return; }
     box.innerHTML = '<div class="abm-titel">Tagesabschlüsse des Betreuungsteams</div>'
       + eintraege.map(function(m){
-          return '<div class="abm-info' + (m.zurueck ? ' zurueck' : '') + '">'
+          return '<div class="abm-info' + ((m.zurueck || m.offen) ? ' zurueck' : '') + '">'
             + '<b>' + eh(tagText(m.datum)) + '</b> — ' + eh(slotText(m.slots))
             + ' abgeschlossen von ' + eh(m.von || 'unbekannt')
             + ' (' + m.da + ' anwesend, ' + m.fehlt + ' abwesend)'
+            + (m.offen ? '<br>Vom Betreuungsteam <b>wieder geöffnet</b>'
+                + (m.offen.von ? ' von ' + eh(m.offen.von) : '')
+                + (m.offen.slots && m.offen.slots.length ? ' — ' + eh(slotText(m.offen.slots)) : '') + '.' : '')
             + (m.zurueck ? '<br>Vom Administrator <b>zurückgewiesen</b>'
                 + (m.zurueck.grund ? ': ' + eh(m.zurueck.grund) : '') + '.' : '')
             + '</div>';
