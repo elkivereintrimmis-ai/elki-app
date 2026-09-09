@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-title" content="ELKI Heute">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="theme-color" content="#2f6152">
-  <link rel="apple-touch-icon" href="elki-logo.png">
+  <link rel="apple-touch-icon" href="elki-icon.png">
   <!-- NEU (Sicherheit, erweitert 2026-08-23): Content-Security-Policy mit fester Quellen-Whitelist.
        Begrenzt, WOHER Skripte geladen (script-src) und WOHIN Daten gesendet werden dürfen (connect-src) –
        dämmt Exfiltration bei einer etwaigen XSS ein. Erlaubte Fremd-Hosts: gstatic (Firebase-SDK),
@@ -80,11 +80,11 @@
     .app-shell { display:flex; align-items:stretch; min-height:100vh; }
     .sidebar { width:252px; flex-shrink:0; background:var(--surface); border-right:1px solid var(--line); display:flex; flex-direction:column; position:sticky; top:0; height:100vh; z-index:50; }
     .sidebar-brand { padding:18px 16px 14px; }
-    .sidebar-logo-chip { background:#ffffff; border:1px solid var(--line); border-radius:10px; padding:11px 14px; display:flex; align-items:center; justify-content:center; }
-    .sidebar-logo-chip img { width:100%; height:auto; max-height:50px; object-fit:contain; display:block; }
+    .sidebar-logo-chip { background:#ffffff; border:1px solid var(--line); border-radius:0; padding:11px 14px; display:flex; align-items:center; justify-content:center; }
+    .sidebar-logo-chip img { width:100%; height:auto; max-height:64px; object-fit:contain; display:block; }
     .sidebar-section-label { font-size:10px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3); padding:10px 22px 6px; }
     .sidebar-nav { padding:2px 12px; display:flex; flex-direction:column; gap:2px; flex:1; }
-    .sidebar-nav .tab-button { display:flex; align-items:center; gap:11px; width:100%; padding:9px 12px; border-radius:7px; border:none; background:none; font-family:inherit; font-size:14px; font-weight:600; color:var(--ink-2); cursor:pointer; text-align:left; margin:0; transition:background .15s,color .15s; }
+    .sidebar-nav .tab-button { display:flex; align-items:center; gap:11px; width:100%; padding:9px 12px; border-radius:0; border:none; background:none; font-family:inherit; font-size:14px; font-weight:600; color:var(--ink-2); cursor:pointer; text-align:left; margin:0; transition:background .15s,color .15s; }
     .sidebar-nav .tab-button svg { width:18px; height:18px; flex-shrink:0; opacity:.85; }
     .sidebar-nav .tab-button:hover { background:var(--brand-tint-2); color:var(--ink); border-bottom-color:transparent; }
     .sidebar-nav .tab-button.active { background:var(--brand-tint); color:var(--brand); border-bottom-color:transparent; }
@@ -96,6 +96,13 @@
     .sidebar-user-meta .header-user-name { font-size:13px; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .sidebar-user-meta .header-user-role { font-size:10px; font-weight:700; color:var(--ink-3); background:none; padding:0; border-radius:0; letter-spacing:.07em; text-transform:uppercase; }
     .sidebar-actions { display:flex; gap:8px; }
+    /* Seitenleiste durchgehend eckig (2026-09-09, Alessios Wunsch):
+       Nav-Eintraege, Logo-Kachel und Konfig-Zeile sind oben schon auf 0
+       gesetzt. Hier die zwei Reste — der Abmelden-Knopf erbt sonst die
+       globalen 3 px, der Benutzer-Punkt war ein Kreis. */
+    .sidebar-actions .btn, .sidebar-actions .btn-logout,
+    .sidebar-actions .btn-hilfe, .sidebar .btn-hilfe { border-radius:0; }
+    .sidebar-user-avatar { border-radius:0; }
     .sidebar-actions .btn-logout { flex:1; text-align:center; }
 
     .app-main { flex:1; min-width:0; display:flex; flex-direction:column; }
@@ -112,7 +119,7 @@
       .sidebar { width:100%; height:auto; position:sticky; top:0; flex-direction:row; align-items:center; flex-wrap:wrap; border-right:none; border-bottom:1px solid var(--line); }
       .sidebar-brand { padding:10px 14px; }
       .sidebar-logo-chip { padding:6px 10px; }
-      .sidebar-logo-chip img { max-height:34px; }
+      .sidebar-logo-chip img { max-height:44px; }
       .sidebar-section-label { display:none; }
       .sidebar-nav { flex-direction:row; flex:1 1 auto; padding:8px; gap:4px; }
       .sidebar-footer { border-top:none; flex-direction:row; align-items:center; gap:10px; padding:8px 14px; width:auto; }
@@ -474,7 +481,7 @@
     .switch input:checked + .switch-slider:before { transform:translateX(20px); }
     /* Seitenleisten-Konfiguration */
     .sidebar-config { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; }
-    .sidebar-config-row { display:flex; align-items:center; gap:9px; padding:9px 11px; border:1px solid var(--line); border-radius:var(--r-sm); background:var(--surface-2); font-size:13.5px; font-weight:600; color:var(--ink); cursor:pointer; }
+    .sidebar-config-row { display:flex; align-items:center; gap:9px; padding:9px 11px; border:1px solid var(--line); border-radius:0; background:var(--surface-2); font-size:13.5px; font-weight:600; color:var(--ink); cursor:pointer; }
     .sidebar-config-row:hover { border-color:var(--ink-3); }
     .sidebar-config-row input { width:16px; height:16px; accent-color:var(--brand); cursor:pointer; flex-shrink:0; }
     @media(max-width:600px){
@@ -583,6 +590,12 @@
     .login-overlay { position:fixed; inset:0; background:var(--bg); z-index:9000; display:flex; align-items:center; justify-content:center; padding:20px; }
     .login-box { background:var(--surface); border-radius:18px; padding:40px 36px; max-width:400px; width:100%; box-shadow:var(--sh-lg); animation:slideIn .35s ease; text-align:center; }
     .login-logo-img { height:78px; width:auto; display:block; margin:0 auto 8px; }
+    /* Im Dunkelmodus bekommt das Logo eine weisse Flaeche (2026-09-09).
+       Grund: Das Blau der Wortmarke ist #0030c0 — auf dem dunklen
+       --surface (#1e1a15) ergibt das rund 1,6:1 Kontrast, der Schriftzug
+       'Verein fuer Kinder und Eltern' ist dort praktisch nicht lesbar.
+       Die Seitenleisten-Kachel macht es mit background:#ffffff genauso. */
+    [data-theme="dark"] .login-logo-img { background:#ffffff; padding:10px 14px; }
     .login-logo { font-size:32px; font-weight:800; color:var(--brand); margin-bottom:4px; }
     .login-tagline { font-size:12px; color:var(--ink-3); margin-bottom:30px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; }
     .login-title { font-size:17px; font-weight:800; color:var(--ink); margin-bottom:20px; text-align:left; }
@@ -599,11 +612,12 @@
     .header-user-role { font-size:11px; font-weight:700; color:var(--ink-2); background:var(--line-2); padding:3px 9px; border-radius:6px; text-transform:uppercase; letter-spacing:.05em; }
     .btn-logout { padding:7px 13px; background:var(--surface); color:var(--ink-2); border:1px solid var(--line); border-radius:var(--r-xs); font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; transition:all .18s; }
     .btn-logout:hover { background:var(--danger-bg); color:var(--danger); border-color:var(--danger); }
-    .btn-theme { width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center; background:var(--surface); color:var(--ink-2); border:1px solid var(--line); border-radius:var(--r-xs); cursor:pointer; font-family:inherit; padding:0; flex-shrink:0; }
-    .btn-theme:hover { background:var(--brand-tint-2); color:var(--brand); border-color:var(--ink-3); }
-    .btn-theme svg { width:17px; height:17px; display:block; }
-    .btn-theme .icon-moon { display:block; } .btn-theme .icon-sun { display:none; }
-    [data-theme="dark"] .btn-theme .icon-moon { display:none; } [data-theme="dark"] .btn-theme .icon-sun { display:block; }
+    /* Frueher der Dunkelmodus-Knopf. Seit 2026-09-09 sitzt hier die Hilfe
+       (Alessios Wunsch). Der Dunkelmodus bleibt erreichbar ueber
+       Einstellungen -> Darstellung; das Kaestchen dort wird vorbelegt. */
+    .btn-hilfe { width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center; background:var(--surface); color:var(--ink-2); border:1px solid var(--line); border-radius:var(--r-xs); cursor:pointer; font-family:inherit; padding:0; flex-shrink:0; }
+    .btn-hilfe:hover { background:var(--brand-tint-2); color:var(--brand); border-color:var(--ink-3); }
+    .btn-hilfe svg { width:18px; height:18px; display:block; }
 
     /* TICKET SYSTEM */
     .ticket-modal-overlay { position:fixed; inset:0; background:rgba(20,33,56,.45); backdrop-filter:blur(2px); z-index:3000; display:none; justify-content:center; align-items:flex-start; padding-top:60px; }
@@ -1622,9 +1636,8 @@
         </div>
       </div>
       <div class="sidebar-actions">
-        <button class="btn-theme" id="btn-theme" title="Dunkelmodus umschalten" aria-label="Dunkelmodus umschalten">
-          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>
-          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+        <button class="btn-hilfe" id="btn-hilfe" title="Hilfe" aria-label="Hilfe oeffnen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.1 9.5a3 3 0 0 1 5.8 1c0 2-2.9 2.6-2.9 4"></path><line x1="12" y1="17.6" x2="12.01" y2="17.6"></line></svg>
         </button>
         <button class="btn-logout" id="btn-logout">Abmelden</button>
       </div>
@@ -3477,7 +3490,10 @@ const SIDEBAR_ITEMS = [
   { tab:'berichte',       label:'Berichte' },
   { tab:'rechnungen',     label:'Rechnungen' },
   { tab:'infoseite',      label:'Infoseite' },
-  { tab:'hilfe',          label:'Hilfe' },
+  // 'hilfe' steht hier bewusst NICHT mehr (2026-09-09): Der Zugang laeuft
+  // ueber den Fragezeichen-Knopf unten in der Seitenleiste. Der Tab-Knopf
+  // im HTML bleibt auf display:none - applySidebarPrefs fasst ihn nicht an,
+  // solange er nicht in dieser Liste steht.
 ];
 // Persönliche Auswahl (pro Gerät, localStorage). Default: alles sichtbar.
 let sidebarPrefs = {};
@@ -3969,7 +3985,10 @@ function registerAuthEvents() {
   // nur beim Abmelden aus der Leser-App, nie über diesen Knopf.
   // Nachgestellt am 2026-08-13.
   document.getElementById('btn-logout').addEventListener('click', () => doLogout());
-  document.getElementById('btn-theme').addEventListener('click', () => setTheme(!isDarkTheme()));
+  // Hilfe aus der Seitenleiste heraus. switchTab braucht nur die Sektion,
+  // keinen Tab-Knopf - deshalb funktioniert es auch ohne Eintrag in
+  // SIDEBAR_ITEMS.
+  document.getElementById('btn-hilfe')?.addEventListener('click', () => switchTab('hilfe'));
 
   // ── Neuen Benutzer anlegen ───────────────────────────────
   // Das Formular sitzt seit 2026-08-12 in der Rollenverwaltung; hier steht
@@ -10500,7 +10519,7 @@ function exportExcel(panelId) {
     /* Logo + Benutzer teilen sich die erste Zeile, die Navigation
        bekommt darunter die volle Breite. */
     .sidebar-brand { flex:0 1 auto; min-width:0; max-width:40%; }
-    .sidebar-logo-chip img { max-height:30px; }
+    .sidebar-logo-chip img { max-height:38px; }
     .sidebar-footer { order:1; margin-left:auto; }
     .sidebar-nav { order:2; flex:1 1 100%; width:100%; border-top:1px solid var(--line-2); padding:6px 8px; }
   }
@@ -13580,15 +13599,31 @@ function exportExcel(panelId) {
       + 'serverseitig abgeschaltet. Ein Anlegen aus dem Browser waere damit ohnehin nicht '
       + 'mehr moeglich &mdash; der Weg fuehrt jetzt ueber die Konsole.</span></div></div>'
 
-      + '<div class="rv-block"><h4>So legst du ein Konto an</h4><div class="rv-karte">'
+      + '<div class="rv-block"><h4>1. In der Firebase-Konsole</h4><div class="rv-karte">'
       + '<ol style="margin:0;padding-left:20px;line-height:1.75">'
-      + '<li>Firebase-Konsole &rarr; <b>Authentication</b> &rarr; <b>Users</b> &rarr; <b>Add user</b></li>'
+      + '<li><b>Authentication</b> &rarr; <b>Users</b> &rarr; <b>Add user</b></li>'
       + '<li>E-Mail und ein Startpasswort eintragen. <b>Echte Adresse verwenden</b> &mdash; '
       +   'nur dann kann die Person ihr Passwort spaeter selbst zuruecksetzen.</li>'
       + '<li>In der Liste die <b>User UID</b> kopieren (Spalte ganz rechts)</li>'
-      + '<li>Hier in der Verwaltung das Konto anlegen bzw. oeffnen und die <b>UID eintragen</b>, '
-      +   'dann Rolle setzen und <b>Speichern</b> &mdash; damit entsteht das Rollen-Dokument.</li>'
       + '</ol></div></div>'
+      + '<div class="rv-block"><h4>2. Konto hier eintragen</h4><div class="rv-karte">'
+      + '<div class="rv-felder">'
+      +   feld('rv-k-name',  'Name',           'text', '')
+      +   feld('rv-k-user',  'Benutzername',   'text', '', 'Kleinbuchstaben, Zahlen, Unterstrich')
+      +   feld('rv-k-mail',  'Anmelde-Adresse','text', '', 'Genau wie in der Konsole')
+      +   feld('rv-k-uid',   'Firebase-UID',   'text', '', 'Konsole &rarr; Users &rarr; Spalte ganz rechts')
+      +   '<div class="rv-feld"><label for="rv-k-rolle">Rolle</label><select id="rv-k-rolle">'
+      +     '<option value="supervisor">Supervisor</option>'
+      +     '<option value="user" selected>Bearbeiter</option>'
+      +     '<option value="viewer">Leser</option></select></div>'
+      + '</div>'
+      + '<div class="rv-feld-hinweis" style="margin-top:10px"><b>Kein Passwort</b> &mdash; das '
+      +   'steht schon in Firebase. Hier entsteht nur der Eintrag in der Verwaltung und das '
+      +   'Rollen-Dokument.</div>'
+      + '<div class="rv-aktionen" style="margin-top:14px">'
+      +   '<button type="button" class="btn btn-primary" id="rv-k-eintragen">Konto eintragen</button>'
+      + '</div>'
+      + '</div></div>'
 
       + '<div class="rv-block"><h4>Warum dieser Umweg</h4><div class="rv-karte">'
       + '<p class="hilfe-text" style="margin:0">Solange die App Konten anlegen kann, muss die '
@@ -13608,6 +13643,64 @@ function exportExcel(panelId) {
 
     $('rv-n-zurueck').addEventListener('click', function(){ entwurf = null; ansicht = 'detail'; detailZeichnen(); });
     $('rv-n-zur-pruefung').addEventListener('click', function(){ entwurf = null; ansicht = 'pruefung'; detailZeichnen(); });
+    var ke = $('rv-k-eintragen');
+    if (ke) ke.addEventListener('click', konsolenKontoEintragen);
+  }
+
+  // Ein in der Konsole angelegtes Firebase-Konto in der Verwaltung
+  // registrieren (NEU 2026-09-09).
+  //
+  // WARUM ES DAS BRAUCHT: Seit KONTEN_IN_APP_ANLEGEN=false zeigte
+  // "+ Neuer Benutzer" nur noch den Konsolen-Hinweis. Dessen Schritt 4 sagte
+  // "hier in der Verwaltung das Konto anlegen" — aber genau dieser Weg
+  // existierte nicht mehr: Das alte Formular (btn-add-user) ist aus dem HTML
+  // verschwunden, und der neue Weg legt IMMER erst ein Firebase-Konto an und
+  // bricht bei 'auth/email-already-in-use' ab. Ein in der Konsole erstelltes
+  // Konto liess sich damit ueberhaupt nicht eintragen.
+  //
+  // Hier wird KEIN Firebase-Konto angelegt — nur der Listeneintrag und das
+  // Rollen-Dokument. Das Passwort bleibt, wo es hingehoert: in Firebase.
+  async function konsolenKontoEintragen(){
+    if (!admin()) { toast('Nur der Administrator darf das', 'error'); return; }
+    var name = ($('rv-k-name').value || '').trim();
+    var user = ($('rv-k-user').value || '').trim().toLowerCase();
+    var mail = ($('rv-k-mail').value || '').trim().toLowerCase();
+    var uid  = ($('rv-k-uid').value  || '').trim();
+    var rolle = $('rv-k-rolle').value;
+
+    if (!name || !user) { toast('Name und Benutzername sind noetig', 'error'); return; }
+    if (!/^[a-z0-9_]+$/.test(user)) { toast('Benutzername: nur Kleinbuchstaben, Zahlen, Unterstrich', 'error'); return; }
+    if (!uid) { toast('Ohne UID wirkt die Rolle serverseitig nicht — bitte eintragen', 'error'); return; }
+    if (!/^[A-Za-z0-9]{20,128}$/.test(uid)) { toast('Das sieht nicht nach einer Firebase-UID aus', 'error'); return; }
+    if (benutzer.some(function(u){ return u.username === user; })) { toast('Benutzername bereits vergeben', 'error'); return; }
+    // Zwei Eintraege auf derselben UID waeren ein stiller Rollen-Konflikt:
+    // rollen/{uid} kann nur EINE Rolle tragen, der zweite Eintrag ueberschriebe sie.
+    if (benutzer.some(function(u){ return u.uid && u.uid === uid; })) { toast('Diese UID gehoert bereits einem anderen Konto', 'error'); return; }
+    var adresse = mail || (user + '@elki.local');
+    if (benutzer.some(function(u){ return String(u.email||'').toLowerCase() === adresse; })) {
+      toast('Diese Anmelde-Adresse ist bereits eingetragen', 'error'); return;
+    }
+
+    var btn = $('rv-k-eintragen'); btn.disabled = true; btn.textContent = 'Wird eingetragen...';
+    var neueId = benutzer.reduce(function(m,u){ return Math.max(m, u.id || 0); }, 0) + 1;
+    var eintrag = ergaenze({
+      id: neueId, name: name, username: user, email: adresse,
+      role: rolle, uid: uid, erstellt: new Date().toISOString()
+    });
+    benutzer.push(eintrag);
+    try { await sichern(); }
+    catch(e){
+      benutzer.pop();                        // Liste nicht halb veraendert stehen lassen
+      btn.disabled = false; btn.textContent = 'Konto eintragen';
+      toast('Nicht gespeichert: ' + e.message, 'error'); return;
+    }
+    var hinweis = '';
+    try { await rolleSchreiben(eintrag); }
+    catch(e){ hinweis = ' Die Berechtigung konnte aber nicht geschrieben werden: ' + e.message; }
+
+    entwurf = null; gewaehlt = neueId; ansicht = 'detail';
+    toast('@' + user + ' eingetragen' + hinweis, hinweis ? 'error' : 'success');
+    listeZeichnen(); detailZeichnen();
   }
 
   function pruefungZeichnen(el){
